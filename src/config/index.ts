@@ -72,9 +72,13 @@ function parsePositiveInteger(
     return defaultValue;
   }
 
-  const parsedValue = Number.parseInt(normalizedValue, 10);
+  if (!/^\d+$/.test(normalizedValue)) {
+    return defaultValue;
+  }
 
-  return Number.isFinite(parsedValue) && parsedValue > 0
+  const parsedValue = Number(normalizedValue);
+
+  return Number.isInteger(parsedValue) && parsedValue > 0
     ? parsedValue
     : defaultValue;
 }

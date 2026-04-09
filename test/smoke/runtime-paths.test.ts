@@ -61,3 +61,23 @@ test("config honors path overrides and leaves room for optional embeddings", () 
     provider: "local-ollama",
   });
 });
+
+test("config rejects partially numeric ingest interval values", () => {
+  const scientificNotationConfig = createSenseiConfig({
+    repoRoot,
+    homeDir,
+    env: {
+      SENSEI_INGEST_WATCH_INTERVAL_MS: "5e3",
+    },
+  });
+  const suffixedValueConfig = createSenseiConfig({
+    repoRoot,
+    homeDir,
+    env: {
+      SENSEI_INGEST_WATCH_INTERVAL_MS: "100ms",
+    },
+  });
+
+  expect(scientificNotationConfig.ingest.watchIntervalMs).toBe(250);
+  expect(suffixedValueConfig.ingest.watchIntervalMs).toBe(250);
+});
