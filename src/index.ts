@@ -13,3 +13,5 @@ export type RepositoryArea = (typeof repositoryAreas)[number];
 export function getRepositoryAreas(): RepositoryArea[] {
   return [...repositoryAreas];
 }
+
+export * from "./config";

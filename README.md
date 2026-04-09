@@ -29,6 +29,23 @@ The repository is organized around these top-level areas:
 
 `sensei` should consume `@jasonbelmonti/claudex/ingest` as the canonical normalization layer for Claude and Codex artifacts. The goal is to build mentoring and workflow analysis on top of normalized turns, not to duplicate transcript parsing logic here.
 
+## Runtime path defaults
+
+The current runtime/config layer assumes a local-first layout:
+
+- `~/.sensei` for runtime-owned data, cache, reports, and the local SQLite database
+- `~/.claude` and `~/.codex` as the default provider roots
+- `<repo>/generated` as the workspace-owned output root for generated skills, scripts, and automation specs
+
+The initial env overrides are:
+
+- `SENSEI_HOME`
+- `SENSEI_CLAUDE_ROOT`
+- `SENSEI_CODEX_ROOT`
+- `SENSEI_GENERATED_ROOT`
+- `SENSEI_INGEST_WATCH_INTERVAL_MS`
+- `SENSEI_EMBEDDING_PROVIDER`
+
 ## Current status
 
 This repository currently contains the initial Bun/TypeScript scaffold and smoke coverage for the bootstrap layer. Ingest, storage, analysis, and the final skill behavior land in subsequent issues.
