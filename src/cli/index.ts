@@ -58,10 +58,11 @@ export function createSenseiCliApplication(
       }
 
       if (isKnownCommand(firstArg)) {
-        stdout(
-          `Command group '${firstArg}' is registered. Command shell wiring lands in BEL-648.`,
+        stderr(
+          `Command group '${firstArg}' is registered but not implemented yet.`,
         );
-        return 0;
+        stderr("Command shell wiring lands in BEL-648.");
+        return 1;
       }
 
       stderr(`Unknown command '${firstArg}'.`);

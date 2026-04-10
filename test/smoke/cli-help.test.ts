@@ -50,3 +50,22 @@ test("cli rejects unknown commands with a useful error", async () => {
     "Run 'sensei --help' to inspect the registered command groups.",
   ]);
 });
+
+test("registered command groups fail until command shells are wired", async () => {
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const app = createSenseiCliApplication({
+    repoRoot: "/repo/sensei",
+    stdout: (line) => stdout.push(line),
+    stderr: (line) => stderr.push(line),
+  });
+
+  const exitCode = await app.run(["ingest"]);
+
+  expect(exitCode).toBe(1);
+  expect(stdout).toEqual([]);
+  expect(stderr).toEqual([
+    "Command group 'ingest' is registered but not implemented yet.",
+    "Command shell wiring lands in BEL-648.",
+  ]);
+});
