@@ -51,7 +51,7 @@ test("cli rejects unknown commands with a useful error", async () => {
   ]);
 });
 
-test("registered command groups fail until command shells are wired", async () => {
+test("registered command groups dispatch through the command shell modules", async () => {
   const stdout: string[] = [];
   const stderr: string[] = [];
   const app = createSenseiCliApplication({
@@ -65,7 +65,7 @@ test("registered command groups fail until command shells are wired", async () =
   expect(exitCode).toBe(1);
   expect(stdout).toEqual([]);
   expect(stderr).toEqual([
-    "Command group 'ingest' is registered but not implemented yet.",
-    "Command shell wiring lands in BEL-648.",
+    "Command group 'ingest' is not implemented yet.",
+    "Thin shell for 'ingest' is in place; dispatcher wiring lands in BEL-660.",
   ]);
 });

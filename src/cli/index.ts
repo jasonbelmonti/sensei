@@ -3,10 +3,10 @@
 import { resolve } from "node:path";
 
 import { createSenseiConfig } from "../config";
+import { senseiCliCommandHandlers } from "./commands";
 import type {
   CreateSenseiCliApplicationOptions,
   SenseiCliApplication,
-  SenseiCliCommandExecutionContext,
   SenseiCliCommandDefinition,
   SenseiCliCommandResult,
   SenseiCliOutputChannel,
@@ -108,7 +108,7 @@ async function resolveCliResult(
   }
 
   if (isKnownCommand(firstArg)) {
-    return createNotImplementedCommandResult({
+    return senseiCliCommandHandlers[firstArg]({
       command: firstArg,
       args: remainingArgs,
       cli: context,
@@ -116,17 +116,6 @@ async function resolveCliResult(
   }
 
   return createUnknownCommandResult(firstArg);
-}
-
-function createNotImplementedCommandResult(
-  context: SenseiCliCommandExecutionContext,
-): SenseiCliCommandResult {
-  return createCommandResult(1, [
-    stderrLine(
-      `Command group '${context.command}' is registered but not implemented yet.`,
-    ),
-    stderrLine("Command shell wiring lands in BEL-648."),
-  ]);
 }
 
 function createUnknownCommandResult(commandName: string): SenseiCliCommandResult {
