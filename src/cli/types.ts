@@ -15,6 +15,17 @@ export type SenseiCliCommandDefinition = {
 };
 
 export type SenseiCliWriter = (line: string) => void;
+export type SenseiCliOutputChannel = "stdout" | "stderr";
+
+export type SenseiCliOutputLine = {
+  channel: SenseiCliOutputChannel;
+  text: string;
+};
+
+export type SenseiCliCommandResult = {
+  exitCode: number;
+  lines: readonly SenseiCliOutputLine[];
+};
 
 export type CreateSenseiCliApplicationOptions = {
   cwd?: string;
@@ -29,7 +40,19 @@ export type SenseiCliContext = {
   repoRoot: string;
   config: SenseiRuntimeConfig;
   commands: readonly SenseiCliCommandDefinition[];
+  stdout: SenseiCliWriter;
+  stderr: SenseiCliWriter;
 };
+
+export type SenseiCliCommandExecutionContext = {
+  command: SenseiCliCommandName;
+  args: readonly string[];
+  cli: SenseiCliContext;
+};
+
+export type SenseiCliCommandHandler = (
+  context: SenseiCliCommandExecutionContext,
+) => Promise<SenseiCliCommandResult> | SenseiCliCommandResult;
 
 export type SenseiCliApplication = {
   context: SenseiCliContext;
