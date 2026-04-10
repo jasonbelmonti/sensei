@@ -66,6 +66,6 @@ test("registered command groups dispatch through the command shell modules", asy
   expect(stdout).toEqual([]);
   expect(stderr).toEqual([
     "Command group 'ingest' is not implemented yet.",
-    "Thin shell for 'ingest' is in place; dispatcher wiring lands in BEL-660.",
+    "Command dispatch is active; 'ingest' still uses a placeholder shell.",
   ]);
 });

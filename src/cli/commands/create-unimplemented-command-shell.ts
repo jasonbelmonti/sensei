@@ -9,7 +9,7 @@ export function createUnimplementedCommandShell(): SenseiCliCommandHandler {
     createCommandResult(1, [
       stderrLine(`Command group '${context.command}' is not implemented yet.`),
       stderrLine(
-        `Thin shell for '${context.command}' is in place; dispatcher wiring lands in BEL-660.`,
+        `Command dispatch is active; '${context.command}' still uses a placeholder shell.`,
       ),
     ]);
 }

@@ -40,7 +40,7 @@ for (const [commandName, handler] of commandHandlers) {
       },
       {
         channel: "stderr",
-        text: `Thin shell for '${commandName}' is in place; dispatcher wiring lands in BEL-660.`,
+        text: `Command dispatch is active; '${commandName}' still uses a placeholder shell.`,
       },
     ]);
   });
