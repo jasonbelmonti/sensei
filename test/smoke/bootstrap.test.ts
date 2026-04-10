@@ -30,10 +30,17 @@ test("package scripts and documentation describe the bootstrap surface", async (
   expect(packageJson.name).toBe("sensei");
   expect(packageJson.scripts).toMatchObject({
     lint: "biome lint .",
+    sensei: "bun ./src/cli/index.ts",
     test: "bun test",
     typecheck: "tsc --noEmit",
     check: "bun run lint && bun run typecheck && bun run test",
   });
   expect(readme).toContain("@jasonbelmonti/claudex/ingest");
   expect(readme).toContain("local-first mentoring system");
+  expect(readme).toContain("bun run sensei -- --help");
+  expect(readme).toContain("ingest");
+  expect(readme).toContain("analyze");
+  expect(readme).toContain("report");
+  expect(readme).toContain("draft");
+  expect(readme).toContain("placeholder shell");
 });

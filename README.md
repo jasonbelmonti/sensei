@@ -50,9 +50,37 @@ The initial env overrides are:
 
 This repository currently contains the initial Bun/TypeScript scaffold and smoke coverage for the bootstrap layer. Ingest, storage, analysis, and the final skill behavior land in subsequent issues.
 
+## CLI bootstrap surface
+
+The current package-level bootstrap path is:
+
+```bash
+bun run sensei -- --help
+```
+
+The registered command groups are:
+
+- `ingest`: backfill or observe local Claude and Codex history
+- `analyze`: run deterministic feature extraction and mentoring analysis
+- `report`: render operator-facing summaries over stored insights
+- `draft`: prepare reviewable draft skills, scripts, and automations
+
+These command groups are intentionally placeholder shells in the current slice. Each command dispatches through the CLI wiring, then exits non-zero with:
+
+- `Command group '<name>' is not implemented yet.`
+- `Command dispatch is active; '<name>' still uses a placeholder shell.`
+
+Current bootstrap behavior:
+
+- `bun run sensei -- --help` succeeds and renders the registered command groups
+- `bun run sensei -- <command>` dispatches to the matching shell module
+- unknown commands exit with code `1`
+
 ## Verification
 
 ```bash
 bun install
-bun run check
+bun run test
+bun run typecheck
+bun run sensei -- --help
 ```
