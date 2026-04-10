@@ -3,32 +3,23 @@
 import { resolve } from "node:path";
 
 import { createSenseiConfig } from "../config";
+import { senseiCommandGroups } from "./command-groups";
+import {
+  createCommandResult,
+  stderrLine,
+  stdoutLine,
+  writeCliResult,
+} from "./command-results";
+import { senseiCliCommandHandlers } from "./commands";
 import type {
   CreateSenseiCliApplicationOptions,
   SenseiCliApplication,
-  SenseiCliCommandDefinition,
+  SenseiCliCommandResult,
   SenseiCliWriter,
 } from "./types";
 import { senseiCommandNames } from "./types";
 
-export const senseiCommandGroups = [
-  {
-    name: "ingest",
-    summary: "Backfill or observe local Claude and Codex history.",
-  },
-  {
-    name: "analyze",
-    summary: "Run deterministic feature extraction and mentoring analysis.",
-  },
-  {
-    name: "report",
-    summary: "Render operator-facing summaries over stored insights.",
-  },
-  {
-    name: "draft",
-    summary: "Prepare reviewable draft skills, scripts, and automations.",
-  },
-] as const satisfies ReadonlyArray<SenseiCliCommandDefinition>;
+export { senseiCommandGroups } from "./command-groups";
 
 export function createSenseiCliApplication(
   options: CreateSenseiCliApplicationOptions = {},
@@ -45,29 +36,18 @@ export function createSenseiCliApplication(
       env: options.env,
     }),
     commands: [...senseiCommandGroups],
+    stdout,
+    stderr,
   };
 
   return {
     context,
     async run(argv) {
-      const [firstArg] = argv;
+      const [firstArg, ...remainingArgs] = argv;
+      const result = await resolveCliResult(context, firstArg, remainingArgs);
 
-      if (!firstArg || isHelpArgument(firstArg)) {
-        renderHelp(stdout, context);
-        return 0;
-      }
-
-      if (isKnownCommand(firstArg)) {
-        stderr(
-          `Command group '${firstArg}' is registered but not implemented yet.`,
-        );
-        stderr("Command shell wiring lands in BEL-648.");
-        return 1;
-      }
-
-      stderr(`Unknown command '${firstArg}'.`);
-      stderr("Run 'sensei --help' to inspect the registered command groups.");
-      return 1;
+      writeCliResult(context, result);
+      return result.exitCode;
     },
   };
 }
@@ -81,21 +61,20 @@ export async function runSenseiCli(
 }
 
 function renderHelp(
-  writeLine: SenseiCliWriter,
   context: SenseiCliApplication["context"],
-): void {
-  writeLine("sensei CLI");
-  writeLine("Usage: sensei <command> [args]");
-  writeLine("");
-  writeLine("Registered command groups:");
-
-  for (const command of context.commands) {
-    writeLine(`  ${command.name.padEnd(7)} ${command.summary}`);
-  }
-
-  writeLine("");
-  writeLine(`Repository root: ${context.repoRoot}`);
-  writeLine(`Sensei home: ${context.config.paths.homeRoot}`);
+): SenseiCliCommandResult {
+  return createCommandResult(0, [
+    stdoutLine("sensei CLI"),
+    stdoutLine("Usage: sensei <command> [args]"),
+    stdoutLine(""),
+    stdoutLine("Registered command groups:"),
+    ...context.commands.map((command) =>
+      stdoutLine(`  ${command.name.padEnd(7)} ${command.summary}`),
+    ),
+    stdoutLine(""),
+    stdoutLine(`Repository root: ${context.repoRoot}`),
+    stdoutLine(`Sensei home: ${context.config.paths.homeRoot}`),
+  ]);
 }
 
 function isHelpArgument(value: string): boolean {
@@ -104,6 +83,33 @@ function isHelpArgument(value: string): boolean {
 
 function isKnownCommand(value: string): value is (typeof senseiCommandNames)[number] {
   return senseiCommandNames.includes(value as (typeof senseiCommandNames)[number]);
+}
+
+async function resolveCliResult(
+  context: SenseiCliApplication["context"],
+  firstArg: string | undefined,
+  remainingArgs: readonly string[],
+): Promise<SenseiCliCommandResult> {
+  if (!firstArg || isHelpArgument(firstArg)) {
+    return renderHelp(context);
+  }
+
+  if (isKnownCommand(firstArg)) {
+    return senseiCliCommandHandlers[firstArg]({
+      command: firstArg,
+      args: remainingArgs,
+      cli: context,
+    });
+  }
+
+  return createUnknownCommandResult(firstArg);
+}
+
+function createUnknownCommandResult(commandName: string): SenseiCliCommandResult {
+  return createCommandResult(1, [
+    stderrLine(`Unknown command '${commandName}'.`),
+    stderrLine("Run 'sensei --help' to inspect the registered command groups."),
+  ]);
 }
 
 function createStreamWriter(stream: NodeJS.WriteStream): SenseiCliWriter {
