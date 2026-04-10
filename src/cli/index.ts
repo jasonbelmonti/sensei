@@ -3,36 +3,23 @@
 import { resolve } from "node:path";
 
 import { createSenseiConfig } from "../config";
+import { senseiCommandGroups } from "./command-groups";
+import {
+  createCommandResult,
+  stderrLine,
+  stdoutLine,
+  writeCliResult,
+} from "./command-results";
 import { senseiCliCommandHandlers } from "./commands";
 import type {
   CreateSenseiCliApplicationOptions,
   SenseiCliApplication,
-  SenseiCliCommandDefinition,
   SenseiCliCommandResult,
-  SenseiCliOutputChannel,
-  SenseiCliOutputLine,
   SenseiCliWriter,
 } from "./types";
 import { senseiCommandNames } from "./types";
 
-export const senseiCommandGroups = [
-  {
-    name: "ingest",
-    summary: "Backfill or observe local Claude and Codex history.",
-  },
-  {
-    name: "analyze",
-    summary: "Run deterministic feature extraction and mentoring analysis.",
-  },
-  {
-    name: "report",
-    summary: "Render operator-facing summaries over stored insights.",
-  },
-  {
-    name: "draft",
-    summary: "Prepare reviewable draft skills, scripts, and automations.",
-  },
-] as const satisfies ReadonlyArray<SenseiCliCommandDefinition>;
+export { senseiCommandGroups } from "./command-groups";
 
 export function createSenseiCliApplication(
   options: CreateSenseiCliApplicationOptions = {},
@@ -123,44 +110,6 @@ function createUnknownCommandResult(commandName: string): SenseiCliCommandResult
     stderrLine(`Unknown command '${commandName}'.`),
     stderrLine("Run 'sensei --help' to inspect the registered command groups."),
   ]);
-}
-
-function writeCliResult(
-  context: SenseiCliApplication["context"],
-  result: SenseiCliCommandResult,
-): void {
-  for (const line of result.lines) {
-    const writer = line.channel === "stdout" ? context.stdout : context.stderr;
-    writer(line.text);
-  }
-}
-
-function createCommandResult(
-  exitCode: number,
-  lines: readonly SenseiCliOutputLine[],
-): SenseiCliCommandResult {
-  return {
-    exitCode,
-    lines,
-  };
-}
-
-function stdoutLine(text: string): SenseiCliOutputLine {
-  return createOutputLine("stdout", text);
-}
-
-function stderrLine(text: string): SenseiCliOutputLine {
-  return createOutputLine("stderr", text);
-}
-
-function createOutputLine(
-  channel: SenseiCliOutputChannel,
-  text: string,
-): SenseiCliOutputLine {
-  return {
-    channel,
-    text,
-  };
 }
 
 function createStreamWriter(stream: NodeJS.WriteStream): SenseiCliWriter {
