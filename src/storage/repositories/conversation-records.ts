@@ -515,16 +515,16 @@ function shouldReplaceSessionObservation(
     return true;
   }
 
-  const completenessDifference =
-    sessionCompletenessRank(incoming.completeness) -
-    sessionCompletenessRank(existing.completeness);
+  const identityDifference =
+    sessionIdentityStateRank(incoming.identityState) -
+    sessionIdentityStateRank(existing.identityState);
 
-  if (completenessDifference !== 0) {
-    return completenessDifference > 0;
+  if (identityDifference !== 0) {
+    return identityDifference > 0;
   }
 
   return (
-    sessionIdentityStateRank(incoming.identityState) >
-    sessionIdentityStateRank(existing.identityState)
+    sessionCompletenessRank(incoming.completeness) >
+    sessionCompletenessRank(existing.completeness)
   );
 }

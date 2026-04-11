@@ -327,6 +327,56 @@ test("conversation repository keeps session provenance stable for equal-strength
   });
 });
 
+test("conversation repository updates provenance when session identity strengthens", () => {
+  const harness = createStorageTestHarness("sensei-storage-session-identity");
+  cleanups.push(harness.cleanup);
+
+  const { conversations } = harness.storage;
+
+  conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "provisional",
+    source: {
+      provider: "claude",
+      kind: "transcript",
+      discoveryPhase: "watch",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.jsonl",
+    },
+    completeness: "complete",
+    observationReason: "transcript",
+    observedAt: "2026-04-11T12:00:00.000Z",
+  });
+  const replayedSession = conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "canonical",
+    source: {
+      provider: "claude",
+      kind: "snapshot",
+      discoveryPhase: "reconcile",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.snapshot.json",
+    },
+    completeness: "partial",
+    observationReason: "snapshot",
+    observedAt: "2026-04-11T12:01:00.000Z",
+  });
+
+  expect(replayedSession).toMatchObject({
+    identityState: "canonical",
+    completeness: "complete",
+    observationReason: "snapshot",
+    source: {
+      kind: "snapshot",
+      discoveryPhase: "reconcile",
+      filePath: "/Users/test/.claude/projects/session-1.snapshot.json",
+    },
+    observedAt: "2026-04-11T12:01:00.000Z",
+  });
+});
+
 test("ingest state repository stores cursors and append-only warnings", () => {
   const harness = createStorageTestHarness("sensei-storage-ingest-state");
   cleanups.push(harness.cleanup);
