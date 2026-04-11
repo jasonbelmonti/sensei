@@ -138,21 +138,42 @@ export function createConversationRepository(database: Database) {
       updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (provider, session_id, turn_id) DO UPDATE SET
-      status = excluded.status,
-      input_prompt = excluded.input_prompt,
-      input_attachments_json = excluded.input_attachments_json,
-      input_metadata_json = excluded.input_metadata_json,
-      output_text = excluded.output_text,
-      output_structured_output_json = excluded.output_structured_output_json,
-      stop_reason = excluded.stop_reason,
-      error_code = excluded.error_code,
-      error_message = excluded.error_message,
-      error_details_json = excluded.error_details_json,
-      raw_event_json = excluded.raw_event_json,
-      extensions_json = excluded.extensions_json,
-      started_at = excluded.started_at,
-      completed_at = excluded.completed_at,
-      failed_at = excluded.failed_at,
+      status = CASE
+        WHEN (
+          CASE excluded.status
+            WHEN 'started' THEN 0
+            WHEN 'failed' THEN 1
+            WHEN 'completed' THEN 2
+            ELSE -1
+          END
+        ) >= (
+          CASE turns.status
+            WHEN 'started' THEN 0
+            WHEN 'failed' THEN 1
+            WHEN 'completed' THEN 2
+            ELSE -1
+          END
+        )
+          THEN excluded.status
+        ELSE turns.status
+      END,
+      input_prompt = COALESCE(excluded.input_prompt, turns.input_prompt),
+      input_attachments_json = COALESCE(excluded.input_attachments_json, turns.input_attachments_json),
+      input_metadata_json = COALESCE(excluded.input_metadata_json, turns.input_metadata_json),
+      output_text = COALESCE(excluded.output_text, turns.output_text),
+      output_structured_output_json = COALESCE(
+        excluded.output_structured_output_json,
+        turns.output_structured_output_json
+      ),
+      stop_reason = COALESCE(excluded.stop_reason, turns.stop_reason),
+      error_code = COALESCE(excluded.error_code, turns.error_code),
+      error_message = COALESCE(excluded.error_message, turns.error_message),
+      error_details_json = COALESCE(excluded.error_details_json, turns.error_details_json),
+      raw_event_json = COALESCE(excluded.raw_event_json, turns.raw_event_json),
+      extensions_json = COALESCE(excluded.extensions_json, turns.extensions_json),
+      started_at = COALESCE(excluded.started_at, turns.started_at),
+      completed_at = COALESCE(excluded.completed_at, turns.completed_at),
+      failed_at = COALESCE(excluded.failed_at, turns.failed_at),
       updated_at = excluded.updated_at
   `);
   const selectTurnUsageStatement = database.query(`
@@ -327,11 +348,16 @@ export function createConversationRepository(database: Database) {
     },
     getTurn,
     upsertTurn(input: StoreTurnInput): StoredTurnRecord {
-      const existing = getTurn(input.provider, input.sessionId, input.turnId);
-      const merged = mergeTurnRecord(existing, input);
-      upsertTurnStatement.run(...turnStatementParams(merged));
+      const candidateTurn = mergeTurnRecord(null, input);
+      upsertTurnStatement.run(...turnStatementParams(candidateTurn));
 
-      return merged;
+      const storedTurn = getTurn(input.provider, input.sessionId, input.turnId);
+
+      if (storedTurn === null) {
+        throw new Error("Turn write succeeded but no row was returned.");
+      }
+
+      return storedTurn;
     },
     getTurnUsage,
     upsertTurnUsage(input: StoreTurnUsageInput): StoredTurnUsageRecord {

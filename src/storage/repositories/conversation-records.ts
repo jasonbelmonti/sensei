@@ -229,6 +229,9 @@ export function mergeSessionRecord(
   }
 
   const shouldReplaceObservation = shouldReplaceSessionObservation(existing, input);
+  const canReuseSourceDetails =
+    shouldReplaceObservation &&
+    matchesSessionSourceIdentity(existing.source, input.source);
 
   return {
     provider: input.provider,
@@ -246,8 +249,12 @@ export function mergeSessionRecord(
           discoveryPhase: input.source.discoveryPhase,
           rootPath: input.source.rootPath,
           filePath: input.source.filePath,
-          location: input.source.location ?? existing?.source.location,
-          metadata: input.source.metadata ?? existing?.source.metadata,
+          location: canReuseSourceDetails
+            ? (input.source.location ?? existing.source.location)
+            : input.source.location,
+          metadata: canReuseSourceDetails
+            ? (input.source.metadata ?? existing.source.metadata)
+            : input.source.metadata,
         }
       : existing.source,
     completeness: shouldReplaceObservation
@@ -527,5 +534,18 @@ function shouldReplaceSessionObservation(
   return (
     sessionCompletenessRank(incoming.completeness) >
     sessionCompletenessRank(existing.completeness)
+  );
+}
+
+function matchesSessionSourceIdentity(
+  existing: StoredSessionRecord["source"],
+  incoming: StoreSessionInput["source"],
+): boolean {
+  return (
+    existing.provider === incoming.provider &&
+    existing.kind === incoming.kind &&
+    existing.discoveryPhase === incoming.discoveryPhase &&
+    existing.rootPath === incoming.rootPath &&
+    existing.filePath === incoming.filePath
   );
 }
