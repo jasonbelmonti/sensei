@@ -32,6 +32,27 @@ import {
 export type ConversationRepository = ReturnType<typeof createConversationRepository>;
 
 export function createConversationRepository(database: Database) {
+  const effectiveTurnStatusExpression = `
+    CASE
+      WHEN (
+        CASE excluded.status
+          WHEN 'started' THEN 0
+          WHEN 'failed' THEN 1
+          WHEN 'completed' THEN 2
+          ELSE -1
+        END
+      ) >= (
+        CASE turns.status
+          WHEN 'started' THEN 0
+          WHEN 'failed' THEN 1
+          WHEN 'completed' THEN 2
+          ELSE -1
+        END
+      )
+        THEN excluded.status
+      ELSE turns.status
+    END
+  `;
   const selectSessionStatement = database.query(`
     SELECT
       provider,
@@ -138,25 +159,7 @@ export function createConversationRepository(database: Database) {
       updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (provider, session_id, turn_id) DO UPDATE SET
-      status = CASE
-        WHEN (
-          CASE excluded.status
-            WHEN 'started' THEN 0
-            WHEN 'failed' THEN 1
-            WHEN 'completed' THEN 2
-            ELSE -1
-          END
-        ) >= (
-          CASE turns.status
-            WHEN 'started' THEN 0
-            WHEN 'failed' THEN 1
-            WHEN 'completed' THEN 2
-            ELSE -1
-          END
-        )
-          THEN excluded.status
-        ELSE turns.status
-      END,
+      status = ${effectiveTurnStatusExpression},
       input_prompt = COALESCE(excluded.input_prompt, turns.input_prompt),
       input_attachments_json = COALESCE(excluded.input_attachments_json, turns.input_attachments_json),
       input_metadata_json = COALESCE(excluded.input_metadata_json, turns.input_metadata_json),
@@ -167,15 +170,15 @@ export function createConversationRepository(database: Database) {
       ),
       stop_reason = COALESCE(excluded.stop_reason, turns.stop_reason),
       error_code = CASE
-        WHEN excluded.status = 'completed' THEN NULL
+        WHEN ${effectiveTurnStatusExpression} = 'completed' THEN NULL
         ELSE COALESCE(excluded.error_code, turns.error_code)
       END,
       error_message = CASE
-        WHEN excluded.status = 'completed' THEN NULL
+        WHEN ${effectiveTurnStatusExpression} = 'completed' THEN NULL
         ELSE COALESCE(excluded.error_message, turns.error_message)
       END,
       error_details_json = CASE
-        WHEN excluded.status = 'completed' THEN NULL
+        WHEN ${effectiveTurnStatusExpression} = 'completed' THEN NULL
         ELSE COALESCE(excluded.error_details_json, turns.error_details_json)
       END,
       raw_event_json = COALESCE(excluded.raw_event_json, turns.raw_event_json),
@@ -183,7 +186,7 @@ export function createConversationRepository(database: Database) {
       started_at = COALESCE(excluded.started_at, turns.started_at),
       completed_at = COALESCE(excluded.completed_at, turns.completed_at),
       failed_at = CASE
-        WHEN excluded.status = 'completed' THEN NULL
+        WHEN ${effectiveTurnStatusExpression} = 'completed' THEN NULL
         ELSE COALESCE(excluded.failed_at, turns.failed_at)
       END,
       updated_at = excluded.updated_at

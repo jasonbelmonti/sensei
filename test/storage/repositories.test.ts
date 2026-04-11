@@ -379,6 +379,64 @@ test("conversation repository clears stale failure state when a turn completes",
   });
 });
 
+test("conversation repository keeps completed turns clear of weaker failure replays", () => {
+  const harness = createStorageTestHarness("sensei-storage-turn-weaker-failure");
+  cleanups.push(harness.cleanup);
+
+  const { conversations } = harness.storage;
+
+  conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "canonical",
+    source: {
+      provider: "claude",
+      kind: "snapshot",
+      discoveryPhase: "initial_scan",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.json",
+    },
+    completeness: "complete",
+    observationReason: "snapshot",
+  });
+
+  conversations.upsertTurn({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    status: "completed",
+    output: {
+      text: "done",
+    },
+    completedAt: "2026-04-11T12:00:05.000Z",
+  });
+
+  const replayedTurn = conversations.upsertTurn({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    status: "failed",
+    error: {
+      code: "provider_failure",
+      message: "late failure replay",
+      details: {
+        exitCode: 1,
+      },
+    },
+    failedAt: "2026-04-11T12:00:06.000Z",
+  });
+
+  expect(replayedTurn).toMatchObject({
+    status: "completed",
+    output: {
+      text: "done",
+    },
+    error: undefined,
+    failedAt: undefined,
+    completedAt: "2026-04-11T12:00:05.000Z",
+  });
+});
+
 test("conversation repository clears stale tool error text after success", () => {
   const harness = createStorageTestHarness("sensei-storage-tool-error-reset");
   cleanups.push(harness.cleanup);
