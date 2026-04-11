@@ -240,8 +240,12 @@ export function mergeSessionRecord(
       existing?.identityState,
       input.identityState,
     ),
-    workingDirectory: input.workingDirectory ?? existing?.workingDirectory,
-    metadata: input.metadata ?? existing?.metadata,
+    workingDirectory: shouldReplaceObservation
+      ? (input.workingDirectory ?? existing?.workingDirectory)
+      : existing.workingDirectory,
+    metadata: shouldReplaceObservation
+      ? (input.metadata ?? existing?.metadata)
+      : existing.metadata,
     source: shouldReplaceObservation
       ? {
           provider: input.source.provider,
@@ -276,6 +280,7 @@ export function mergeTurnRecord(
 ): StoredTurnRecord {
   const timestamp = nowIsoString();
   const status = pickStrongerTurnStatus(existing?.status, input.status);
+  const shouldReplacePayload = shouldReplaceTurnPayload(existing, input);
   const isCompleted = status === "completed";
 
   return {
@@ -283,14 +288,30 @@ export function mergeTurnRecord(
     sessionId: input.sessionId,
     turnId: input.turnId,
     status,
-    input: input.input ?? existing?.input,
-    output: input.output ?? existing?.output,
-    error: isCompleted ? undefined : (input.error ?? existing?.error),
-    raw: input.raw ?? existing?.raw,
-    extensions: input.extensions ?? existing?.extensions,
-    startedAt: input.startedAt ?? existing?.startedAt,
-    completedAt: input.completedAt ?? existing?.completedAt,
-    failedAt: isCompleted ? undefined : (input.failedAt ?? existing?.failedAt),
+    input: shouldReplacePayload ? (input.input ?? existing?.input) : existing?.input,
+    output: shouldReplacePayload
+      ? (input.output ?? existing?.output)
+      : existing?.output,
+    error: isCompleted
+      ? undefined
+      : shouldReplacePayload
+        ? (input.error ?? existing?.error)
+        : existing?.error,
+    raw: shouldReplacePayload ? (input.raw ?? existing?.raw) : existing?.raw,
+    extensions: shouldReplacePayload
+      ? (input.extensions ?? existing?.extensions)
+      : existing?.extensions,
+    startedAt: shouldReplacePayload
+      ? (input.startedAt ?? existing?.startedAt)
+      : existing?.startedAt,
+    completedAt: shouldReplacePayload
+      ? (input.completedAt ?? existing?.completedAt)
+      : existing?.completedAt,
+    failedAt: isCompleted
+      ? undefined
+      : shouldReplacePayload
+        ? (input.failedAt ?? existing?.failedAt)
+        : existing?.failedAt,
     updatedAt: timestamp,
   };
 }
@@ -299,15 +320,25 @@ export function mergeTurnUsageRecord(
   existing: StoredTurnUsageRecord | null,
   input: StoreTurnUsageInput,
 ): StoredTurnUsageRecord {
+  const shouldReplaceProviderUsage =
+    existing === null ||
+    (input.inputTokens >= existing.inputTokens &&
+      input.outputTokens >= existing.outputTokens);
+
   return {
     provider: input.provider,
     sessionId: input.sessionId,
     turnId: input.turnId,
-    inputTokens: input.inputTokens,
-    outputTokens: input.outputTokens,
-    cachedInputTokens: input.cachedInputTokens ?? existing?.cachedInputTokens,
-    costUsd: input.costUsd ?? existing?.costUsd,
-    providerUsage: input.providerUsage ?? existing?.providerUsage,
+    inputTokens: pickGreaterNumber(existing?.inputTokens, input.inputTokens) ?? 0,
+    outputTokens: pickGreaterNumber(existing?.outputTokens, input.outputTokens) ?? 0,
+    cachedInputTokens: pickGreaterNumber(
+      existing?.cachedInputTokens,
+      input.cachedInputTokens,
+    ),
+    costUsd: pickGreaterNumber(existing?.costUsd, input.costUsd),
+    providerUsage: shouldReplaceProviderUsage
+      ? (input.providerUsage ?? existing?.providerUsage)
+      : existing?.providerUsage,
     updatedAt: nowIsoString(),
   };
 }
@@ -318,7 +349,10 @@ export function mergeToolEventRecord(
 ): StoredToolEventRecord {
   const timestamp = nowIsoString();
   const status = pickStrongerToolEventStatus(existing?.status, input.status);
-  const outcome = input.outcome ?? existing?.outcome;
+  const shouldReplacePayload = shouldReplaceToolEventPayload(existing, input);
+  const outcome = shouldReplacePayload
+    ? (input.outcome ?? existing?.outcome)
+    : existing?.outcome;
   const clearsErrorMessage = outcome === "success";
 
   return {
@@ -327,17 +361,31 @@ export function mergeToolEventRecord(
     turnId: input.turnId,
     toolCallId: input.toolCallId,
     status,
-    toolName: input.toolName ?? existing?.toolName,
-    toolKind: input.toolKind ?? existing?.toolKind,
-    input: input.input ?? existing?.input,
-    output: input.output ?? existing?.output,
-    statusText: input.statusText ?? existing?.statusText,
+    toolName: shouldReplacePayload
+      ? (input.toolName ?? existing?.toolName)
+      : existing?.toolName,
+    toolKind: shouldReplacePayload
+      ? (input.toolKind ?? existing?.toolKind)
+      : existing?.toolKind,
+    input: shouldReplacePayload ? (input.input ?? existing?.input) : existing?.input,
+    output: shouldReplacePayload
+      ? (input.output ?? existing?.output)
+      : existing?.output,
+    statusText: shouldReplacePayload
+      ? (input.statusText ?? existing?.statusText)
+      : existing?.statusText,
     outcome,
     errorMessage: clearsErrorMessage
       ? undefined
-      : (input.errorMessage ?? existing?.errorMessage),
-    startedAt: input.startedAt ?? existing?.startedAt,
-    completedAt: input.completedAt ?? existing?.completedAt,
+      : shouldReplacePayload
+        ? (input.errorMessage ?? existing?.errorMessage)
+        : existing?.errorMessage,
+    startedAt: shouldReplacePayload
+      ? (input.startedAt ?? existing?.startedAt)
+      : existing?.startedAt,
+    completedAt: shouldReplacePayload
+      ? (input.completedAt ?? existing?.completedAt)
+      : existing?.completedAt,
     updatedAt: timestamp,
   };
 }
@@ -472,6 +520,23 @@ function pickStrongerToolEventStatus(
     : existing;
 }
 
+function shouldReplaceTurnPayload(
+  existing: StoredTurnRecord | null,
+  incoming: StoreTurnInput,
+): boolean {
+  return existing === null || turnStatusRank(incoming.status) >= turnStatusRank(existing.status);
+}
+
+function shouldReplaceToolEventPayload(
+  existing: StoredToolEventRecord | null,
+  incoming: StoreToolEventInput,
+): boolean {
+  return (
+    existing === null ||
+    toolEventStatusRank(incoming.status) >= toolEventStatusRank(existing.status)
+  );
+}
+
 function sessionIdentityStateRank(
   identityState: StoreSessionInput["identityState"] | StoredSessionRecord["identityState"],
 ): number {
@@ -555,4 +620,19 @@ function matchesSessionSourceIdentity(
     existing.rootPath === incoming.rootPath &&
     existing.filePath === incoming.filePath
   );
+}
+
+function pickGreaterNumber(
+  existing: number | undefined,
+  incoming: number | undefined,
+): number | undefined {
+  if (existing === undefined) {
+    return incoming;
+  }
+
+  if (incoming === undefined) {
+    return existing;
+  }
+
+  return incoming >= existing ? incoming : existing;
 }

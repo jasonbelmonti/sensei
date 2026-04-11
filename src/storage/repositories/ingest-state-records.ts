@@ -1,4 +1,5 @@
 import type {
+  StoreCursorInput,
   StoredCursorRecord,
   StoredWarningRecord,
 } from "../schema";
@@ -102,4 +103,40 @@ export function cursorStatementParams(record: StoredCursorRecord) {
     serializeJson(record.metadata),
     record.updatedAt,
   ] as const;
+}
+
+export function mergeCursorRecord(
+  existing: StoredCursorRecord | null,
+  incoming: StoreCursorInput & { updatedAt: string },
+): StoredCursorRecord {
+  if (existing === null) {
+    return incoming;
+  }
+
+  if (compareCursorProgress(incoming, existing) < 0) {
+    return existing;
+  }
+
+  return {
+    provider: incoming.provider,
+    rootPath: incoming.rootPath,
+    filePath: incoming.filePath,
+    byteOffset: incoming.byteOffset,
+    line: incoming.line,
+    fingerprint: incoming.fingerprint ?? existing.fingerprint,
+    continuityToken: incoming.continuityToken ?? existing.continuityToken,
+    metadata: incoming.metadata ?? existing.metadata,
+    updatedAt: incoming.updatedAt,
+  };
+}
+
+function compareCursorProgress(
+  left: Pick<StoredCursorRecord, "byteOffset" | "line">,
+  right: Pick<StoredCursorRecord, "byteOffset" | "line">,
+): number {
+  if (left.byteOffset !== right.byteOffset) {
+    return left.byteOffset - right.byteOffset;
+  }
+
+  return left.line - right.line;
 }

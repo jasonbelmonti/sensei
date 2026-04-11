@@ -7,6 +7,7 @@ import type {
 import {
   cursorStatementParams,
   mapCursorRow,
+  mergeCursorRecord,
   mapWarningRow,
   type CursorRow,
   type WarningRow,
@@ -128,24 +129,16 @@ export function createIngestStateRepository(database: Database) {
   return {
     getCursor,
     setCursor(input: StoreCursorInput) {
-      const record = {
+      const record = mergeCursorRecord(
+        getCursor(input.provider, input.rootPath, input.filePath),
+        {
         ...input,
         updatedAt: input.updatedAt ?? nowIsoString(),
-      };
-
-      upsertCursorStatement.run(...cursorStatementParams(record));
-
-      const storedCursor = getCursor(
-        record.provider,
-        record.rootPath,
-        record.filePath,
+        },
       );
 
-      if (storedCursor === null) {
-        throw new Error("Cursor write succeeded but no row was returned.");
-      }
-
-      return storedCursor;
+      upsertCursorStatement.run(...cursorStatementParams(record));
+      return record;
     },
     deleteCursor(
       provider: StoreCursorInput["provider"],

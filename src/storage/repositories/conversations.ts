@@ -32,23 +32,28 @@ import {
 export type ConversationRepository = ReturnType<typeof createConversationRepository>;
 
 export function createConversationRepository(database: Database) {
+  const incomingTurnStatusRankExpression = `
+    CASE excluded.status
+      WHEN 'started' THEN 0
+      WHEN 'failed' THEN 1
+      WHEN 'completed' THEN 2
+      ELSE -1
+    END
+  `;
+  const storedTurnStatusRankExpression = `
+    CASE turns.status
+      WHEN 'started' THEN 0
+      WHEN 'failed' THEN 1
+      WHEN 'completed' THEN 2
+      ELSE -1
+    END
+  `;
+  const shouldReplaceTurnPayloadExpression = `
+    ${incomingTurnStatusRankExpression} >= ${storedTurnStatusRankExpression}
+  `;
   const effectiveTurnStatusExpression = `
     CASE
-      WHEN (
-        CASE excluded.status
-          WHEN 'started' THEN 0
-          WHEN 'failed' THEN 1
-          WHEN 'completed' THEN 2
-          ELSE -1
-        END
-      ) >= (
-        CASE turns.status
-          WHEN 'started' THEN 0
-          WHEN 'failed' THEN 1
-          WHEN 'completed' THEN 2
-          ELSE -1
-        END
-      )
+      WHEN ${shouldReplaceTurnPayloadExpression}
         THEN excluded.status
       ELSE turns.status
     END
@@ -160,34 +165,82 @@ export function createConversationRepository(database: Database) {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (provider, session_id, turn_id) DO UPDATE SET
       status = ${effectiveTurnStatusExpression},
-      input_prompt = COALESCE(excluded.input_prompt, turns.input_prompt),
-      input_attachments_json = COALESCE(excluded.input_attachments_json, turns.input_attachments_json),
-      input_metadata_json = COALESCE(excluded.input_metadata_json, turns.input_metadata_json),
-      output_text = COALESCE(excluded.output_text, turns.output_text),
-      output_structured_output_json = COALESCE(
-        excluded.output_structured_output_json,
-        turns.output_structured_output_json
-      ),
-      stop_reason = COALESCE(excluded.stop_reason, turns.stop_reason),
+      input_prompt = CASE
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.input_prompt, turns.input_prompt)
+        ELSE turns.input_prompt
+      END,
+      input_attachments_json = CASE
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.input_attachments_json, turns.input_attachments_json)
+        ELSE turns.input_attachments_json
+      END,
+      input_metadata_json = CASE
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.input_metadata_json, turns.input_metadata_json)
+        ELSE turns.input_metadata_json
+      END,
+      output_text = CASE
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.output_text, turns.output_text)
+        ELSE turns.output_text
+      END,
+      output_structured_output_json = CASE
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(
+            excluded.output_structured_output_json,
+            turns.output_structured_output_json
+          )
+        ELSE turns.output_structured_output_json
+      END,
+      stop_reason = CASE
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.stop_reason, turns.stop_reason)
+        ELSE turns.stop_reason
+      END,
       error_code = CASE
         WHEN ${effectiveTurnStatusExpression} = 'completed' THEN NULL
-        ELSE COALESCE(excluded.error_code, turns.error_code)
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.error_code, turns.error_code)
+        ELSE turns.error_code
       END,
       error_message = CASE
         WHEN ${effectiveTurnStatusExpression} = 'completed' THEN NULL
-        ELSE COALESCE(excluded.error_message, turns.error_message)
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.error_message, turns.error_message)
+        ELSE turns.error_message
       END,
       error_details_json = CASE
         WHEN ${effectiveTurnStatusExpression} = 'completed' THEN NULL
-        ELSE COALESCE(excluded.error_details_json, turns.error_details_json)
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.error_details_json, turns.error_details_json)
+        ELSE turns.error_details_json
       END,
-      raw_event_json = COALESCE(excluded.raw_event_json, turns.raw_event_json),
-      extensions_json = COALESCE(excluded.extensions_json, turns.extensions_json),
-      started_at = COALESCE(excluded.started_at, turns.started_at),
-      completed_at = COALESCE(excluded.completed_at, turns.completed_at),
+      raw_event_json = CASE
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.raw_event_json, turns.raw_event_json)
+        ELSE turns.raw_event_json
+      END,
+      extensions_json = CASE
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.extensions_json, turns.extensions_json)
+        ELSE turns.extensions_json
+      END,
+      started_at = CASE
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.started_at, turns.started_at)
+        ELSE turns.started_at
+      END,
+      completed_at = CASE
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.completed_at, turns.completed_at)
+        ELSE turns.completed_at
+      END,
       failed_at = CASE
         WHEN ${effectiveTurnStatusExpression} = 'completed' THEN NULL
-        ELSE COALESCE(excluded.failed_at, turns.failed_at)
+        WHEN ${shouldReplaceTurnPayloadExpression}
+          THEN COALESCE(excluded.failed_at, turns.failed_at)
+        ELSE turns.failed_at
       END,
       updated_at = excluded.updated_at
   `);

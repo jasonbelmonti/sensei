@@ -283,6 +283,10 @@ test("conversation repository keeps stronger session, turn, and tool states duri
     toolCallId: "tool-1",
     status: "completed",
     toolName: "exec_command",
+    statusText: "finished",
+    output: {
+      stdout: "done",
+    },
     outcome: "success",
     completedAt: "2026-04-11T12:00:04.000Z",
   });
@@ -317,7 +321,66 @@ test("conversation repository keeps stronger session, turn, and tool states duri
     status: "completed",
     outcome: "success",
     completedAt: "2026-04-11T12:00:04.000Z",
-    statusText: "older replay",
+    statusText: "finished",
+    output: {
+      stdout: "done",
+    },
+  });
+});
+
+test("conversation repository ignores weaker session payload replays", () => {
+  const harness = createStorageTestHarness("sensei-storage-session-weaker-payload");
+  cleanups.push(harness.cleanup);
+
+  const { conversations } = harness.storage;
+
+  conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "canonical",
+    workingDirectory: "/repo/canonical",
+    metadata: {
+      origin: "snapshot",
+    },
+    source: {
+      provider: "claude",
+      kind: "snapshot",
+      discoveryPhase: "initial_scan",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.json",
+    },
+    completeness: "complete",
+    observationReason: "snapshot",
+    observedAt: "2026-04-11T12:00:00.000Z",
+  });
+
+  const replayedSession = conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "provisional",
+    workingDirectory: "/repo/weaker",
+    metadata: {
+      origin: "transcript",
+    },
+    source: {
+      provider: "claude",
+      kind: "transcript",
+      discoveryPhase: "watch",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.jsonl",
+    },
+    completeness: "partial",
+    observationReason: "transcript",
+    observedAt: "2026-04-11T12:01:00.000Z",
+  });
+
+  expect(replayedSession).toMatchObject({
+    identityState: "canonical",
+    workingDirectory: "/repo/canonical",
+    metadata: {
+      origin: "snapshot",
+    },
+    observationReason: "snapshot",
   });
 });
 
@@ -437,6 +500,76 @@ test("conversation repository keeps completed turns clear of weaker failure repl
   });
 });
 
+test("conversation repository ignores weaker turn payload replays", () => {
+  const harness = createStorageTestHarness("sensei-storage-turn-weaker-payload");
+  cleanups.push(harness.cleanup);
+
+  const { conversations } = harness.storage;
+
+  conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "canonical",
+    source: {
+      provider: "claude",
+      kind: "snapshot",
+      discoveryPhase: "initial_scan",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.json",
+    },
+    completeness: "complete",
+    observationReason: "snapshot",
+  });
+
+  conversations.upsertTurn({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    status: "completed",
+    output: {
+      text: "canonical output",
+    },
+    raw: {
+      event: "canonical",
+    },
+    extensions: {
+      source: "snapshot",
+    },
+    completedAt: "2026-04-11T12:00:05.000Z",
+  });
+
+  const replayedTurn = conversations.upsertTurn({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    status: "started",
+    output: {
+      text: "weaker output",
+    },
+    raw: {
+      event: "weaker",
+    },
+    extensions: {
+      source: "transcript",
+    },
+    startedAt: "2026-04-11T12:00:01.000Z",
+  });
+
+  expect(replayedTurn).toMatchObject({
+    status: "completed",
+    output: {
+      text: "canonical output",
+    },
+    raw: {
+      event: "canonical",
+    },
+    extensions: {
+      source: "snapshot",
+    },
+    completedAt: "2026-04-11T12:00:05.000Z",
+  });
+});
+
 test("conversation repository clears stale tool error text after success", () => {
   const harness = createStorageTestHarness("sensei-storage-tool-error-reset");
   cleanups.push(harness.cleanup);
@@ -489,6 +622,145 @@ test("conversation repository clears stale tool error text after success", () =>
     outcome: "success",
     completedAt: "2026-04-11T12:00:06.000Z",
     errorMessage: undefined,
+  });
+});
+
+test("conversation repository ignores weaker tool-event payload replays", () => {
+  const harness = createStorageTestHarness("sensei-storage-tool-weaker-payload");
+  cleanups.push(harness.cleanup);
+
+  const { conversations } = harness.storage;
+
+  conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "canonical",
+    source: {
+      provider: "claude",
+      kind: "snapshot",
+      discoveryPhase: "initial_scan",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.json",
+    },
+    completeness: "complete",
+    observationReason: "snapshot",
+  });
+  conversations.upsertTurn({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    status: "completed",
+    completedAt: "2026-04-11T12:00:05.000Z",
+  });
+
+  conversations.upsertToolEvent({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    toolCallId: "tool-1",
+    status: "completed",
+    statusText: "canonical event",
+    output: {
+      stdout: "canonical",
+    },
+    outcome: "success",
+    completedAt: "2026-04-11T12:00:06.000Z",
+  });
+
+  const replayedToolEvent = conversations.upsertToolEvent({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    toolCallId: "tool-1",
+    status: "updated",
+    statusText: "weaker event",
+    output: {
+      stdout: "weaker",
+    },
+    outcome: "error",
+    errorMessage: "weaker error",
+  });
+
+  expect(replayedToolEvent).toMatchObject({
+    status: "completed",
+    statusText: "canonical event",
+    output: {
+      stdout: "canonical",
+    },
+    outcome: "success",
+    errorMessage: undefined,
+    completedAt: "2026-04-11T12:00:06.000Z",
+  });
+});
+
+test("conversation repository keeps usage counters monotonic", () => {
+  const harness = createStorageTestHarness("sensei-storage-usage-monotonic");
+  cleanups.push(harness.cleanup);
+
+  const { conversations } = harness.storage;
+
+  conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "canonical",
+    source: {
+      provider: "claude",
+      kind: "snapshot",
+      discoveryPhase: "initial_scan",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.json",
+    },
+    completeness: "complete",
+    observationReason: "snapshot",
+  });
+  conversations.upsertTurn({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    status: "completed",
+    completedAt: "2026-04-11T12:00:05.000Z",
+  });
+
+  const initialUsage = conversations.upsertTurnUsage({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    inputTokens: 100,
+    outputTokens: 80,
+    cachedInputTokens: 40,
+    costUsd: 0.01,
+    providerUsage: {
+      cacheWriteTokens: 2,
+    },
+  });
+
+  const replayedUsage = conversations.upsertTurnUsage({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    inputTokens: 10,
+    outputTokens: 8,
+    cachedInputTokens: 4,
+    costUsd: 0.001,
+    providerUsage: {
+      cacheWriteTokens: 1,
+    },
+  });
+
+  expect(initialUsage).toMatchObject({
+    inputTokens: 100,
+    outputTokens: 80,
+    cachedInputTokens: 40,
+    costUsd: 0.01,
+  });
+  expect(replayedUsage).toMatchObject({
+    inputTokens: 100,
+    outputTokens: 80,
+    cachedInputTokens: 40,
+    costUsd: 0.01,
+    providerUsage: {
+      cacheWriteTokens: 2,
+    },
   });
 });
 
@@ -738,4 +1010,53 @@ test("ingest state repository stores cursors and append-only warnings", () => {
       "/Users/test/.codex/sessions/abc.jsonl",
     ),
   ).toBeNull();
+});
+
+test("ingest state repository keeps cursor progress monotonic", () => {
+  const harness = createStorageTestHarness("sensei-storage-cursor-monotonic");
+  cleanups.push(harness.cleanup);
+
+  const { ingestState } = harness.storage;
+
+  ingestState.setCursor({
+    provider: "codex",
+    rootPath: "/Users/test/.codex",
+    filePath: "/Users/test/.codex/sessions/abc.jsonl",
+    byteOffset: 200,
+    line: 20,
+    fingerprint: "fp-200",
+    continuityToken: "cont-200",
+    metadata: {
+      inode: 200,
+    },
+    updatedAt: "2026-04-11T12:02:00.000Z",
+  });
+
+  const replayedCursor = ingestState.setCursor({
+    provider: "codex",
+    rootPath: "/Users/test/.codex",
+    filePath: "/Users/test/.codex/sessions/abc.jsonl",
+    byteOffset: 50,
+    line: 5,
+    fingerprint: "fp-50",
+    continuityToken: "cont-50",
+    metadata: {
+      inode: 50,
+    },
+    updatedAt: "2026-04-11T12:03:00.000Z",
+  });
+
+  expect(replayedCursor).toEqual({
+    provider: "codex",
+    rootPath: "/Users/test/.codex",
+    filePath: "/Users/test/.codex/sessions/abc.jsonl",
+    byteOffset: 200,
+    line: 20,
+    fingerprint: "fp-200",
+    continuityToken: "cont-200",
+    metadata: {
+      inode: 200,
+    },
+    updatedAt: "2026-04-11T12:02:00.000Z",
+  });
 });
