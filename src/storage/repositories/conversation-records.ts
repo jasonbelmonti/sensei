@@ -204,8 +204,31 @@ export function mergeSessionRecord(
   input: StoreSessionInput,
 ): StoredSessionRecord {
   const timestamp = nowIsoString();
-  const shouldReplaceObservation =
-    existing === null || compareSessionStrength(input, existing) >= 0;
+
+  if (existing === null) {
+    return {
+      provider: input.provider,
+      sessionId: input.sessionId,
+      identityState: input.identityState,
+      workingDirectory: input.workingDirectory,
+      metadata: input.metadata,
+      source: {
+        provider: input.source.provider,
+        kind: input.source.kind,
+        discoveryPhase: input.source.discoveryPhase,
+        rootPath: input.source.rootPath,
+        filePath: input.source.filePath,
+        location: input.source.location,
+        metadata: input.source.metadata,
+      },
+      completeness: input.completeness,
+      observationReason: input.observationReason,
+      observedAt: input.observedAt ?? timestamp,
+      updatedAt: timestamp,
+    };
+  }
+
+  const shouldReplaceObservation = shouldReplaceSessionObservation(existing, input);
 
   return {
     provider: input.provider,
@@ -228,7 +251,7 @@ export function mergeSessionRecord(
         }
       : existing.source,
     completeness: shouldReplaceObservation
-      ? input.completeness
+      ? pickStrongerSessionCompleteness(existing?.completeness, input.completeness)
       : existing.completeness,
     observationReason: shouldReplaceObservation
       ? input.observationReason
@@ -384,24 +407,6 @@ export function toolEventStatementParams(record: StoredToolEventRecord) {
   ] as const;
 }
 
-function compareSessionStrength(
-  incoming: Pick<StoreSessionInput, "identityState" | "completeness">,
-  existing: Pick<StoredSessionRecord, "identityState" | "completeness">,
-): number {
-  const identityDifference =
-    sessionIdentityStateRank(incoming.identityState) -
-    sessionIdentityStateRank(existing.identityState);
-
-  if (identityDifference !== 0) {
-    return identityDifference;
-  }
-
-  return (
-    sessionCompletenessRank(incoming.completeness) -
-    sessionCompletenessRank(existing.completeness)
-  );
-}
-
 function pickStrongerSessionIdentityState(
   existing: StoredSessionRecord["identityState"] | undefined,
   incoming: StoreSessionInput["identityState"],
@@ -411,6 +416,19 @@ function pickStrongerSessionIdentityState(
   }
 
   return sessionIdentityStateRank(incoming) >= sessionIdentityStateRank(existing)
+    ? incoming
+    : existing;
+}
+
+function pickStrongerSessionCompleteness(
+  existing: StoredSessionRecord["completeness"] | undefined,
+  incoming: StoreSessionInput["completeness"],
+): StoredSessionRecord["completeness"] {
+  if (existing === undefined) {
+    return incoming;
+  }
+
+  return sessionCompletenessRank(incoming) >= sessionCompletenessRank(existing)
     ? incoming
     : existing;
 }
@@ -487,4 +505,26 @@ function toolEventStatusRank(
     case "completed":
       return 2;
   }
+}
+
+function shouldReplaceSessionObservation(
+  existing: StoredSessionRecord | null,
+  incoming: StoreSessionInput,
+): boolean {
+  if (existing === null) {
+    return true;
+  }
+
+  const completenessDifference =
+    sessionCompletenessRank(incoming.completeness) -
+    sessionCompletenessRank(existing.completeness);
+
+  if (completenessDifference !== 0) {
+    return completenessDifference > 0;
+  }
+
+  return (
+    sessionIdentityStateRank(incoming.identityState) >
+    sessionIdentityStateRank(existing.identityState)
+  );
 }

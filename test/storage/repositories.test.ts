@@ -277,6 +277,56 @@ test("conversation repository keeps stronger session, turn, and tool states duri
   });
 });
 
+test("conversation repository keeps session provenance stable for equal-strength replays", () => {
+  const harness = createStorageTestHarness("sensei-storage-session-provenance");
+  cleanups.push(harness.cleanup);
+
+  const { conversations } = harness.storage;
+
+  conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "canonical",
+    source: {
+      provider: "claude",
+      kind: "snapshot",
+      discoveryPhase: "initial_scan",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.json",
+    },
+    completeness: "complete",
+    observationReason: "snapshot",
+    observedAt: "2026-04-11T12:00:00.000Z",
+  });
+  const replayedSession = conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "canonical",
+    source: {
+      provider: "claude",
+      kind: "transcript",
+      discoveryPhase: "watch",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1-transcript.jsonl",
+    },
+    completeness: "complete",
+    observationReason: "transcript",
+    observedAt: "2026-04-11T12:01:00.000Z",
+  });
+
+  expect(replayedSession).toMatchObject({
+    identityState: "canonical",
+    completeness: "complete",
+    observationReason: "snapshot",
+    source: {
+      kind: "snapshot",
+      discoveryPhase: "initial_scan",
+      filePath: "/Users/test/.claude/projects/session-1.json",
+    },
+    observedAt: "2026-04-11T12:00:00.000Z",
+  });
+});
+
 test("ingest state repository stores cursors and append-only warnings", () => {
   const harness = createStorageTestHarness("sensei-storage-ingest-state");
   cleanups.push(harness.cleanup);
