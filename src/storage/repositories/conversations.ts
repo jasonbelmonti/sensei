@@ -166,14 +166,26 @@ export function createConversationRepository(database: Database) {
         turns.output_structured_output_json
       ),
       stop_reason = COALESCE(excluded.stop_reason, turns.stop_reason),
-      error_code = COALESCE(excluded.error_code, turns.error_code),
-      error_message = COALESCE(excluded.error_message, turns.error_message),
-      error_details_json = COALESCE(excluded.error_details_json, turns.error_details_json),
+      error_code = CASE
+        WHEN excluded.status = 'completed' THEN NULL
+        ELSE COALESCE(excluded.error_code, turns.error_code)
+      END,
+      error_message = CASE
+        WHEN excluded.status = 'completed' THEN NULL
+        ELSE COALESCE(excluded.error_message, turns.error_message)
+      END,
+      error_details_json = CASE
+        WHEN excluded.status = 'completed' THEN NULL
+        ELSE COALESCE(excluded.error_details_json, turns.error_details_json)
+      END,
       raw_event_json = COALESCE(excluded.raw_event_json, turns.raw_event_json),
       extensions_json = COALESCE(excluded.extensions_json, turns.extensions_json),
       started_at = COALESCE(excluded.started_at, turns.started_at),
       completed_at = COALESCE(excluded.completed_at, turns.completed_at),
-      failed_at = COALESCE(excluded.failed_at, turns.failed_at),
+      failed_at = CASE
+        WHEN excluded.status = 'completed' THEN NULL
+        ELSE COALESCE(excluded.failed_at, turns.failed_at)
+      END,
       updated_at = excluded.updated_at
   `);
   const selectTurnUsageStatement = database.query(`

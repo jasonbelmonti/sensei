@@ -275,20 +275,22 @@ export function mergeTurnRecord(
   input: StoreTurnInput,
 ): StoredTurnRecord {
   const timestamp = nowIsoString();
+  const status = pickStrongerTurnStatus(existing?.status, input.status);
+  const isCompleted = status === "completed";
 
   return {
     provider: input.provider,
     sessionId: input.sessionId,
     turnId: input.turnId,
-    status: pickStrongerTurnStatus(existing?.status, input.status),
+    status,
     input: input.input ?? existing?.input,
     output: input.output ?? existing?.output,
-    error: input.error ?? existing?.error,
+    error: isCompleted ? undefined : (input.error ?? existing?.error),
     raw: input.raw ?? existing?.raw,
     extensions: input.extensions ?? existing?.extensions,
     startedAt: input.startedAt ?? existing?.startedAt,
     completedAt: input.completedAt ?? existing?.completedAt,
-    failedAt: input.failedAt ?? existing?.failedAt,
+    failedAt: isCompleted ? undefined : (input.failedAt ?? existing?.failedAt),
     updatedAt: timestamp,
   };
 }
@@ -315,20 +317,25 @@ export function mergeToolEventRecord(
   input: StoreToolEventInput,
 ): StoredToolEventRecord {
   const timestamp = nowIsoString();
+  const status = pickStrongerToolEventStatus(existing?.status, input.status);
+  const outcome = input.outcome ?? existing?.outcome;
+  const clearsErrorMessage = outcome === "success";
 
   return {
     provider: input.provider,
     sessionId: input.sessionId,
     turnId: input.turnId,
     toolCallId: input.toolCallId,
-    status: pickStrongerToolEventStatus(existing?.status, input.status),
+    status,
     toolName: input.toolName ?? existing?.toolName,
     toolKind: input.toolKind ?? existing?.toolKind,
     input: input.input ?? existing?.input,
     output: input.output ?? existing?.output,
     statusText: input.statusText ?? existing?.statusText,
-    outcome: input.outcome ?? existing?.outcome,
-    errorMessage: input.errorMessage ?? existing?.errorMessage,
+    outcome,
+    errorMessage: clearsErrorMessage
+      ? undefined
+      : (input.errorMessage ?? existing?.errorMessage),
     startedAt: input.startedAt ?? existing?.startedAt,
     completedAt: input.completedAt ?? existing?.completedAt,
     updatedAt: timestamp,
