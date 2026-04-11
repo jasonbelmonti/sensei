@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sensei"
+  short_description: "Repo-local mentoring surface for Sensei"
+  default_prompt: "Use $sensei when the task should route through the repo-local Sensei mentoring surface, staying grounded in current repository state and generated Sensei artifacts."
