@@ -39,7 +39,7 @@ export function createConversationRepository(database: Database) {
       identity_state as identityState,
       working_directory as workingDirectory,
       session_metadata_json as metadataJson,
-      provider as sourceProvider,
+      source_provider as sourceProvider,
       source_kind as sourceKind,
       discovery_phase as sourceDiscoveryPhase,
       source_root_path as sourceRootPath,
@@ -61,6 +61,7 @@ export function createConversationRepository(database: Database) {
       identity_state,
       working_directory,
       session_metadata_json,
+      source_provider,
       source_kind,
       discovery_phase,
       source_root_path,
@@ -72,11 +73,12 @@ export function createConversationRepository(database: Database) {
       observation_reason,
       observed_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (provider, session_id) DO UPDATE SET
       identity_state = excluded.identity_state,
       working_directory = excluded.working_directory,
       session_metadata_json = excluded.session_metadata_json,
+      source_provider = excluded.source_provider,
       source_kind = excluded.source_kind,
       discovery_phase = excluded.discovery_phase,
       source_root_path = excluded.source_root_path,

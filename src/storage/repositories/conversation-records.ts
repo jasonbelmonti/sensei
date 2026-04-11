@@ -335,6 +335,7 @@ export function sessionStatementParams(record: StoredSessionRecord) {
     record.identityState,
     record.workingDirectory ?? null,
     serializeJson(record.metadata),
+    record.source.provider,
     record.source.kind,
     record.source.discoveryPhase,
     record.source.rootPath,

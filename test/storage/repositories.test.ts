@@ -177,6 +177,50 @@ test("conversation repository upserts canonical sessions, turns, usage, and tool
   ).toHaveLength(1);
 });
 
+test("conversation repository preserves explicit session source provider", () => {
+  const harness = createStorageTestHarness("sensei-storage-session-source-provider");
+  cleanups.push(harness.cleanup);
+
+  const { conversations } = harness.storage;
+
+  const storedSession = conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-foreign-source",
+    identityState: "canonical",
+    source: {
+      provider: "codex",
+      kind: "snapshot",
+      discoveryPhase: "reconcile",
+      rootPath: "/Users/test/.codex",
+      filePath: "/Users/test/.codex/sessions/session-foreign-source.json",
+    },
+    completeness: "complete",
+    observationReason: "reconcile",
+    observedAt: "2026-04-11T12:03:00.000Z",
+  });
+
+  expect(storedSession).toMatchObject({
+    provider: "claude",
+    source: {
+      provider: "codex",
+      kind: "snapshot",
+      discoveryPhase: "reconcile",
+      filePath: "/Users/test/.codex/sessions/session-foreign-source.json",
+    },
+  });
+  expect(
+    conversations.getSession("claude", "session-foreign-source"),
+  ).toMatchObject({
+    provider: "claude",
+    source: {
+      provider: "codex",
+      kind: "snapshot",
+      discoveryPhase: "reconcile",
+      filePath: "/Users/test/.codex/sessions/session-foreign-source.json",
+    },
+  });
+});
+
 test("conversation repository keeps stronger session, turn, and tool states during replay", () => {
   const harness = createStorageTestHarness("sensei-storage-monotonic-replay");
   cleanups.push(harness.cleanup);

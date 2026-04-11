@@ -294,6 +294,7 @@ export const STORAGE_MIGRATIONS = [
           identity_state TEXT NOT NULL CHECK (identity_state IN (${sessionIdentityValues})),
           working_directory TEXT,
           session_metadata_json TEXT CHECK (session_metadata_json IS NULL OR json_valid(session_metadata_json)),
+          source_provider TEXT NOT NULL CHECK (source_provider IN (${providerValues})),
           source_kind TEXT NOT NULL CHECK (source_kind IN (${sourceKindValues})),
           discovery_phase TEXT NOT NULL CHECK (discovery_phase IN (${discoveryPhaseValues})),
           source_root_path TEXT NOT NULL,
