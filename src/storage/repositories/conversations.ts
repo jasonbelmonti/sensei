@@ -579,13 +579,15 @@ export function createConversationRepository(database: Database) {
     record: StoredSessionRecord,
     input: StoreSessionInput,
   ) {
-    const incomingHasSourceLocation = input.source.location === undefined ? 0 : 1;
+    const incomingHasSourceLine = input.source.location?.line === undefined ? 0 : 1;
+    const incomingHasSourceByteOffset =
+      input.source.location?.byteOffset === undefined ? 0 : 1;
     const incomingHasSourceMetadata = input.source.metadata === undefined ? 0 : 1;
 
     return [
       ...sessionStatementParams(record),
-      incomingHasSourceLocation,
-      incomingHasSourceLocation,
+      incomingHasSourceLine,
+      incomingHasSourceByteOffset,
       incomingHasSourceMetadata,
       input.observedAt ?? null,
     ] as const;
