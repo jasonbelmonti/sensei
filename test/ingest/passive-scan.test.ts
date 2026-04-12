@@ -22,55 +22,22 @@ test("passive scan roots and registries are derived from runtime config", () => 
     repoRoot: "/repo/sensei",
     homeDir: "/Users/test",
   });
+  const expectedRoots = createExpectedRoots();
+  const registries = createSenseiPassiveIngestRegistries();
 
-  expect(createSenseiPassiveScanRoots(config.paths.providers)).toEqual([
-    {
-      provider: "claude",
-      path: "/Users/test/.claude",
-      recursive: true,
-      watch: false,
-    },
-    {
-      provider: "codex",
-      path: "/Users/test/.codex",
-      recursive: true,
-      watch: false,
-    },
-  ]);
-
-  expect(createSenseiPassiveScanAdapterForConfig(config).roots).toEqual([
-    {
-      provider: "claude",
-      path: "/Users/test/.claude",
-      recursive: true,
-      watch: false,
-    },
-    {
-      provider: "codex",
-      path: "/Users/test/.codex",
-      recursive: true,
-      watch: false,
-    },
-  ]);
+  expect(createSenseiPassiveScanRoots(config.paths.providers)).toEqual(expectedRoots);
+  expect(createSenseiPassiveScanAdapterForConfig(config).roots).toEqual(expectedRoots);
 
   expect(
-    createSenseiPassiveIngestRegistries().map((registry) => [
-      registry.provider,
-      registry.matchFile.name,
-    ]),
+    registries.map((registry) => [registry.provider, registry.matchFile.name]),
   ).toHaveLength(4);
-  expect(
-    new Set(
-      createSenseiPassiveIngestRegistries().map((registry) => registry.provider),
-    ),
-  ).toEqual(new Set(["claude", "codex"]));
+  expect(new Set(registries.map((registry) => registry.provider))).toEqual(
+    new Set(["claude", "codex"]),
+  );
 });
 
 test("passive scan adapter collects observed records and service side channels", async () => {
-  const roots = createSenseiPassiveScanRoots({
-    claude: "/Users/test/.claude",
-    codex: "/Users/test/.codex",
-  });
+  const roots = createExpectedRoots();
   const registries: IngestProviderRegistry[] = [
     {
       provider: "claude",
@@ -203,4 +170,11 @@ function createDiscoveryEvent(): DiscoveryEvent {
     rootPath: "/Users/test/.claude",
     discoveryPhase: "initial_scan",
   };
+}
+
+function createExpectedRoots() {
+  return createSenseiPassiveScanRoots({
+    claude: "/Users/test/.claude",
+    codex: "/Users/test/.codex",
+  });
 }

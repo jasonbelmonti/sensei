@@ -15,11 +15,7 @@ import {
   createSenseiPassiveScanRootsForConfig,
   type SenseiPassiveScanRoot,
 } from "./provider-roots";
-import type {
-  SenseiPassiveScanObservedEvent,
-  SenseiPassiveScanObservedSession,
-  SenseiPassiveScanResult,
-} from "./scan-result";
+import type { SenseiPassiveScanRecord, SenseiPassiveScanResult } from "./scan-result";
 
 type SessionIngestServiceFactory = (
   options: SessionIngestServiceOptions,
@@ -36,10 +32,16 @@ export type SenseiPassiveScanAdapter = {
   scanNow(): Promise<SenseiPassiveScanResult>;
 };
 
+type MutableSenseiPassiveScanResult = {
+  records: SenseiPassiveScanRecord[];
+  warnings: IngestWarning[];
+  discoveryEvents: DiscoveryEvent[];
+};
+
 export function createSenseiPassiveScanAdapter(
   options: CreateSenseiPassiveScanAdapterOptions,
 ): SenseiPassiveScanAdapter {
-  const roots = [...options.roots];
+  const roots: DiscoveryRootConfig[] = [...options.roots];
   const createRegistries =
     options.createRegistries ?? createSenseiPassiveIngestRegistries;
   const createService = options.createService ?? createSessionIngestService;
@@ -47,42 +49,34 @@ export function createSenseiPassiveScanAdapter(
   return {
     roots,
     async scanNow() {
-      const records: Array<
-        SenseiPassiveScanObservedEvent | SenseiPassiveScanObservedSession
-      > = [];
-      const warnings: IngestWarning[] = [];
-      const discoveryEvents: DiscoveryEvent[] = [];
+      const result = createMutableSenseiPassiveScanResult();
 
       const service = createService({
-        roots: roots as DiscoveryRootConfig[],
+        roots,
         registries: createRegistries(),
         onObservedEvent(observedEvent) {
-          records.push({
+          result.records.push({
             kind: "event",
             observedEvent,
           });
         },
         onObservedSession(observedSession) {
-          records.push({
+          result.records.push({
             kind: "session",
             observedSession,
           });
         },
         onWarning(warning) {
-          warnings.push(warning);
+          result.warnings.push(warning);
         },
         onDiscoveryEvent(discoveryEvent) {
-          discoveryEvents.push(discoveryEvent);
+          result.discoveryEvents.push(discoveryEvent);
         },
       });
 
       await service.scanNow();
 
-      return {
-        records,
-        warnings,
-        discoveryEvents,
-      };
+      return result;
     },
   };
 }
@@ -105,4 +99,12 @@ export function createSenseiPassiveScanAdapterForProviderRoots(
     ...options,
     roots: createSenseiPassiveScanRoots(providerRoots),
   });
+}
+
+function createMutableSenseiPassiveScanResult(): MutableSenseiPassiveScanResult {
+  return {
+    records: [],
+    warnings: [],
+    discoveryEvents: [],
+  };
 }
