@@ -11,6 +11,8 @@ export type OpenSenseiStorageOptions = {
   readonly?: boolean;
 };
 
+type SynchronousTransactionResult<T> = T extends PromiseLike<unknown> ? never : T;
+
 export type SenseiStorage = ReturnType<typeof openSenseiStorage>;
 
 export function openSenseiStorage(options: OpenSenseiStorageOptions) {
@@ -27,16 +29,19 @@ export function openSenseiStorage(options: OpenSenseiStorageOptions) {
   const migrations = options.readonly ? [] : migrateSenseiDatabase(database);
   const conversations = createConversationRepository(database);
   const ingestState = createIngestStateRepository(database);
+  type TransactionStorage = {
+    conversations: typeof conversations;
+    ingestState: typeof ingestState;
+  };
 
   return {
     database,
     migrations,
     conversations,
     ingestState,
-    transaction<T>(callback: (storage: {
-      conversations: typeof conversations;
-      ingestState: typeof ingestState;
-    }) => T): T {
+    transaction<T>(
+      callback: (storage: TransactionStorage) => SynchronousTransactionResult<T>,
+    ): SynchronousTransactionResult<T> {
       const runTransaction = database.transaction(() =>
         callback({
           conversations,
