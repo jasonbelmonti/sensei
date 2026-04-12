@@ -15,4 +15,5 @@ export function getRepositoryAreas(): RepositoryArea[] {
 }
 
 export * from "./config";
+export * from "./ingest";
 export * from "./storage";
