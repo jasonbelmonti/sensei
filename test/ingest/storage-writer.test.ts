@@ -259,6 +259,29 @@ test("writer selects the same explicit session provenance regardless of explicit
   });
 });
 
+test("writer preserves stronger event-derived session upgrades over weaker explicit sessions", () => {
+  const harness = createStorageTestHarness("sensei-ingest-stronger-event-session");
+  cleanups.push(harness.cleanup);
+
+  writePassiveScanResultToStorage(
+    harness.storage,
+    createStrongerEventSessionResult(),
+  );
+
+  expect(
+    harness.storage.conversations.getSession("codex", "session-1"),
+  ).toMatchObject({
+    identityState: "canonical",
+    completeness: "complete",
+    observationReason: "transcript",
+    source: {
+      kind: "transcript",
+      filePath: "/Users/test/.codex/sessions/session-1.jsonl",
+    },
+    observedAt: "2026-04-11T12:00:04.000Z",
+  });
+});
+
 test("writer keeps cursor progress monotonic during stale replays", () => {
   const harness = createStorageTestHarness("sensei-ingest-storage-monotonic");
   cleanups.push(harness.cleanup);
@@ -495,6 +518,45 @@ function createDuplicateExplicitSessionResult(
   };
 }
 
+function createStrongerEventSessionResult(): SenseiPassiveScanResult {
+  return {
+    records: [
+      {
+        kind: "event",
+        observedEvent: createObservedAgentEvent({
+          type: "turn.completed",
+          provider: "codex",
+          session: {
+            provider: "codex",
+            sessionId: "session-1",
+          },
+          turnId: "turn-1",
+          timestamp: "2026-04-11T12:00:04.000Z",
+          result: {
+            provider: "codex",
+            session: {
+              provider: "codex",
+              sessionId: "session-1",
+            },
+            turnId: "turn-1",
+            text: "Stronger event-derived session write.",
+            usage: null,
+          },
+          raw: {
+            step: "stronger-event-session",
+          },
+        }, 4, 40, "stronger-event-session"),
+      },
+      {
+        kind: "session",
+        observedSession: createWeakerExplicitSessionRecord(),
+      },
+    ],
+    warnings: [],
+    discoveryEvents: [],
+  };
+}
+
 function createCursorOnlyScanResult(
   byteOffset: number,
   line: number,
@@ -610,6 +672,46 @@ function createTranscriptObservedSessionRecord(): ObservedSessionRecord {
       updatedAt: "2026-04-11T12:00:02.000Z",
       metadata: {
         observedAt: "transcript",
+      },
+    },
+  };
+}
+
+function createWeakerExplicitSessionRecord(): ObservedSessionRecord {
+  return {
+    kind: "session",
+    observedSession: {
+      provider: "codex",
+      sessionId: "session-1",
+      state: "provisional",
+      workingDirectory: "/repo/sensei",
+      metadata: {
+        origin: "session-index-weaker",
+      },
+    },
+    source: {
+      provider: "codex",
+      kind: "session-index",
+      discoveryPhase: "initial_scan",
+      rootPath: "/Users/test/.codex",
+      filePath: "/Users/test/.codex/sessions/index.json",
+      metadata: {
+        source: "session-index-weaker",
+      },
+    },
+    completeness: "partial",
+    reason: "index",
+    cursor: {
+      provider: "codex",
+      rootPath: "/Users/test/.codex",
+      filePath: "/Users/test/.codex/sessions/session-1.jsonl",
+      byteOffset: 10,
+      line: 1,
+      fingerprint: "fp-10",
+      continuityToken: "cont-10",
+      updatedAt: "2026-04-11T12:00:01.000Z",
+      metadata: {
+        observedAt: "session-index-weaker",
       },
     },
   };

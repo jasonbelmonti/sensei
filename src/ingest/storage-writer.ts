@@ -129,6 +129,10 @@ function resolveSessionWrite(
     return sessionWrite;
   }
 
+  if (compareSessionStrength(explicitSessionWrite, sessionWrite) < 0) {
+    return sessionWrite;
+  }
+
   return {
     ...explicitSessionWrite,
     observedAt: explicitSessionWrite.observedAt ?? sessionWrite.observedAt,
@@ -154,14 +158,7 @@ function compareExplicitSessionWrites(
   incoming: StoreSessionInput,
 ): number {
   return (
-    compareNumbers(
-      sessionIdentityRank(existing.identityState),
-      sessionIdentityRank(incoming.identityState),
-    )
-    || compareNumbers(
-      sessionCompletenessRank(existing.completeness),
-      sessionCompletenessRank(incoming.completeness),
-    )
+    compareSessionStrength(existing, incoming)
     || compareNumbers(
       sessionObservationReasonRank(existing.observationReason),
       sessionObservationReasonRank(incoming.observationReason),
@@ -173,6 +170,22 @@ function compareExplicitSessionWrites(
     || compareStrings(
       getSessionSourceIdentity(existing),
       getSessionSourceIdentity(incoming),
+    )
+  );
+}
+
+function compareSessionStrength(
+  existing: StoreSessionInput,
+  incoming: StoreSessionInput,
+): number {
+  return (
+    compareNumbers(
+      sessionIdentityRank(existing.identityState),
+      sessionIdentityRank(incoming.identityState),
+    )
+    || compareNumbers(
+      sessionCompletenessRank(existing.completeness),
+      sessionCompletenessRank(incoming.completeness),
     )
   );
 }
