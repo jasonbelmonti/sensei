@@ -14,11 +14,16 @@ type CreateSenseiIngestWatchRunner = (
   config: SenseiIngestWatchCommandConfig,
   options: { storage: SenseiIngestWatchCommandStorage },
 ) => SenseiIngestWatch;
-type WaitForShutdownSignal = () => Promise<void>;
 type SenseiIngestWatchCommandStorage = Pick<
   SenseiStorage,
   "transaction" | "ingestState" | "close"
 >;
+type ShutdownSignalSubscription = {
+  promise: Promise<void>;
+  isTriggered(): boolean;
+  dispose(): void;
+};
+type CreateShutdownSignalSubscription = () => ShutdownSignalSubscription;
 
 export type SenseiIngestWatchCommandSummary = {
   rootCount: number;
@@ -29,7 +34,7 @@ export type SenseiIngestWatchCommandSummary = {
 export type RunSenseiIngestWatchCommandOptions = {
   openStorage?: OpenSenseiIngestWatchStorage;
   createWatch?: CreateSenseiIngestWatchRunner;
-  waitForShutdownSignal?: WaitForShutdownSignal;
+  createShutdownSignalSubscription?: CreateShutdownSignalSubscription;
   onStarted?: (summary: SenseiIngestWatchCommandSummary) => Promise<void> | void;
 };
 
@@ -39,11 +44,12 @@ export async function runSenseiIngestWatchCommand(
 ): Promise<SenseiIngestWatchCommandSummary> {
   const openStorage = options.openStorage ?? openSenseiStorage;
   const createWatch = options.createWatch ?? createSenseiIngestWatch;
-  const waitForShutdownSignal =
-    options.waitForShutdownSignal ?? waitForProcessSignal;
+  const createShutdownSignalSubscription =
+    options.createShutdownSignalSubscription ?? createProcessSignalSubscription;
   const storage = openStorage({
     databasePath: config.paths.databasePath,
   });
+  const shutdownSignal = createShutdownSignalSubscription();
   let watch: SenseiIngestWatch | null = null;
   let watchStarted = false;
 
@@ -53,13 +59,17 @@ export async function runSenseiIngestWatchCommand(
 
     await watch.start();
     watchStarted = true;
-    await options.onStarted?.(summary);
-    await waitForShutdownSignal();
+    if (!shutdownSignal.isTriggered()) {
+      await options.onStarted?.(summary);
+    }
+    await shutdownSignal.promise;
     watchStarted = false;
     await stopWatch(watch);
 
     return summary;
   } finally {
+    shutdownSignal.dispose();
+
     try {
       if (watchStarted && watch) {
         await stopWatch(watch);
@@ -85,18 +95,39 @@ async function stopWatch(watch: SenseiIngestWatch): Promise<void> {
   await watch.stop();
 }
 
-function waitForProcessSignal(): Promise<void> {
-  return new Promise((resolve) => {
-    const handleSignal = () => {
-      cleanup();
-      resolve();
-    };
-    const cleanup = () => {
-      process.off("SIGINT", handleSignal);
-      process.off("SIGTERM", handleSignal);
-    };
-
-    process.on("SIGINT", handleSignal);
-    process.on("SIGTERM", handleSignal);
+function createProcessSignalSubscription(): ShutdownSignalSubscription {
+  let triggered = false;
+  let disposed = false;
+  let resolvePromise!: () => void;
+  const promise = new Promise<void>((resolve) => {
+    resolvePromise = resolve;
   });
+
+  const cleanup = () => {
+    if (disposed) {
+      return;
+    }
+
+    disposed = true;
+    process.off("SIGINT", handleSignal);
+    process.off("SIGTERM", handleSignal);
+  };
+  const handleSignal = () => {
+    triggered = true;
+    cleanup();
+    resolvePromise();
+  };
+
+  process.on("SIGINT", handleSignal);
+  process.on("SIGTERM", handleSignal);
+
+  return {
+    promise,
+    isTriggered() {
+      return triggered;
+    },
+    dispose() {
+      cleanup();
+    },
+  };
 }
