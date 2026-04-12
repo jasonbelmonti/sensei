@@ -193,6 +193,7 @@ test("writer uses explicit session provenance even when event records arrive fir
     provider: "codex",
     sessionId: "session-1",
     observationReason: "index",
+    observedAt: "2026-04-11T12:00:04.000Z",
     metadata: {
       origin: "session-index",
     },

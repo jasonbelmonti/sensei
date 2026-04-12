@@ -116,11 +116,18 @@ function resolveSessionWrite(
     return sessionWrite;
   }
 
-  return (
-    explicitSessionWrites.get(
-      getSessionKey(sessionWrite.provider, sessionWrite.sessionId),
-    ) ?? sessionWrite
+  const explicitSessionWrite = explicitSessionWrites.get(
+    getSessionKey(sessionWrite.provider, sessionWrite.sessionId),
   );
+
+  if (!explicitSessionWrite) {
+    return sessionWrite;
+  }
+
+  return {
+    ...explicitSessionWrite,
+    observedAt: explicitSessionWrite.observedAt ?? sessionWrite.observedAt,
+  };
 }
 
 function getSessionKey(provider: string, sessionId: string): string {
