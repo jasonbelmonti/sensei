@@ -1,5 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 
+import { openSenseiStorage } from "../../src/storage";
+import { createIngestStateRepository } from "../../src/storage/repositories/ingest-state";
 import { createStorageTestHarness } from "./helpers";
 
 const cleanups: Array<() => void> = [];
@@ -1059,4 +1061,108 @@ test("ingest state repository keeps cursor progress monotonic", () => {
     },
     updatedAt: "2026-04-11T12:02:00.000Z",
   });
+});
+
+test("ingest state repository keeps advanced cursor progress during a stale writer interleave", () => {
+  const harness = createStorageTestHarness("sensei-storage-cursor-stale-writer");
+  cleanups.push(harness.cleanup);
+
+  harness.storage.ingestState.setCursor({
+    provider: "codex",
+    rootPath: "/Users/test/.codex",
+    filePath: "/Users/test/.codex/sessions/abc.jsonl",
+    byteOffset: 50,
+    line: 5,
+    fingerprint: "fp-50",
+    continuityToken: "cont-50",
+    metadata: {
+      inode: 50,
+    },
+    updatedAt: "2026-04-11T12:01:00.000Z",
+  });
+
+  const competingStorage = openSenseiStorage({
+    databasePath: harness.databasePath,
+  });
+  cleanups.push(() => competingStorage.close());
+
+  let injectedConcurrentWrite = false;
+
+  const ingestState = createIngestStateRepository({
+    query(sql: string) {
+      const statement = harness.storage.database.query(sql);
+      const all = statement.all.bind(statement);
+      const get = statement.get.bind(statement);
+      const run = statement.run.bind(statement);
+      const wrappedStatement = {
+        all,
+        get,
+        run,
+      };
+
+      if (!sql.includes("INSERT INTO ingest_cursors")) {
+        return wrappedStatement;
+      }
+
+      return {
+        ...wrappedStatement,
+        get: (...args: Parameters<typeof get>) => {
+          if (!injectedConcurrentWrite) {
+            injectedConcurrentWrite = true;
+            competingStorage.ingestState.setCursor({
+              provider: "codex",
+              rootPath: "/Users/test/.codex",
+              filePath: "/Users/test/.codex/sessions/abc.jsonl",
+              byteOffset: 200,
+              line: 20,
+              fingerprint: "fp-200",
+              continuityToken: "cont-200",
+              metadata: {
+                inode: 200,
+              },
+              updatedAt: "2026-04-11T12:02:00.000Z",
+            });
+          }
+
+          return get(...args);
+        },
+      };
+    },
+  } as Parameters<typeof createIngestStateRepository>[0]);
+
+  const replayedCursor = ingestState.setCursor({
+    provider: "codex",
+    rootPath: "/Users/test/.codex",
+    filePath: "/Users/test/.codex/sessions/abc.jsonl",
+    byteOffset: 60,
+    line: 6,
+    fingerprint: "fp-60",
+    continuityToken: "cont-60",
+    metadata: {
+      inode: 60,
+    },
+    updatedAt: "2026-04-11T12:03:00.000Z",
+  });
+
+  expect(injectedConcurrentWrite).toBe(true);
+  expect(replayedCursor).toEqual({
+    provider: "codex",
+    rootPath: "/Users/test/.codex",
+    filePath: "/Users/test/.codex/sessions/abc.jsonl",
+    byteOffset: 200,
+    line: 20,
+    fingerprint: "fp-200",
+    continuityToken: "cont-200",
+    metadata: {
+      inode: 200,
+    },
+    updatedAt: "2026-04-11T12:02:00.000Z",
+  });
+  expect(
+    harness.storage.ingestState.getCursor(
+      "codex",
+      "/Users/test/.codex",
+      "/Users/test/.codex/sessions/abc.jsonl",
+    ),
+  ).toEqual(replayedCursor);
 });

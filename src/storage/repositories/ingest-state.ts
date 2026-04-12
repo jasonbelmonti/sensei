@@ -5,9 +5,7 @@ import type {
   StoreWarningInput,
 } from "../schema";
 import {
-  cursorStatementParams,
   mapCursorRow,
-  mergeCursorRecord,
   mapWarningRow,
   type CursorRow,
   type WarningRow,
@@ -17,6 +15,13 @@ import { nowIsoString, serializeJson } from "./shared";
 export type IngestStateRepository = ReturnType<typeof createIngestStateRepository>;
 
 export function createIngestStateRepository(database: Database) {
+  const shouldAdvanceCursorExpression = `
+    excluded.byte_offset > ingest_cursors.byte_offset
+    OR (
+      excluded.byte_offset = ingest_cursors.byte_offset
+      AND excluded.line >= ingest_cursors.line
+    )
+  `;
   const selectCursorStatement = database.query(`
     SELECT
       provider,
@@ -44,12 +49,46 @@ export function createIngestStateRepository(database: Database) {
       updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (provider, root_path, file_path) DO UPDATE SET
-      byte_offset = excluded.byte_offset,
-      line = excluded.line,
-      fingerprint = excluded.fingerprint,
-      continuity_token = excluded.continuity_token,
-      metadata_json = excluded.metadata_json,
-      updated_at = excluded.updated_at
+      byte_offset = CASE
+        WHEN ${shouldAdvanceCursorExpression}
+          THEN excluded.byte_offset
+        ELSE ingest_cursors.byte_offset
+      END,
+      line = CASE
+        WHEN ${shouldAdvanceCursorExpression}
+          THEN excluded.line
+        ELSE ingest_cursors.line
+      END,
+      fingerprint = CASE
+        WHEN ${shouldAdvanceCursorExpression}
+          THEN COALESCE(excluded.fingerprint, ingest_cursors.fingerprint)
+        ELSE ingest_cursors.fingerprint
+      END,
+      continuity_token = CASE
+        WHEN ${shouldAdvanceCursorExpression}
+          THEN COALESCE(excluded.continuity_token, ingest_cursors.continuity_token)
+        ELSE ingest_cursors.continuity_token
+      END,
+      metadata_json = CASE
+        WHEN ${shouldAdvanceCursorExpression}
+          THEN COALESCE(excluded.metadata_json, ingest_cursors.metadata_json)
+        ELSE ingest_cursors.metadata_json
+      END,
+      updated_at = CASE
+        WHEN ${shouldAdvanceCursorExpression}
+          THEN excluded.updated_at
+        ELSE ingest_cursors.updated_at
+      END
+    RETURNING
+      provider,
+      root_path as rootPath,
+      file_path as filePath,
+      byte_offset as byteOffset,
+      line,
+      fingerprint,
+      continuity_token as continuityToken,
+      metadata_json as metadataJson,
+      updated_at as updatedAt
   `);
   const deleteCursorStatement = database.query(`
     DELETE FROM ingest_cursors
@@ -129,16 +168,23 @@ export function createIngestStateRepository(database: Database) {
   return {
     getCursor,
     setCursor(input: StoreCursorInput) {
-      const record = mergeCursorRecord(
-        getCursor(input.provider, input.rootPath, input.filePath),
-        {
-        ...input,
-        updatedAt: input.updatedAt ?? nowIsoString(),
-        },
-      );
+      const row = upsertCursorStatement.get(
+        input.provider,
+        input.rootPath,
+        input.filePath,
+        input.byteOffset,
+        input.line,
+        input.fingerprint ?? null,
+        input.continuityToken ?? null,
+        serializeJson(input.metadata),
+        input.updatedAt ?? nowIsoString(),
+      ) as CursorRow | null;
 
-      upsertCursorStatement.run(...cursorStatementParams(record));
-      return record;
+      if (row === null) {
+        throw new Error("Cursor write succeeded but no row was returned.");
+      }
+
+      return mapCursorRow(row);
     },
     deleteCursor(
       provider: StoreCursorInput["provider"],
