@@ -213,6 +213,52 @@ test("writer uses explicit session provenance even when event records arrive fir
   });
 });
 
+test("writer selects the same explicit session provenance regardless of explicit session order", () => {
+  const forwardHarness = createStorageTestHarness(
+    "sensei-ingest-explicit-session-forward",
+  );
+  const reverseHarness = createStorageTestHarness(
+    "sensei-ingest-explicit-session-reverse",
+  );
+  cleanups.push(forwardHarness.cleanup);
+  cleanups.push(reverseHarness.cleanup);
+
+  writePassiveScanResultToStorage(
+    forwardHarness.storage,
+    createDuplicateExplicitSessionResult("index-first"),
+  );
+  writePassiveScanResultToStorage(
+    reverseHarness.storage,
+    createDuplicateExplicitSessionResult("transcript-first"),
+  );
+
+  const forwardSession = forwardHarness.storage.conversations.getSession(
+    "codex",
+    "session-1",
+  );
+  const reverseSession = reverseHarness.storage.conversations.getSession(
+    "codex",
+    "session-1",
+  );
+
+  expect(forwardSession).toMatchObject({
+    observationReason: "index",
+    source: {
+      kind: "session-index",
+      filePath: "/Users/test/.codex/sessions/index.json",
+    },
+    observedAt: "2026-04-11T12:00:04.000Z",
+  });
+  expect(reverseSession).toMatchObject({
+    observationReason: "index",
+    source: {
+      kind: "session-index",
+      filePath: "/Users/test/.codex/sessions/index.json",
+    },
+    observedAt: "2026-04-11T12:00:04.000Z",
+  });
+});
+
 test("writer keeps cursor progress monotonic during stale replays", () => {
   const harness = createStorageTestHarness("sensei-ingest-storage-monotonic");
   cleanups.push(harness.cleanup);
@@ -403,6 +449,52 @@ function createEventBeforeSessionResult(): SenseiPassiveScanResult {
   };
 }
 
+function createDuplicateExplicitSessionResult(
+  order: "index-first" | "transcript-first",
+): SenseiPassiveScanResult {
+  const explicitSessions =
+    order === "index-first"
+      ? [createObservedSessionRecord(), createTranscriptObservedSessionRecord()]
+      : [createTranscriptObservedSessionRecord(), createObservedSessionRecord()];
+
+  return {
+    records: [
+      {
+        kind: "event",
+        observedEvent: createObservedAgentEvent({
+          type: "turn.completed",
+          provider: "codex",
+          session: {
+            provider: "codex",
+            sessionId: "session-1",
+          },
+          turnId: "turn-1",
+          timestamp: "2026-04-11T12:00:04.000Z",
+          result: {
+            provider: "codex",
+            session: {
+              provider: "codex",
+              sessionId: "session-1",
+            },
+            turnId: "turn-1",
+            text: `Duplicate explicit session ordering: ${order}.`,
+            usage: null,
+          },
+          raw: {
+            step: "duplicate-explicit-session",
+          },
+        }, 4, 40, "duplicate-explicit-session"),
+      },
+      ...explicitSessions.map((observedSession) => ({
+        kind: "session" as const,
+        observedSession,
+      })),
+    ],
+    warnings: [],
+    discoveryEvents: [],
+  };
+}
+
 function createCursorOnlyScanResult(
   byteOffset: number,
   line: number,
@@ -474,6 +566,50 @@ function createObservedSessionRecord(): ObservedSessionRecord {
       updatedAt: "2026-04-11T12:00:01.000Z",
       metadata: {
         observedAt: "session-index",
+      },
+    },
+  };
+}
+
+function createTranscriptObservedSessionRecord(): ObservedSessionRecord {
+  return {
+    kind: "session",
+    observedSession: {
+      provider: "codex",
+      sessionId: "session-1",
+      state: "canonical",
+      workingDirectory: "/repo/sensei",
+      metadata: {
+        origin: "transcript",
+      },
+    },
+    source: {
+      provider: "codex",
+      kind: "transcript",
+      discoveryPhase: "initial_scan",
+      rootPath: "/Users/test/.codex",
+      filePath: "/Users/test/.codex/sessions/session-1.jsonl",
+      location: {
+        line: 2,
+        byteOffset: 20,
+      },
+      metadata: {
+        source: "transcript",
+      },
+    },
+    completeness: "complete",
+    reason: "transcript",
+    cursor: {
+      provider: "codex",
+      rootPath: "/Users/test/.codex",
+      filePath: "/Users/test/.codex/sessions/session-1.jsonl",
+      byteOffset: 20,
+      line: 2,
+      fingerprint: "fp-20",
+      continuityToken: "cont-20",
+      updatedAt: "2026-04-11T12:00:02.000Z",
+      metadata: {
+        observedAt: "transcript",
       },
     },
   };

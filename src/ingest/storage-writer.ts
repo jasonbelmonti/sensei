@@ -34,7 +34,6 @@ export function writePassiveScanResultToStorage(
       summary.processedRecords += 1;
       const writes = mapPassiveScanRecordToStorageWrites(record);
       const sessionWrite = resolveSessionWrite(
-        record,
         writes.session,
         explicitSessionWrites,
       );
@@ -98,21 +97,27 @@ function collectExplicitSessionWrites(
     }
 
     const key = getSessionKey(writes.session.provider, writes.session.sessionId);
+    const existingSessionWrite = explicitSessionWrites.get(key);
 
-    if (!explicitSessionWrites.has(key)) {
-      explicitSessionWrites.set(key, writes.session);
-    }
+    explicitSessionWrites.set(
+      key,
+      existingSessionWrite
+        ? chooseAuthoritativeExplicitSessionWrite(
+            existingSessionWrite,
+            writes.session,
+          )
+        : writes.session,
+    );
   }
 
   return explicitSessionWrites;
 }
 
 function resolveSessionWrite(
-  record: SenseiPassiveScanRecord,
   sessionWrite: StoreSessionInput | undefined,
   explicitSessionWrites: Map<string, StoreSessionInput>,
 ): StoreSessionInput | undefined {
-  if (!sessionWrite || record.kind === "session") {
+  if (!sessionWrite) {
     return sessionWrite;
   }
 
@@ -128,6 +133,139 @@ function resolveSessionWrite(
     ...explicitSessionWrite,
     observedAt: explicitSessionWrite.observedAt ?? sessionWrite.observedAt,
   };
+}
+
+function chooseAuthoritativeExplicitSessionWrite(
+  existing: StoreSessionInput,
+  incoming: StoreSessionInput,
+): StoreSessionInput {
+  const comparison = compareExplicitSessionWrites(existing, incoming);
+  const preferred = comparison >= 0 ? existing : incoming;
+  const other = comparison >= 0 ? incoming : existing;
+
+  return {
+    ...preferred,
+    observedAt: pickEarlierTimestamp(preferred.observedAt, other.observedAt),
+  };
+}
+
+function compareExplicitSessionWrites(
+  existing: StoreSessionInput,
+  incoming: StoreSessionInput,
+): number {
+  return (
+    compareNumbers(
+      sessionIdentityRank(existing.identityState),
+      sessionIdentityRank(incoming.identityState),
+    )
+    || compareNumbers(
+      sessionCompletenessRank(existing.completeness),
+      sessionCompletenessRank(incoming.completeness),
+    )
+    || compareNumbers(
+      sessionObservationReasonRank(existing.observationReason),
+      sessionObservationReasonRank(incoming.observationReason),
+    )
+    || compareNumbers(
+      sessionSourceKindRank(existing.source.kind),
+      sessionSourceKindRank(incoming.source.kind),
+    )
+    || compareStrings(
+      getSessionSourceIdentity(existing),
+      getSessionSourceIdentity(incoming),
+    )
+  );
+}
+
+function sessionIdentityRank(
+  identityState: StoreSessionInput["identityState"],
+): number {
+  switch (identityState) {
+    case "canonical":
+      return 1;
+    case "provisional":
+      return 0;
+  }
+}
+
+function sessionCompletenessRank(
+  completeness: StoreSessionInput["completeness"],
+): number {
+  switch (completeness) {
+    case "complete":
+      return 2;
+    case "partial":
+      return 1;
+    case "best-effort":
+      return 0;
+  }
+}
+
+function sessionObservationReasonRank(
+  observationReason: StoreSessionInput["observationReason"],
+): number {
+  switch (observationReason) {
+    case "index":
+      return 4;
+    case "snapshot":
+      return 3;
+    case "reconcile":
+      return 2;
+    case "bootstrap":
+      return 1;
+    case "transcript":
+      return 0;
+  }
+}
+
+function sessionSourceKindRank(
+  kind: StoreSessionInput["source"]["kind"],
+): number {
+  switch (kind) {
+    case "session-index":
+      return 2;
+    case "snapshot":
+      return 1;
+    case "transcript":
+      return 0;
+  }
+}
+
+function getSessionSourceIdentity(sessionWrite: StoreSessionInput): string {
+  return [
+    sessionWrite.source.provider,
+    sessionWrite.source.kind,
+    sessionWrite.source.discoveryPhase,
+    sessionWrite.source.rootPath,
+    sessionWrite.source.filePath,
+  ].join(":");
+}
+
+function pickEarlierTimestamp(
+  existing: string | undefined,
+  incoming: string | undefined,
+): string | undefined {
+  if (!existing) {
+    return incoming;
+  }
+
+  if (!incoming) {
+    return existing;
+  }
+
+  return existing <= incoming ? existing : incoming;
+}
+
+function compareNumbers(existing: number, incoming: number): number {
+  return existing - incoming;
+}
+
+function compareStrings(existing: string, incoming: string): number {
+  if (existing === incoming) {
+    return 0;
+  }
+
+  return existing < incoming ? 1 : -1;
 }
 
 function getSessionKey(provider: string, sessionId: string): string {
