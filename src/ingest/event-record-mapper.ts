@@ -1,18 +1,20 @@
 import type {
   ObservedAgentEvent,
-  ObservedEventSourceKind,
   ObservedSessionIdentity,
 } from "@jasonbelmonti/claudex/ingest";
 
 import type {
   StoreCursorInput,
-  StoreSessionInput,
   StoreToolEventInput,
   StorageTurnKey,
   StoreTurnInput,
   StoreTurnUsageInput,
-  StorageSessionObservationReason,
 } from "../storage";
+import {
+  createObservedSessionStorageInput,
+  deriveObservationReasonFromSourceKind,
+  mapObservedCursorToStorageInput,
+} from "./observation-storage-inputs";
 import type { PassiveScanRecordStorageWrites } from "./record-storage-writes";
 
 type PassiveEvent = ObservedAgentEvent["event"];
@@ -31,7 +33,7 @@ export function mapObservedAgentEventToStorageWrites(
   record: ObservedAgentEvent,
 ): PassiveScanRecordStorageWrites {
   const session = record.observedSession
-    ? createSessionWrite({
+    ? createObservedSessionStorageInput({
         observedSession: record.observedSession,
         source: record.source,
         completeness: record.completeness,
@@ -39,7 +41,7 @@ export function mapObservedAgentEventToStorageWrites(
         observedAt: record.event.timestamp,
       })
     : undefined;
-  const cursor = mapCursor(record.cursor);
+  const cursor = mapObservedCursorToStorageInput(record.cursor);
 
   switch (record.event.type) {
     case "turn.started":
@@ -92,7 +94,7 @@ export function mapObservedAgentEventToStorageWrites(
 
 function mapToolEventRecord(
   event: PassiveToolEvent,
-  session: StoreSessionInput | undefined,
+  session: PassiveScanRecordStorageWrites["session"],
   cursor: StoreCursorInput | undefined,
   toolEvent: StoreToolEventInput | undefined,
 ): PassiveScanRecordStorageWrites {
@@ -108,26 +110,6 @@ function mapToolEventRecord(
     prerequisiteTurn: createPlaceholderTurn(toolEvent, event),
     toolEvent,
     cursor,
-  };
-}
-
-function createSessionWrite(params: {
-  observedSession: ObservedSessionIdentity;
-  source: ObservedAgentEvent["source"];
-  completeness: ObservedAgentEvent["completeness"];
-  observationReason: StorageSessionObservationReason;
-  observedAt?: string;
-}): StoreSessionInput {
-  return {
-    provider: params.observedSession.provider,
-    sessionId: params.observedSession.sessionId,
-    identityState: params.observedSession.state,
-    workingDirectory: params.observedSession.workingDirectory,
-    metadata: params.observedSession.metadata,
-    source: params.source,
-    completeness: params.completeness,
-    observationReason: params.observationReason,
-    observedAt: params.observedAt,
   };
 }
 
@@ -319,39 +301,6 @@ function createPlaceholderTurn(
     status: "started",
     startedAt: event.type === "tool.started" ? event.timestamp : undefined,
   };
-}
-
-function mapCursor(
-  cursor: ObservedAgentEvent["cursor"],
-): StoreCursorInput | undefined {
-  if (!cursor) {
-    return undefined;
-  }
-
-  return {
-    provider: cursor.provider,
-    rootPath: cursor.rootPath,
-    filePath: cursor.filePath,
-    byteOffset: cursor.byteOffset,
-    line: cursor.line,
-    fingerprint: cursor.fingerprint,
-    continuityToken: cursor.continuityToken,
-    metadata: cursor.metadata,
-    updatedAt: cursor.updatedAt,
-  };
-}
-
-function deriveObservationReasonFromSourceKind(
-  kind: ObservedEventSourceKind,
-): StorageSessionObservationReason {
-  switch (kind) {
-    case "snapshot":
-      return "snapshot";
-    case "session-index":
-      return "index";
-    case "transcript":
-      return "transcript";
-  }
 }
 
 function createTurnKey(
