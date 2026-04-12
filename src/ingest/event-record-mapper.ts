@@ -21,13 +21,6 @@ type PassiveEvent = ObservedAgentEvent["event"];
 type PassiveTurnStartedEvent = Extract<PassiveEvent, { type: "turn.started" }>;
 type PassiveTurnCompletedEvent = Extract<PassiveEvent, { type: "turn.completed" }>;
 type PassiveTurnFailedEvent = Extract<PassiveEvent, { type: "turn.failed" }>;
-type PassiveToolStartedEvent = Extract<PassiveEvent, { type: "tool.started" }>;
-type PassiveToolUpdatedEvent = Extract<PassiveEvent, { type: "tool.updated" }>;
-type PassiveToolCompletedEvent = Extract<PassiveEvent, { type: "tool.completed" }>;
-type PassiveToolEvent =
-  | PassiveToolStartedEvent
-  | PassiveToolUpdatedEvent
-  | PassiveToolCompletedEvent;
 
 export function mapObservedAgentEventToStorageWrites(
   record: ObservedAgentEvent,
@@ -65,21 +58,18 @@ export function mapObservedAgentEventToStorageWrites(
       };
     case "tool.started":
       return mapToolEventRecord(
-        record.event,
         session,
         cursor,
         mapToolStarted(record),
       );
     case "tool.updated":
       return mapToolEventRecord(
-        record.event,
         session,
         cursor,
         mapToolUpdated(record),
       );
     case "tool.completed":
       return mapToolEventRecord(
-        record.event,
         session,
         cursor,
         mapToolCompleted(record),
@@ -93,7 +83,6 @@ export function mapObservedAgentEventToStorageWrites(
 }
 
 function mapToolEventRecord(
-  event: PassiveToolEvent,
   session: PassiveScanRecordStorageWrites["session"],
   cursor: StoreCursorInput | undefined,
   toolEvent: StoreToolEventInput | undefined,
@@ -107,7 +96,7 @@ function mapToolEventRecord(
 
   return {
     session,
-    prerequisiteTurn: createPlaceholderTurn(toolEvent, event),
+    prerequisiteTurn: createPlaceholderTurn(toolEvent),
     toolEvent,
     cursor,
   };
@@ -292,14 +281,12 @@ function mapToolCompleted(
 
 function createPlaceholderTurn(
   toolEvent: StoreToolEventInput,
-  event: PassiveToolEvent,
 ): StoreTurnInput {
   return {
     provider: toolEvent.provider,
     sessionId: toolEvent.sessionId,
     turnId: toolEvent.turnId,
     status: "started",
-    startedAt: event.type === "tool.started" ? event.timestamp : undefined,
   };
 }
 

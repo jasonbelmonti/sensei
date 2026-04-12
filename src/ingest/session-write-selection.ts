@@ -2,16 +2,18 @@ import type { StoreSessionInput } from "../storage";
 import { mapPassiveScanRecordToStorageWrites } from "./record-mapper";
 import type { SenseiPassiveScanRecord } from "./scan-result";
 
-export function collectExplicitSessionWrites(
+type SessionWriteSelections = {
+  explicitSessionWrites: ReadonlyMap<string, StoreSessionInput>;
+  observedAtFallbacks: ReadonlyMap<string, string>;
+};
+
+export function collectSessionWriteSelections(
   records: readonly SenseiPassiveScanRecord[],
-): Map<string, StoreSessionInput> {
+): SessionWriteSelections {
   const explicitSessionWrites = new Map<string, StoreSessionInput>();
+  const observedAtFallbacks = new Map<string, string>();
 
   for (const record of records) {
-    if (record.kind !== "session") {
-      continue;
-    }
-
     const sessionWrite = mapPassiveScanRecordToStorageWrites(record).session;
 
     if (!sessionWrite) {
@@ -19,8 +21,22 @@ export function collectExplicitSessionWrites(
     }
 
     const key = getSessionKey(sessionWrite.provider, sessionWrite.sessionId);
-    const existingSessionWrite = explicitSessionWrites.get(key);
 
+    if (sessionWrite.observedAt) {
+      observedAtFallbacks.set(
+        key,
+        pickEarlierTimestamp(
+          observedAtFallbacks.get(key),
+          sessionWrite.observedAt,
+        ) ?? sessionWrite.observedAt,
+      );
+    }
+
+    if (record.kind !== "session") {
+      continue;
+    }
+
+    const existingSessionWrite = explicitSessionWrites.get(key);
     explicitSessionWrites.set(
       key,
       existingSessionWrite
@@ -32,32 +48,52 @@ export function collectExplicitSessionWrites(
     );
   }
 
-  return explicitSessionWrites;
+  return {
+    explicitSessionWrites,
+    observedAtFallbacks,
+  };
 }
 
 export function resolveSessionWrite(
   sessionWrite: StoreSessionInput | undefined,
-  explicitSessionWrites: ReadonlyMap<string, StoreSessionInput>,
+  selections: SessionWriteSelections,
 ): StoreSessionInput | undefined {
   if (!sessionWrite) {
     return undefined;
   }
 
-  const explicitSessionWrite = explicitSessionWrites.get(
-    getSessionKey(sessionWrite.provider, sessionWrite.sessionId),
-  );
+  const key = getSessionKey(sessionWrite.provider, sessionWrite.sessionId);
+  const explicitSessionWrite = selections.explicitSessionWrites.get(key);
+  const observedAtFallback = selections.observedAtFallbacks.get(key);
 
   if (!explicitSessionWrite) {
-    return sessionWrite;
+    return applyObservedAtFallback(sessionWrite, observedAtFallback);
   }
 
   if (compareSessionStrength(explicitSessionWrite, sessionWrite) < 0) {
-    return sessionWrite;
+    return applyObservedAtFallback(sessionWrite, observedAtFallback);
   }
 
   return {
     ...explicitSessionWrite,
-    observedAt: explicitSessionWrite.observedAt ?? sessionWrite.observedAt,
+    observedAt:
+      explicitSessionWrite.observedAt
+      ?? sessionWrite.observedAt
+      ?? observedAtFallback,
+  };
+}
+
+function applyObservedAtFallback(
+  sessionWrite: StoreSessionInput,
+  observedAtFallback: string | undefined,
+): StoreSessionInput {
+  if (sessionWrite.observedAt || !observedAtFallback) {
+    return sessionWrite;
+  }
+
+  return {
+    ...sessionWrite,
+    observedAt: observedAtFallback,
   };
 }
 

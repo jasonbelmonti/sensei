@@ -5,7 +5,7 @@ import {
 } from "./record-mapper";
 import type { SenseiPassiveScanResult } from "./scan-result";
 import {
-  collectExplicitSessionWrites,
+  collectSessionWriteSelections,
   resolveSessionWrite,
 } from "./session-write-selection";
 
@@ -23,7 +23,7 @@ export function writePassiveScanResultToStorage(
   storage: Pick<SenseiStorage, "transaction">,
   result: SenseiPassiveScanResult,
 ): PassiveScanWriteSummary {
-  const explicitSessionWrites = collectExplicitSessionWrites(result.records);
+  const sessionWriteSelections = collectSessionWriteSelections(result.records);
 
   return storage.transaction((repositories) => {
     const summary: PassiveScanWriteSummary = {
@@ -41,7 +41,7 @@ export function writePassiveScanResultToStorage(
       const writes = mapPassiveScanRecordToStorageWrites(record);
       const sessionWrite = resolveSessionWrite(
         writes.session,
-        explicitSessionWrites,
+        sessionWriteSelections,
       );
 
       if (sessionWrite) {

@@ -282,6 +282,53 @@ test("writer preserves stronger event-derived session upgrades over weaker expli
   });
 });
 
+test("writer preserves real turn.started timestamps when tool placeholders arrive later", () => {
+  const harness = createStorageTestHarness("sensei-ingest-placeholder-turn-started-at");
+  cleanups.push(harness.cleanup);
+
+  writePassiveScanResultToStorage(
+    harness.storage,
+    createToolAfterTurnStartedResult(),
+  );
+
+  expect(
+    harness.storage.conversations.getTurn("codex", "session-1", "turn-1"),
+  ).toMatchObject({
+    status: "started",
+    startedAt: "2026-04-11T12:00:01.000Z",
+  });
+  expect(
+    harness.storage.conversations.listToolEvents("codex", "session-1", "turn-1"),
+  ).toEqual([
+    expect.objectContaining({
+      toolCallId: "tool-1",
+      status: "started",
+      startedAt: "2026-04-11T12:00:02.000Z",
+    }),
+  ]);
+});
+
+test("writer preserves event observedAt when explicit session records appear first", () => {
+  const harness = createStorageTestHarness("sensei-ingest-explicit-session-observed-at");
+  cleanups.push(harness.cleanup);
+
+  writePassiveScanResultToStorage(
+    harness.storage,
+    createSessionBeforeEventResult(),
+  );
+
+  expect(
+    harness.storage.conversations.getSession("codex", "session-1"),
+  ).toMatchObject({
+    observationReason: "index",
+    source: {
+      kind: "session-index",
+      filePath: "/Users/test/.codex/sessions/index.json",
+    },
+    observedAt: "2026-04-11T12:00:04.000Z",
+  });
+});
+
 test("writer keeps cursor progress monotonic during stale replays", () => {
   const harness = createStorageTestHarness("sensei-ingest-storage-monotonic");
   cleanups.push(harness.cleanup);
@@ -472,6 +519,45 @@ function createEventBeforeSessionResult(): SenseiPassiveScanResult {
   };
 }
 
+function createSessionBeforeEventResult(): SenseiPassiveScanResult {
+  return {
+    records: [
+      {
+        kind: "session",
+        observedSession: createObservedSessionRecord(),
+      },
+      {
+        kind: "event",
+        observedEvent: createObservedAgentEvent({
+          type: "turn.completed",
+          provider: "codex",
+          session: {
+            provider: "codex",
+            sessionId: "session-1",
+          },
+          turnId: "turn-1",
+          timestamp: "2026-04-11T12:00:04.000Z",
+          result: {
+            provider: "codex",
+            session: {
+              provider: "codex",
+              sessionId: "session-1",
+            },
+            turnId: "turn-1",
+            text: "Session record arrived before event timestamp.",
+            usage: null,
+          },
+          raw: {
+            step: "turn-complete-after-session",
+          },
+        }, 4, 40, "turn-complete-after-session"),
+      },
+    ],
+    warnings: [],
+    discoveryEvents: [],
+  };
+}
+
 function createDuplicateExplicitSessionResult(
   order: "index-first" | "transcript-first",
 ): SenseiPassiveScanResult {
@@ -550,6 +636,60 @@ function createStrongerEventSessionResult(): SenseiPassiveScanResult {
       {
         kind: "session",
         observedSession: createWeakerExplicitSessionRecord(),
+      },
+    ],
+    warnings: [],
+    discoveryEvents: [],
+  };
+}
+
+function createToolAfterTurnStartedResult(): SenseiPassiveScanResult {
+  return {
+    records: [
+      {
+        kind: "event",
+        observedEvent: createObservedAgentEvent({
+          type: "turn.started",
+          provider: "codex",
+          session: {
+            provider: "codex",
+            sessionId: "session-1",
+          },
+          turnId: "turn-1",
+          timestamp: "2026-04-11T12:00:01.000Z",
+          input: {
+            prompt: "Run the tool.",
+            attachments: [],
+            metadata: {
+              source: "user",
+            },
+          },
+          raw: {
+            step: "turn-started-before-tool",
+          },
+        }, 1, 10, "turn-started-before-tool"),
+      },
+      {
+        kind: "event",
+        observedEvent: createObservedAgentEvent({
+          type: "tool.started",
+          provider: "codex",
+          session: {
+            provider: "codex",
+            sessionId: "session-1",
+          },
+          turnId: "turn-1",
+          toolCallId: "tool-1",
+          toolName: "command_execution",
+          kind: "command",
+          input: {
+            command: "echo test",
+          },
+          timestamp: "2026-04-11T12:00:02.000Z",
+          raw: {
+            step: "tool-started-after-turn",
+          },
+        }, 2, 20, "tool-started-after-turn"),
       },
     ],
     warnings: [],
