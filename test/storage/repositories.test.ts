@@ -1163,6 +1163,71 @@ test("conversation repository clears stale source details when provenance change
   });
 });
 
+test("conversation repository preserves source details for stronger replays on the same source", () => {
+  const harness = createStorageTestHarness("sensei-storage-session-source-replay");
+  cleanups.push(harness.cleanup);
+
+  const { conversations } = harness.storage;
+
+  conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "provisional",
+    source: {
+      provider: "claude",
+      kind: "transcript",
+      discoveryPhase: "watch",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.jsonl",
+      location: {
+        line: 42,
+        byteOffset: 4096,
+      },
+      metadata: {
+        transcriptChunk: 7,
+      },
+    },
+    completeness: "partial",
+    observationReason: "transcript",
+    observedAt: "2026-04-11T12:00:00.000Z",
+  });
+
+  const replayedSession = conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "canonical",
+    source: {
+      provider: "claude",
+      kind: "transcript",
+      discoveryPhase: "watch",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.jsonl",
+    },
+    completeness: "complete",
+    observationReason: "snapshot",
+    observedAt: "2026-04-11T12:01:00.000Z",
+  });
+
+  expect(replayedSession).toMatchObject({
+    identityState: "canonical",
+    completeness: "complete",
+    observationReason: "snapshot",
+    source: {
+      kind: "transcript",
+      discoveryPhase: "watch",
+      filePath: "/Users/test/.claude/projects/session-1.jsonl",
+      location: {
+        line: 42,
+        byteOffset: 4096,
+      },
+      metadata: {
+        transcriptChunk: 7,
+      },
+    },
+    observedAt: "2026-04-11T12:01:00.000Z",
+  });
+});
+
 test("conversation repository keeps stronger session observations during a stale writer interleave", () => {
   const harness = createStorageTestHarness("sensei-storage-session-stale-writer");
   cleanups.push(harness.cleanup);

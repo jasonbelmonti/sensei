@@ -116,6 +116,13 @@ export function createConversationRepository(database: Database) {
       AND ${incomingSessionCompletenessRankExpression} > ${storedSessionCompletenessRankExpression}
     )
   `;
+  const matchesStoredSessionSourceIdentityExpression = `
+    excluded.source_provider = sessions.source_provider
+    AND excluded.source_kind = sessions.source_kind
+    AND excluded.discovery_phase = sessions.discovery_phase
+    AND excluded.source_root_path = sessions.source_root_path
+    AND excluded.source_file_path = sessions.source_file_path
+  `;
   const effectiveSessionIdentityStateExpression = `
     CASE
       WHEN ${incomingSessionIdentityRankExpression} >= ${storedSessionIdentityRankExpression}
@@ -235,17 +242,29 @@ export function createConversationRepository(database: Database) {
       END,
       source_line = CASE
         WHEN ${shouldReplaceSessionObservationExpression}
-          THEN excluded.source_line
+          THEN CASE
+            WHEN ${matchesStoredSessionSourceIdentityExpression} AND ? = 0
+              THEN sessions.source_line
+            ELSE excluded.source_line
+          END
         ELSE sessions.source_line
       END,
       source_byte_offset = CASE
         WHEN ${shouldReplaceSessionObservationExpression}
-          THEN excluded.source_byte_offset
+          THEN CASE
+            WHEN ${matchesStoredSessionSourceIdentityExpression} AND ? = 0
+              THEN sessions.source_byte_offset
+            ELSE excluded.source_byte_offset
+          END
         ELSE sessions.source_byte_offset
       END,
       source_metadata_json = CASE
         WHEN ${shouldReplaceSessionObservationExpression}
-          THEN excluded.source_metadata_json
+          THEN CASE
+            WHEN ${matchesStoredSessionSourceIdentityExpression} AND ? = 0
+              THEN sessions.source_metadata_json
+            ELSE excluded.source_metadata_json
+          END
         ELSE sessions.source_metadata_json
       END,
       source_provider = CASE
@@ -556,6 +575,22 @@ export function createConversationRepository(database: Database) {
     return row ? mapSessionRow(row) : null;
   }
 
+  function sessionUpsertStatementParams(
+    record: StoredSessionRecord,
+    input: StoreSessionInput,
+  ) {
+    const incomingHasSourceLocation = input.source.location === undefined ? 0 : 1;
+    const incomingHasSourceMetadata = input.source.metadata === undefined ? 0 : 1;
+
+    return [
+      ...sessionStatementParams(record),
+      incomingHasSourceLocation,
+      incomingHasSourceLocation,
+      incomingHasSourceMetadata,
+      input.observedAt ?? null,
+    ] as const;
+  }
+
   function getTurn(
     provider: StoreTurnInput["provider"],
     sessionId: string,
@@ -610,8 +645,7 @@ export function createConversationRepository(database: Database) {
     upsertSession(input: StoreSessionInput): StoredSessionRecord {
       const candidateSession = mergeSessionRecord(null, input);
       const row = upsertSessionStatement.get(
-        ...sessionStatementParams(candidateSession),
-        input.observedAt ?? null,
+        ...sessionUpsertStatementParams(candidateSession, input),
       ) as SessionRow | null;
 
       if (row === null) {
