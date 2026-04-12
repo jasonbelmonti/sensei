@@ -11,6 +11,7 @@ import type {
   StoredTurnUsageRecord,
 } from "../schema";
 import {
+  mergeAuthoritativeSessionRecord,
   mapSessionRow,
   mapToolEventRow,
   mapTurnRow,
@@ -696,7 +697,10 @@ export function createConversationRepository(database: Database) {
       return mapSessionRow(row);
     },
     upsertAuthoritativeSession(input: StoreSessionInput): StoredSessionRecord {
-      const candidateSession = mergeSessionRecord(null, input);
+      const candidateSession = mergeAuthoritativeSessionRecord(
+        getSession(input.provider, input.sessionId),
+        input,
+      );
       const row = upsertAuthoritativeSessionStatement.get(
         ...sessionStatementParams(candidateSession),
       ) as SessionRow | null;

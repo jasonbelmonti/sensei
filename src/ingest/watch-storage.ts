@@ -97,7 +97,22 @@ function persistRecord(
           ),
         );
       } else {
-        repositories.conversations.upsertSession(writes.session);
+        const existingSession = repositories.conversations.getSession(
+          writes.session.provider,
+          writes.session.sessionId,
+        );
+        const eventObservedAtSessionWrite = resolveWatchEventObservedAtWrite(
+          existingSession,
+          writes.session,
+        );
+
+        if (eventObservedAtSessionWrite) {
+          repositories.conversations.upsertAuthoritativeSession(
+            eventObservedAtSessionWrite,
+          );
+        } else {
+          repositories.conversations.upsertSession(writes.session);
+        }
       }
     }
 
@@ -159,4 +174,89 @@ function persistWarning(
   storage.ingestState.recordWarning(
     mapPassiveScanWarningToStorageInput(warning),
   );
+}
+
+function resolveWatchEventObservedAtWrite(
+  existingSession:
+    | ReturnType<SenseiStorage["conversations"]["getSession"]>
+    | null
+    | undefined,
+  incomingSession: Parameters<SenseiStorage["conversations"]["upsertSession"]>[0],
+): Parameters<SenseiStorage["conversations"]["upsertSession"]>[0] | null {
+  if (
+    !existingSession ||
+    !incomingSession.observedAt ||
+    doesSessionWriteStrengthen(existingSession, incomingSession)
+  ) {
+    return null;
+  }
+
+  const observedAt = pickEarlierTimestamp(
+    existingSession.observedAt,
+    incomingSession.observedAt,
+  );
+
+  if (!observedAt || observedAt === existingSession.observedAt) {
+    return null;
+  }
+
+  return {
+    ...toSessionInput(existingSession),
+    observedAt,
+  };
+}
+
+function doesSessionWriteStrengthen(
+  existingSession: NonNullable<ReturnType<SenseiStorage["conversations"]["getSession"]>>,
+  incomingSession: Parameters<SenseiStorage["conversations"]["upsertSession"]>[0],
+): boolean {
+  const identityDifference =
+    sessionIdentityRank(incomingSession.identityState) -
+    sessionIdentityRank(existingSession.identityState);
+
+  if (identityDifference !== 0) {
+    return identityDifference > 0;
+  }
+
+  return (
+    sessionCompletenessRank(incomingSession.completeness) >
+    sessionCompletenessRank(existingSession.completeness)
+  );
+}
+
+function sessionIdentityRank(identityState: "canonical" | "provisional"): number {
+  switch (identityState) {
+    case "canonical":
+      return 1;
+    case "provisional":
+      return 0;
+  }
+}
+
+function sessionCompletenessRank(
+  completeness: "best-effort" | "partial" | "complete",
+): number {
+  switch (completeness) {
+    case "complete":
+      return 2;
+    case "partial":
+      return 1;
+    case "best-effort":
+      return 0;
+  }
+}
+
+function pickEarlierTimestamp(
+  existing: string | undefined,
+  incoming: string | undefined,
+): string | undefined {
+  if (!existing) {
+    return incoming;
+  }
+
+  if (!incoming) {
+    return existing;
+  }
+
+  return existing <= incoming ? existing : incoming;
 }

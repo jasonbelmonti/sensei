@@ -260,6 +260,137 @@ test("watch preserves later authoritative explicit session updates", async () =>
   });
 });
 
+test("watch preserves event observedAt when explicit sessions arrive first", async () => {
+  const harness = createStorageTestHarness("sensei-ingest-watch-observed-at");
+  cleanups.push(harness.cleanup);
+  const config = createSenseiConfig({
+    repoRoot: "/repo/sensei",
+    homeDir: "/Users/test",
+    env: {
+      SENSEI_HOME: harness.rootDir,
+      SENSEI_CLAUDE_ROOT: "/Users/test/.claude",
+      SENSEI_CODEX_ROOT: "/Users/test/.codex",
+    },
+  });
+
+  await runWatchLifecycle(config, harness.databasePath, {
+    createService(options) {
+      return {
+        roots: options.roots,
+        async start() {
+          await options.onObservedSession?.(createObservedSessionRecord());
+          await options.onObservedEvent?.(
+            createObservedEvent({
+              type: "turn.started",
+              provider: "codex",
+              session: {
+                provider: "codex",
+                sessionId: "session-1",
+              },
+              turnId: "turn-1",
+              input: {
+                prompt: "Preserve transcript observedAt.",
+                attachments: [],
+              },
+              timestamp: "2026-04-11T12:00:01.000Z",
+            }, {
+              line: 2,
+              byteOffset: 20,
+              discoveryPhase: "watch",
+            }),
+          );
+        },
+        async scanNow() {},
+        async reconcileNow() {},
+        async stop() {},
+      };
+    },
+  });
+
+  expect(harness.storage.conversations.getSession("codex", "session-1")).toMatchObject({
+    observationReason: "index",
+    source: {
+      kind: "session-index",
+      filePath: "/Users/test/.codex/session-index.jsonl",
+    },
+    observedAt: "2026-04-11T12:00:01.000Z",
+  });
+});
+
+test("watch authoritative session updates preserve prior optional fields when sparse", async () => {
+  const harness = createStorageTestHarness("sensei-ingest-watch-sparse-explicit-session");
+  cleanups.push(harness.cleanup);
+  const config = createSenseiConfig({
+    repoRoot: "/repo/sensei",
+    homeDir: "/Users/test",
+    env: {
+      SENSEI_HOME: harness.rootDir,
+      SENSEI_CLAUDE_ROOT: "/Users/test/.claude",
+      SENSEI_CODEX_ROOT: "/Users/test/.codex",
+    },
+  });
+
+  await runWatchLifecycle(config, harness.databasePath, {
+    createService(options) {
+      return {
+        roots: options.roots,
+        async start() {
+          await options.onObservedEvent?.(
+            createObservedEvent({
+              type: "turn.started",
+              provider: "codex",
+              session: {
+                provider: "codex",
+                sessionId: "session-1",
+              },
+              turnId: "turn-1",
+              input: {
+                prompt: "Keep working directory and metadata.",
+                attachments: [],
+              },
+              timestamp: "2026-04-11T12:00:01.000Z",
+            }, {
+              line: 2,
+              byteOffset: 20,
+              discoveryPhase: "watch",
+            }, {
+              observedSession: {
+                workingDirectory: "/repo/sensei",
+                metadata: {
+                  origin: "transcript",
+                },
+              },
+            }),
+          );
+          await options.onObservedSession?.(
+            createObservedSessionRecord({
+              source: {
+                kind: "session-index",
+                discoveryPhase: "watch",
+                filePath: "/Users/test/.codex/session-index.jsonl",
+              },
+            }),
+          );
+        },
+        async scanNow() {},
+        async reconcileNow() {},
+        async stop() {},
+      };
+    },
+  });
+
+  expect(harness.storage.conversations.getSession("codex", "session-1")).toMatchObject({
+    workingDirectory: "/repo/sensei",
+    metadata: {
+      origin: "transcript",
+    },
+    source: {
+      kind: "session-index",
+      filePath: "/Users/test/.codex/session-index.jsonl",
+    },
+  });
+});
+
 test("watch delegates reconcile to the underlying service and persists emitted records", async () => {
   const harness = createStorageTestHarness("sensei-ingest-watch-reconcile");
   cleanups.push(harness.cleanup);
@@ -460,6 +591,12 @@ function createObservedEvent(
     byteOffset: number;
     discoveryPhase: "watch" | "reconcile";
   },
+  overrides: {
+    observedSession?: {
+      workingDirectory?: string;
+      metadata?: Record<string, unknown>;
+    };
+  } = {},
 ): ObservedAgentEvent {
   return {
     kind: "event",
@@ -479,6 +616,8 @@ function createObservedEvent(
       provider: "codex",
       sessionId: "session-1",
       state: "canonical",
+      workingDirectory: overrides.observedSession?.workingDirectory,
+      metadata: overrides.observedSession?.metadata,
     },
     completeness: "complete",
     cursor: {
