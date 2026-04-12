@@ -307,6 +307,45 @@ export function createConversationRepository(database: Database) {
     RETURNING
       ${sessionRowProjection}
   `);
+  const upsertAuthoritativeSessionStatement = database.query(`
+    INSERT INTO sessions (
+      provider,
+      session_id,
+      identity_state,
+      working_directory,
+      session_metadata_json,
+      source_provider,
+      source_kind,
+      discovery_phase,
+      source_root_path,
+      source_file_path,
+      source_line,
+      source_byte_offset,
+      source_metadata_json,
+      completeness,
+      observation_reason,
+      observed_at,
+      updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT (provider, session_id) DO UPDATE SET
+      identity_state = excluded.identity_state,
+      working_directory = excluded.working_directory,
+      session_metadata_json = excluded.session_metadata_json,
+      source_provider = excluded.source_provider,
+      source_kind = excluded.source_kind,
+      discovery_phase = excluded.discovery_phase,
+      source_root_path = excluded.source_root_path,
+      source_file_path = excluded.source_file_path,
+      source_line = excluded.source_line,
+      source_byte_offset = excluded.source_byte_offset,
+      source_metadata_json = excluded.source_metadata_json,
+      completeness = excluded.completeness,
+      observation_reason = excluded.observation_reason,
+      observed_at = excluded.observed_at,
+      updated_at = excluded.updated_at
+    RETURNING
+      ${sessionRowProjection}
+  `);
   const selectTurnStatement = database.query(`
     SELECT
       provider,
@@ -652,6 +691,18 @@ export function createConversationRepository(database: Database) {
 
       if (row === null) {
         throw new Error("Session write succeeded but no row was returned.");
+      }
+
+      return mapSessionRow(row);
+    },
+    upsertAuthoritativeSession(input: StoreSessionInput): StoredSessionRecord {
+      const candidateSession = mergeSessionRecord(null, input);
+      const row = upsertAuthoritativeSessionStatement.get(
+        ...sessionStatementParams(candidateSession),
+      ) as SessionRow | null;
+
+      if (row === null) {
+        throw new Error("Authoritative session write succeeded but no row was returned.");
       }
 
       return mapSessionRow(row);

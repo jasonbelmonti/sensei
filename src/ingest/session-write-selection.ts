@@ -83,6 +83,13 @@ export function resolveSessionWrite(
   };
 }
 
+export function selectAuthoritativeExplicitSessionWrite(
+  existing: StoreSessionInput,
+  incoming: StoreSessionInput,
+): StoreSessionInput {
+  return chooseAuthoritativeExplicitSessionWrite(existing, incoming);
+}
+
 function applyObservedAtFallback(
   sessionWrite: StoreSessionInput,
   observedAtFallback: string | undefined,

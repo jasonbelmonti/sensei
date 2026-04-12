@@ -3,6 +3,7 @@ import type {
   IngestCursor,
   IngestWarning,
   ObservedAgentEvent,
+  ObservedSessionRecord,
   SessionIngestService,
   SessionIngestServiceOptions,
 } from "@jasonbelmonti/claudex/ingest";
@@ -183,6 +184,80 @@ test("watch does not persist cursors from observed records without cursor-store 
   });
 
   expect(countRows(harness.storage, "ingest_cursors")).toBe(0);
+});
+
+test("watch preserves later authoritative explicit session updates", async () => {
+  const harness = createStorageTestHarness("sensei-ingest-watch-explicit-session");
+  cleanups.push(harness.cleanup);
+  const config = createSenseiConfig({
+    repoRoot: "/repo/sensei",
+    homeDir: "/Users/test",
+    env: {
+      SENSEI_HOME: harness.rootDir,
+      SENSEI_CLAUDE_ROOT: "/Users/test/.claude",
+      SENSEI_CODEX_ROOT: "/Users/test/.codex",
+    },
+  });
+
+  await runWatchLifecycle(config, harness.databasePath, {
+    createService(options) {
+      return {
+        roots: options.roots,
+        async start() {
+          await options.onObservedEvent?.(
+            createObservedEvent({
+              type: "turn.started",
+              provider: "codex",
+              session: {
+                provider: "codex",
+                sessionId: "session-1",
+              },
+              turnId: "turn-1",
+              input: {
+                prompt: "Prefer explicit session provenance.",
+                attachments: [],
+              },
+              timestamp: "2026-04-11T12:00:01.000Z",
+            }, {
+              line: 2,
+              byteOffset: 20,
+              discoveryPhase: "watch",
+            }),
+          );
+          await options.onObservedSession?.(
+            createObservedSessionRecord({
+              metadata: {
+                origin: "session-index",
+              },
+              source: {
+                kind: "session-index",
+                discoveryPhase: "watch",
+                filePath: "/Users/test/.codex/session-index.jsonl",
+              },
+              reason: "index",
+            }),
+          );
+        },
+        async scanNow() {},
+        async reconcileNow() {},
+        async stop() {},
+      };
+    },
+  });
+
+  expect(harness.storage.conversations.getSession("codex", "session-1")).toMatchObject({
+    identityState: "canonical",
+    completeness: "complete",
+    observationReason: "index",
+    metadata: {
+      origin: "session-index",
+    },
+    source: {
+      kind: "session-index",
+      discoveryPhase: "watch",
+      filePath: "/Users/test/.codex/session-index.jsonl",
+    },
+  });
 });
 
 test("watch delegates reconcile to the underlying service and persists emitted records", async () => {
@@ -413,6 +488,41 @@ function createObservedEvent(
       fingerprint: `fp-${location.byteOffset}`,
       continuityToken: `cont-${location.byteOffset}`,
       updatedAt: `2026-04-11T12:00:0${Math.min(location.line, 9)}.000Z`,
+    },
+  };
+}
+
+function createObservedSessionRecord(overrides: {
+  metadata?: Record<string, unknown>;
+  source?: Partial<ObservedSessionRecord["source"]>;
+  reason?: ObservedSessionRecord["reason"];
+} = {}): ObservedSessionRecord {
+  return {
+    kind: "session",
+    observedSession: {
+      provider: "codex",
+      sessionId: "session-1",
+      state: "canonical",
+      metadata: overrides.metadata,
+    },
+    source: {
+      provider: "codex",
+      kind: overrides.source?.kind ?? "session-index",
+      discoveryPhase: overrides.source?.discoveryPhase ?? "watch",
+      rootPath: overrides.source?.rootPath ?? "/Users/test/.codex",
+      filePath:
+        overrides.source?.filePath ?? "/Users/test/.codex/session-index.jsonl",
+      location: overrides.source?.location,
+      metadata: overrides.source?.metadata,
+    },
+    completeness: "complete",
+    reason: overrides.reason ?? "index",
+    cursor: {
+      provider: "codex",
+      rootPath: "/Users/test/.codex",
+      filePath: "/Users/test/.codex/session-index.jsonl",
+      byteOffset: 1,
+      line: 1,
     },
   };
 }

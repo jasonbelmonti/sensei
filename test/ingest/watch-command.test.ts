@@ -130,3 +130,33 @@ test("watch command stops and closes storage if shutdown waiting fails", async (
   expect(stopCalls).toBe(1);
   expect(closeCalls).toBe(1);
 });
+
+test("watch command closes storage if watch creation fails", async () => {
+  const config = createSenseiConfig({
+    repoRoot: "/repo/sensei",
+    homeDir: "/Users/test",
+  });
+  const creationFailure = new Error("watch creation failed");
+  let closeCalls = 0;
+
+  await expect(
+    runSenseiIngestWatchCommand(config, {
+      openStorage() {
+        return {
+          transaction(callback) {
+            return callback({} as never);
+          },
+          ingestState: {} as never,
+          close() {
+            closeCalls += 1;
+          },
+        };
+      },
+      createWatch() {
+        throw creationFailure;
+      },
+    }),
+  ).rejects.toThrow(creationFailure.message);
+
+  expect(closeCalls).toBe(1);
+});

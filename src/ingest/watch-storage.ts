@@ -11,6 +11,7 @@ import {
   mapPassiveScanRecordToStorageWrites,
   mapPassiveScanWarningToStorageInput,
 } from "./record-mapper";
+import { selectAuthoritativeExplicitSessionWrite } from "./session-write-selection";
 
 export type SenseiIngestWatchStorage = Pick<
   SenseiStorage,
@@ -85,7 +86,19 @@ function persistRecord(
 
   storage.transaction((repositories) => {
     if (writes.session) {
-      repositories.conversations.upsertSession(writes.session);
+      if (record.kind === "session") {
+        repositories.conversations.upsertAuthoritativeSession(
+          resolveWatchExplicitSessionWrite(
+            repositories.conversations.getSession(
+              writes.session.provider,
+              writes.session.sessionId,
+            ),
+            writes.session,
+          ),
+        );
+      } else {
+        repositories.conversations.upsertSession(writes.session);
+      }
     }
 
     if (writes.prerequisiteTurn) {
@@ -104,6 +117,39 @@ function persistRecord(
       repositories.conversations.upsertToolEvent(writes.toolEvent);
     }
   });
+}
+
+function resolveWatchExplicitSessionWrite(
+  existingSession:
+    | ReturnType<SenseiStorage["conversations"]["getSession"]>
+    | null
+    | undefined,
+  incomingSession: Parameters<SenseiStorage["conversations"]["upsertSession"]>[0],
+): Parameters<SenseiStorage["conversations"]["upsertSession"]>[0] {
+  if (!existingSession) {
+    return incomingSession;
+  }
+
+  return selectAuthoritativeExplicitSessionWrite(
+    toSessionInput(existingSession),
+    incomingSession,
+  );
+}
+
+function toSessionInput(
+  session: NonNullable<ReturnType<SenseiStorage["conversations"]["getSession"]>>,
+): Parameters<SenseiStorage["conversations"]["upsertSession"]>[0] {
+  return {
+    provider: session.provider,
+    sessionId: session.sessionId,
+    identityState: session.identityState,
+    workingDirectory: session.workingDirectory,
+    metadata: session.metadata,
+    source: session.source,
+    completeness: session.completeness,
+    observationReason: session.observationReason,
+    observedAt: session.observedAt,
+  };
 }
 
 function persistWarning(

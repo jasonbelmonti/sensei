@@ -44,11 +44,13 @@ export async function runSenseiIngestWatchCommand(
   const storage = openStorage({
     databasePath: config.paths.databasePath,
   });
-  const watch = createWatch(config, { storage });
-  const summary = createWatchCommandSummary(config, watch);
+  let watch: SenseiIngestWatch | null = null;
   let watchStarted = false;
 
   try {
+    watch = createWatch(config, { storage });
+    const summary = createWatchCommandSummary(config, watch);
+
     await watch.start();
     watchStarted = true;
     await options.onStarted?.(summary);
@@ -58,7 +60,7 @@ export async function runSenseiIngestWatchCommand(
 
     return summary;
   } finally {
-    if (watchStarted) {
+    if (watchStarted && watch) {
       await stopWatch(watch);
     }
 
