@@ -91,7 +91,7 @@ test("registered command groups dispatch through the command shell modules", asy
   expect(stdout).toEqual([]);
   expect(stderr).toEqual([
     "Missing ingest subcommand.",
-    "Usage: sensei ingest scan",
+    "Usage: sensei ingest <scan|watch>",
     "Run 'sensei ingest --help' to inspect the available subcommands.",
   ]);
 });

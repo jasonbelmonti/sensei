@@ -1,9 +1,18 @@
-import { runSenseiIngestScanCommand, type SenseiIngestScanCommandSummary } from "../../ingest";
+import {
+  runSenseiIngestScanCommand,
+  runSenseiIngestWatchCommand,
+  type SenseiIngestScanCommandSummary,
+  type SenseiIngestWatchCommandSummary,
+} from "../../ingest";
+import { writeCliResult } from "../command-results";
 import {
   createIngestHelpResult,
   createIngestUsageErrorResult,
   createScanFailureResult,
   createScanSuccessResult,
+  createWatchFailureResult,
+  createWatchRunningResult,
+  createWatchStoppedResult,
 } from "./ingest-results";
 import type {
   SenseiCliCommandExecutionContext,
@@ -13,15 +22,27 @@ import type {
 type RunSenseiIngestScan = (
   config: SenseiCliCommandExecutionContext["cli"]["config"],
 ) => Promise<SenseiIngestScanCommandSummary>;
+type RunSenseiIngestWatch = (
+  config: SenseiCliCommandExecutionContext["cli"]["config"],
+  options?: {
+    onStarted?: (
+      summary: SenseiIngestWatchCommandSummary,
+    ) => Promise<void> | void;
+  },
+) => Promise<SenseiIngestWatchCommandSummary>;
 
 export type CreateIngestCommandHandlerOptions = {
   runSenseiIngestScanCommand?: RunSenseiIngestScan;
+  runSenseiIngestWatchCommand?: RunSenseiIngestWatch;
 };
 
 export function createIngestCommandHandler(
   options: CreateIngestCommandHandlerOptions = {},
 ): SenseiCliCommandHandler {
-  const runScan = options.runSenseiIngestScanCommand ?? runSenseiIngestScanCommand;
+  const runScan =
+    options.runSenseiIngestScanCommand ?? runSenseiIngestScanCommand;
+  const runWatch =
+    options.runSenseiIngestWatchCommand ?? runSenseiIngestWatchCommand;
 
   return async ({ cli, args }) => {
     const [subcommand, ...remainingArgs] = args;
@@ -34,7 +55,7 @@ export function createIngestCommandHandler(
       return createIngestHelpResult();
     }
 
-    if (subcommand !== "scan") {
+    if (subcommand !== "scan" && subcommand !== "watch") {
       return createIngestUsageErrorResult(
         `Unsupported ingest subcommand '${subcommand}'.`,
       );
@@ -42,14 +63,15 @@ export function createIngestCommandHandler(
 
     if (remainingArgs.length > 0) {
       return createIngestUsageErrorResult(
-        "The 'scan' subcommand does not accept additional arguments yet.",
+        `The '${subcommand}' subcommand does not accept additional arguments yet.`,
       );
     }
 
-    try {
-      return createScanSuccessResult(await runScan(cli.config));
-    } catch (error) {
-      return createScanFailureResult(error);
+    switch (subcommand) {
+      case "scan":
+        return runScanSubcommand(cli.config, runScan);
+      case "watch":
+        return runWatchSubcommand(cli, runWatch);
     }
   };
 }
@@ -58,4 +80,32 @@ export const runIngestCommand = createIngestCommandHandler();
 
 function isHelpArgument(value: string): boolean {
   return value === "--help" || value === "-h" || value === "help";
+}
+
+async function runScanSubcommand(
+  config: SenseiCliCommandExecutionContext["cli"]["config"],
+  runScan: RunSenseiIngestScan,
+) {
+  try {
+    return createScanSuccessResult(await runScan(config));
+  } catch (error) {
+    return createScanFailureResult(error);
+  }
+}
+
+async function runWatchSubcommand(
+  cli: SenseiCliCommandExecutionContext["cli"],
+  runWatch: RunSenseiIngestWatch,
+) {
+  try {
+    await runWatch(cli.config, {
+      onStarted(summary) {
+        writeCliResult(cli, createWatchRunningResult(summary));
+      },
+    });
+
+    return createWatchStoppedResult();
+  } catch (error) {
+    return createWatchFailureResult(error);
+  }
 }
