@@ -55,16 +55,18 @@ export async function runSenseiIngestWatchCommand(
     watchStarted = true;
     await options.onStarted?.(summary);
     await waitForShutdownSignal();
-    await stopWatch(watch);
     watchStarted = false;
+    await stopWatch(watch);
 
     return summary;
   } finally {
-    if (watchStarted && watch) {
-      await stopWatch(watch);
+    try {
+      if (watchStarted && watch) {
+        await stopWatch(watch);
+      }
+    } finally {
+      storage.close();
     }
-
-    storage.close();
   }
 }
 
