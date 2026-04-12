@@ -1019,11 +1019,14 @@ test("ingest state repository keeps cursor progress monotonic", () => {
   cleanups.push(harness.cleanup);
 
   const { ingestState } = harness.storage;
-
-  ingestState.setCursor({
+  const cursorKey = {
     provider: "codex",
     rootPath: "/Users/test/.codex",
     filePath: "/Users/test/.codex/sessions/abc.jsonl",
+  } as const;
+
+  ingestState.setCursor({
+    ...cursorKey,
     byteOffset: 200,
     line: 20,
     fingerprint: "fp-200",
@@ -1035,9 +1038,7 @@ test("ingest state repository keeps cursor progress monotonic", () => {
   });
 
   const replayedCursor = ingestState.setCursor({
-    provider: "codex",
-    rootPath: "/Users/test/.codex",
-    filePath: "/Users/test/.codex/sessions/abc.jsonl",
+    ...cursorKey,
     byteOffset: 50,
     line: 5,
     fingerprint: "fp-50",
@@ -1049,9 +1050,7 @@ test("ingest state repository keeps cursor progress monotonic", () => {
   });
 
   expect(replayedCursor).toEqual({
-    provider: "codex",
-    rootPath: "/Users/test/.codex",
-    filePath: "/Users/test/.codex/sessions/abc.jsonl",
+    ...cursorKey,
     byteOffset: 200,
     line: 20,
     fingerprint: "fp-200",
@@ -1066,11 +1065,14 @@ test("ingest state repository keeps cursor progress monotonic", () => {
 test("ingest state repository keeps advanced cursor progress during a stale writer interleave", () => {
   const harness = createStorageTestHarness("sensei-storage-cursor-stale-writer");
   cleanups.push(harness.cleanup);
-
-  harness.storage.ingestState.setCursor({
+  const cursorKey = {
     provider: "codex",
     rootPath: "/Users/test/.codex",
     filePath: "/Users/test/.codex/sessions/abc.jsonl",
+  } as const;
+
+  harness.storage.ingestState.setCursor({
+    ...cursorKey,
     byteOffset: 50,
     line: 5,
     fingerprint: "fp-50",
@@ -1110,9 +1112,7 @@ test("ingest state repository keeps advanced cursor progress during a stale writ
           if (!injectedConcurrentWrite) {
             injectedConcurrentWrite = true;
             competingStorage.ingestState.setCursor({
-              provider: "codex",
-              rootPath: "/Users/test/.codex",
-              filePath: "/Users/test/.codex/sessions/abc.jsonl",
+              ...cursorKey,
               byteOffset: 200,
               line: 20,
               fingerprint: "fp-200",
@@ -1131,9 +1131,7 @@ test("ingest state repository keeps advanced cursor progress during a stale writ
   } as Parameters<typeof createIngestStateRepository>[0]);
 
   const replayedCursor = ingestState.setCursor({
-    provider: "codex",
-    rootPath: "/Users/test/.codex",
-    filePath: "/Users/test/.codex/sessions/abc.jsonl",
+    ...cursorKey,
     byteOffset: 60,
     line: 6,
     fingerprint: "fp-60",
@@ -1146,9 +1144,7 @@ test("ingest state repository keeps advanced cursor progress during a stale writ
 
   expect(injectedConcurrentWrite).toBe(true);
   expect(replayedCursor).toEqual({
-    provider: "codex",
-    rootPath: "/Users/test/.codex",
-    filePath: "/Users/test/.codex/sessions/abc.jsonl",
+    ...cursorKey,
     byteOffset: 200,
     line: 20,
     fingerprint: "fp-200",
@@ -1160,9 +1156,9 @@ test("ingest state repository keeps advanced cursor progress during a stale writ
   });
   expect(
     harness.storage.ingestState.getCursor(
-      "codex",
-      "/Users/test/.codex",
-      "/Users/test/.codex/sessions/abc.jsonl",
+      cursorKey.provider,
+      cursorKey.rootPath,
+      cursorKey.filePath,
     ),
   ).toEqual(replayedCursor);
 });

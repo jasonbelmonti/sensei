@@ -15,6 +15,17 @@ import { nowIsoString, serializeJson } from "./shared";
 export type IngestStateRepository = ReturnType<typeof createIngestStateRepository>;
 
 export function createIngestStateRepository(database: Database) {
+  const cursorRowProjection = `
+    provider,
+    root_path as rootPath,
+    file_path as filePath,
+    byte_offset as byteOffset,
+    line,
+    fingerprint,
+    continuity_token as continuityToken,
+    metadata_json as metadataJson,
+    updated_at as updatedAt
+  `;
   const shouldAdvanceCursorExpression = `
     excluded.byte_offset > ingest_cursors.byte_offset
     OR (
@@ -24,15 +35,7 @@ export function createIngestStateRepository(database: Database) {
   `;
   const selectCursorStatement = database.query(`
     SELECT
-      provider,
-      root_path as rootPath,
-      file_path as filePath,
-      byte_offset as byteOffset,
-      line,
-      fingerprint,
-      continuity_token as continuityToken,
-      metadata_json as metadataJson,
-      updated_at as updatedAt
+      ${cursorRowProjection}
     FROM ingest_cursors
     WHERE provider = ? AND root_path = ? AND file_path = ?
   `);
@@ -80,15 +83,7 @@ export function createIngestStateRepository(database: Database) {
         ELSE ingest_cursors.updated_at
       END
     RETURNING
-      provider,
-      root_path as rootPath,
-      file_path as filePath,
-      byte_offset as byteOffset,
-      line,
-      fingerprint,
-      continuity_token as continuityToken,
-      metadata_json as metadataJson,
-      updated_at as updatedAt
+      ${cursorRowProjection}
   `);
   const deleteCursorStatement = database.query(`
     DELETE FROM ingest_cursors
@@ -165,19 +160,25 @@ export function createIngestStateRepository(database: Database) {
     return row ? mapCursorRow(row) : null;
   }
 
+  function cursorUpsertParams(input: StoreCursorInput) {
+    return [
+      input.provider,
+      input.rootPath,
+      input.filePath,
+      input.byteOffset,
+      input.line,
+      input.fingerprint ?? null,
+      input.continuityToken ?? null,
+      serializeJson(input.metadata),
+      input.updatedAt ?? nowIsoString(),
+    ] as const;
+  }
+
   return {
     getCursor,
     setCursor(input: StoreCursorInput) {
       const row = upsertCursorStatement.get(
-        input.provider,
-        input.rootPath,
-        input.filePath,
-        input.byteOffset,
-        input.line,
-        input.fingerprint ?? null,
-        input.continuityToken ?? null,
-        serializeJson(input.metadata),
-        input.updatedAt ?? nowIsoString(),
+        ...cursorUpsertParams(input),
       ) as CursorRow | null;
 
       if (row === null) {
