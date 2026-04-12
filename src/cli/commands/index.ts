@@ -2,7 +2,7 @@ import type { SenseiCliCommandHandler, SenseiCliCommandName } from "../types";
 
 export { runAnalyzeCommand } from "./analyze";
 export { runDraftCommand } from "./draft";
-export { runIngestCommand } from "./ingest";
+export { createIngestCommandHandler, runIngestCommand } from "./ingest";
 export { runReportCommand } from "./report";
 
 import { runAnalyzeCommand } from "./analyze";

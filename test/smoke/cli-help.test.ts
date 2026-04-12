@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,13 +9,24 @@ import {
   createSenseiCliApplication,
   senseiCommandGroups,
 } from "../../src/cli/index";
+import { openSenseiStorage } from "../../src/storage";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
-function runPackageCliCommand(args: readonly string[]) {
+function runPackageCliCommand(
+  args: readonly string[],
+  options: {
+    cwd?: string;
+    env?: Record<string, string | undefined>;
+  } = {},
+) {
   return spawnSync(process.execPath, ["run", "sensei", "--", ...args], {
-    cwd: rootDir,
+    cwd: options.cwd ?? rootDir,
     encoding: "utf8",
+    env: {
+      ...process.env,
+      ...options.env,
+    },
   });
 }
 
@@ -77,8 +90,9 @@ test("registered command groups dispatch through the command shell modules", asy
   expect(exitCode).toBe(1);
   expect(stdout).toEqual([]);
   expect(stderr).toEqual([
-    "Command group 'ingest' is not implemented yet.",
-    "Command dispatch is active; 'ingest' still uses a placeholder shell.",
+    "Missing ingest subcommand.",
+    "Usage: sensei ingest scan",
+    "Run 'sensei ingest --help' to inspect the available subcommands.",
   ]);
 });
 
@@ -96,14 +110,82 @@ test("package-level CLI script renders help from the repo root", () => {
   }
 });
 
-test("package-level CLI script dispatches a placeholder command shell", () => {
-  const result = runPackageCliCommand(["ingest"]);
-  const stderrLines = result.stderr.trim().split("\n");
+test("package-level CLI script runs ingest scan from the repo root without duplicate canonical rows on rerun", () => {
+  const fixtureRoot = mkdtempSync(resolve(tmpdir(), "sensei-cli-ingest-"));
 
-  expect(result.status).toBe(1);
-  expect(result.stdout).toBe("");
-  expect(stderrLines).toContain("Command group 'ingest' is not implemented yet.");
-  expect(stderrLines).toContain(
-    "Command dispatch is active; 'ingest' still uses a placeholder shell.",
-  );
+  try {
+    const senseiHome = resolve(fixtureRoot, ".sensei-home");
+    const claudeRoot = resolve(fixtureRoot, ".claude");
+    const codexRoot = resolve(fixtureRoot, ".codex");
+    const sessionIndexPath = resolve(codexRoot, "session-index.jsonl");
+
+    mkdirSync(claudeRoot, { recursive: true });
+    mkdirSync(codexRoot, { recursive: true });
+    writeFileSync(
+      sessionIndexPath,
+      `${JSON.stringify({
+        id: "session-1",
+        thread_name: "BEL-718 fixture session",
+        updated_at: "2026-04-11T12:00:00.000Z",
+      })}\n`,
+    );
+
+    const env = {
+      SENSEI_HOME: senseiHome,
+      SENSEI_CLAUDE_ROOT: claudeRoot,
+      SENSEI_CODEX_ROOT: codexRoot,
+    };
+
+    const firstRun = runPackageCliCommand(["ingest", "scan"], {
+      cwd: rootDir,
+      env,
+    });
+    const secondRun = runPackageCliCommand(["ingest", "scan"], {
+      cwd: rootDir,
+      env,
+    });
+
+    expect(firstRun.status).toBe(0);
+    expect(firstRun.stderr).not.toContain('error: script "sensei" exited');
+    expect(firstRun.stdout).toContain("sensei ingest scan completed.");
+    expect(firstRun.stdout).toContain("Roots scanned: 2");
+    expect(firstRun.stdout).toContain("Processed records: 1");
+    expect(firstRun.stdout).toContain("Sessions written: 1");
+    expect(firstRun.stdout).toContain("Cursors written: 1");
+    expect(firstRun.stdout).toContain("Warnings recorded: 0");
+
+    expect(secondRun.status).toBe(0);
+    expect(secondRun.stderr).not.toContain('error: script "sensei" exited');
+
+    const storage = openSenseiStorage({
+      databasePath: resolve(senseiHome, "data", "sensei.sqlite"),
+    });
+
+    try {
+      expect(countRows(storage, "sessions")).toBe(1);
+      expect(countRows(storage, "ingest_cursors")).toBe(1);
+      expect(storage.conversations.getSession("codex", "session-1")).toMatchObject({
+        provider: "codex",
+        sessionId: "session-1",
+        metadata: {
+          threadName: "BEL-718 fixture session",
+        },
+      });
+    } finally {
+      storage.close();
+    }
+  } finally {
+    rmSync(fixtureRoot, { recursive: true, force: true });
+  }
 });
+
+function countRows(
+  storage: ReturnType<typeof openSenseiStorage>,
+  table: string,
+): number {
+  const row = storage.database
+    .query(`SELECT COUNT(*) as count FROM ${table}`)
+    .get() as { count: number };
+
+  return row.count;
+}
