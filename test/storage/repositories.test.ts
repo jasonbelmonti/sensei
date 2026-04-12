@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 
 import { openSenseiStorage } from "../../src/storage";
+import { createConversationRepository } from "../../src/storage/repositories/conversations";
 import { createIngestStateRepository } from "../../src/storage/repositories/ingest-state";
 import { createStorageTestHarness } from "./helpers";
 
@@ -11,6 +12,42 @@ afterEach(() => {
     cleanups.pop()?.();
   }
 });
+
+function createInterceptedQueryDatabase(
+  database: ReturnType<typeof openSenseiStorage>["database"],
+  matchSql: string,
+  beforeExecution: () => void,
+) {
+  return {
+    query(sql: string) {
+      const statement = database.query(sql);
+      const all = statement.all.bind(statement);
+      const get = statement.get.bind(statement);
+      const run = statement.run.bind(statement);
+      const wrappedStatement = {
+        all,
+        get,
+        run,
+      };
+
+      if (!sql.includes(matchSql)) {
+        return wrappedStatement;
+      }
+
+      return {
+        ...wrappedStatement,
+        get: (...args: Parameters<typeof get>) => {
+          beforeExecution();
+          return get(...args);
+        },
+        run: (...args: Parameters<typeof run>) => {
+          beforeExecution();
+          return run(...args);
+        },
+      };
+    },
+  };
+}
 
 test("conversation repository upserts canonical sessions, turns, usage, and tool event state", () => {
   const harness = createStorageTestHarness("sensei-storage-conversations");
@@ -695,6 +732,108 @@ test("conversation repository ignores weaker tool-event payload replays", () => 
   });
 });
 
+test("conversation repository prevents stale tool-event writes from downgrading completion", () => {
+  const harness = createStorageTestHarness("sensei-storage-tool-stale-writer");
+  cleanups.push(harness.cleanup);
+
+  const { conversations } = harness.storage;
+
+  conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "canonical",
+    source: {
+      provider: "claude",
+      kind: "snapshot",
+      discoveryPhase: "initial_scan",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.json",
+    },
+    completeness: "complete",
+    observationReason: "snapshot",
+  });
+  conversations.upsertTurn({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    status: "completed",
+    completedAt: "2026-04-11T12:00:05.000Z",
+  });
+  conversations.upsertToolEvent({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    toolCallId: "tool-1",
+    status: "updated",
+    statusText: "baseline",
+  });
+
+  const competingStorage = openSenseiStorage({
+    databasePath: harness.databasePath,
+  });
+  cleanups.push(() => competingStorage.close());
+
+  let injectedConcurrentWrite = false;
+
+  const interceptedConversations = createConversationRepository(
+    createInterceptedQueryDatabase(
+      harness.storage.database,
+      "INSERT INTO tool_events",
+      () => {
+        if (injectedConcurrentWrite) {
+          return;
+        }
+
+        injectedConcurrentWrite = true;
+        competingStorage.conversations.upsertToolEvent({
+          provider: "claude",
+          sessionId: "session-1",
+          turnId: "turn-1",
+          toolCallId: "tool-1",
+          status: "completed",
+          statusText: "command finished",
+          output: {
+            stdout: "done",
+          },
+          outcome: "success",
+          completedAt: "2026-04-11T12:00:06.000Z",
+        });
+      },
+    ) as Parameters<typeof createConversationRepository>[0],
+  );
+
+  const replayedToolEvent = interceptedConversations.upsertToolEvent({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    toolCallId: "tool-1",
+    status: "updated",
+    statusText: "older replay",
+    outcome: "error",
+    errorMessage: "stale failure",
+  });
+
+  expect(injectedConcurrentWrite).toBe(true);
+  expect(replayedToolEvent).toMatchObject({
+    status: "completed",
+    statusText: "command finished",
+    output: {
+      stdout: "done",
+    },
+    outcome: "success",
+    errorMessage: undefined,
+    completedAt: "2026-04-11T12:00:06.000Z",
+  });
+  expect(
+    harness.storage.conversations.getToolEvent(
+      "claude",
+      "session-1",
+      "turn-1",
+      "tool-1",
+    ),
+  ).toEqual(replayedToolEvent);
+});
+
 test("conversation repository keeps usage counters monotonic", () => {
   const harness = createStorageTestHarness("sensei-storage-usage-monotonic");
   cleanups.push(harness.cleanup);
@@ -764,6 +903,107 @@ test("conversation repository keeps usage counters monotonic", () => {
       cacheWriteTokens: 2,
     },
   });
+});
+
+test("conversation repository keeps usage counters monotonic during a stale writer interleave", () => {
+  const harness = createStorageTestHarness("sensei-storage-usage-stale-writer");
+  cleanups.push(harness.cleanup);
+
+  const { conversations } = harness.storage;
+
+  conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "canonical",
+    source: {
+      provider: "claude",
+      kind: "snapshot",
+      discoveryPhase: "initial_scan",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.json",
+    },
+    completeness: "complete",
+    observationReason: "snapshot",
+  });
+  conversations.upsertTurn({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    status: "completed",
+    completedAt: "2026-04-11T12:00:05.000Z",
+  });
+  conversations.upsertTurnUsage({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    inputTokens: 100,
+    outputTokens: 80,
+    cachedInputTokens: 40,
+    costUsd: 0.01,
+    providerUsage: {
+      cacheWriteTokens: 2,
+    },
+  });
+
+  const competingStorage = openSenseiStorage({
+    databasePath: harness.databasePath,
+  });
+  cleanups.push(() => competingStorage.close());
+
+  let injectedConcurrentWrite = false;
+
+  const interceptedConversations = createConversationRepository(
+    createInterceptedQueryDatabase(
+      harness.storage.database,
+      "INSERT INTO turn_usage",
+      () => {
+        if (injectedConcurrentWrite) {
+          return;
+        }
+
+        injectedConcurrentWrite = true;
+        competingStorage.conversations.upsertTurnUsage({
+          provider: "claude",
+          sessionId: "session-1",
+          turnId: "turn-1",
+          inputTokens: 200,
+          outputTokens: 160,
+          cachedInputTokens: 80,
+          costUsd: 0.02,
+          providerUsage: {
+            cacheWriteTokens: 4,
+          },
+        });
+      },
+    ) as Parameters<typeof createConversationRepository>[0],
+  );
+
+  const replayedUsage = interceptedConversations.upsertTurnUsage({
+    provider: "claude",
+    sessionId: "session-1",
+    turnId: "turn-1",
+    inputTokens: 150,
+    outputTokens: 120,
+    cachedInputTokens: 60,
+    costUsd: 0.015,
+    providerUsage: {
+      cacheWriteTokens: 3,
+    },
+  });
+
+  expect(injectedConcurrentWrite).toBe(true);
+  expect(replayedUsage).toMatchObject({
+    inputTokens: 200,
+    outputTokens: 160,
+    cachedInputTokens: 80,
+    costUsd: 0.02,
+    providerUsage: {
+      cacheWriteTokens: 4,
+    },
+  });
+  expect(
+    harness.storage.conversations.getTurnUsage("claude", "session-1", "turn-1"),
+  ).toEqual(replayedUsage);
 });
 
 test("conversation repository keeps session provenance stable for equal-strength replays", () => {
@@ -921,6 +1161,107 @@ test("conversation repository clears stale source details when provenance change
       metadata: undefined,
     },
   });
+});
+
+test("conversation repository keeps stronger session observations during a stale writer interleave", () => {
+  const harness = createStorageTestHarness("sensei-storage-session-stale-writer");
+  cleanups.push(harness.cleanup);
+
+  harness.storage.conversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "provisional",
+    source: {
+      provider: "claude",
+      kind: "transcript",
+      discoveryPhase: "watch",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.jsonl",
+    },
+    completeness: "partial",
+    observationReason: "transcript",
+    observedAt: "2026-04-11T12:00:00.000Z",
+  });
+
+  const competingStorage = openSenseiStorage({
+    databasePath: harness.databasePath,
+  });
+  cleanups.push(() => competingStorage.close());
+
+  let injectedConcurrentWrite = false;
+
+  const interceptedConversations = createConversationRepository(
+    createInterceptedQueryDatabase(
+      harness.storage.database,
+      "INSERT INTO sessions",
+      () => {
+        if (injectedConcurrentWrite) {
+          return;
+        }
+
+        injectedConcurrentWrite = true;
+        competingStorage.conversations.upsertSession({
+          provider: "claude",
+          sessionId: "session-1",
+          identityState: "canonical",
+          workingDirectory: "/repo/canonical",
+          metadata: {
+            origin: "snapshot",
+          },
+          source: {
+            provider: "claude",
+            kind: "snapshot",
+            discoveryPhase: "reconcile",
+            rootPath: "/Users/test/.claude",
+            filePath: "/Users/test/.claude/projects/session-1.snapshot.json",
+          },
+          completeness: "complete",
+          observationReason: "snapshot",
+          observedAt: "2026-04-11T12:01:00.000Z",
+        });
+      },
+    ) as Parameters<typeof createConversationRepository>[0],
+  );
+
+  const replayedSession = interceptedConversations.upsertSession({
+    provider: "claude",
+    sessionId: "session-1",
+    identityState: "provisional",
+    workingDirectory: "/repo/weaker",
+    metadata: {
+      origin: "transcript",
+    },
+    source: {
+      provider: "claude",
+      kind: "transcript",
+      discoveryPhase: "watch",
+      rootPath: "/Users/test/.claude",
+      filePath: "/Users/test/.claude/projects/session-1.jsonl",
+    },
+    completeness: "partial",
+    observationReason: "transcript",
+    observedAt: "2026-04-11T12:02:00.000Z",
+  });
+
+  expect(injectedConcurrentWrite).toBe(true);
+  expect(replayedSession).toMatchObject({
+    identityState: "canonical",
+    workingDirectory: "/repo/canonical",
+    metadata: {
+      origin: "snapshot",
+    },
+    completeness: "complete",
+    observationReason: "snapshot",
+    observedAt: "2026-04-11T12:01:00.000Z",
+    source: {
+      kind: "snapshot",
+      discoveryPhase: "reconcile",
+      filePath: "/Users/test/.claude/projects/session-1.snapshot.json",
+    },
+  });
+  expect(harness.storage.conversations.getSession("claude", "session-1")).toEqual(
+    replayedSession,
+  );
 });
 
 test("ingest state repository stores cursors and append-only warnings", () => {

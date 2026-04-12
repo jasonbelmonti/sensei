@@ -32,6 +32,106 @@ import {
 export type ConversationRepository = ReturnType<typeof createConversationRepository>;
 
 export function createConversationRepository(database: Database) {
+  const sessionRowProjection = `
+    provider,
+    session_id as sessionId,
+    identity_state as identityState,
+    working_directory as workingDirectory,
+    session_metadata_json as metadataJson,
+    source_provider as sourceProvider,
+    source_kind as sourceKind,
+    discovery_phase as sourceDiscoveryPhase,
+    source_root_path as sourceRootPath,
+    source_file_path as sourceFilePath,
+    source_line as sourceLine,
+    source_byte_offset as sourceByteOffset,
+    source_metadata_json as sourceMetadataJson,
+    completeness,
+    observation_reason as observationReason,
+    observed_at as observedAt,
+    updated_at as updatedAt
+  `;
+  const turnUsageRowProjection = `
+    provider,
+    session_id as sessionId,
+    turn_id as turnId,
+    input_tokens as inputTokens,
+    output_tokens as outputTokens,
+    cached_input_tokens as cachedInputTokens,
+    cost_usd as costUsd,
+    provider_usage_json as providerUsageJson,
+    updated_at as updatedAt
+  `;
+  const toolEventRowProjection = `
+    provider,
+    session_id as sessionId,
+    turn_id as turnId,
+    tool_call_id as toolCallId,
+    status,
+    tool_name as toolName,
+    tool_kind as toolKind,
+    input_json as inputJson,
+    output_json as outputJson,
+    status_text as statusText,
+    outcome,
+    error_message as errorMessage,
+    started_at as startedAt,
+    completed_at as completedAt,
+    updated_at as updatedAt
+  `;
+  const incomingSessionIdentityRankExpression = `
+    CASE excluded.identity_state
+      WHEN 'provisional' THEN 0
+      WHEN 'canonical' THEN 1
+      ELSE -1
+    END
+  `;
+  const storedSessionIdentityRankExpression = `
+    CASE sessions.identity_state
+      WHEN 'provisional' THEN 0
+      WHEN 'canonical' THEN 1
+      ELSE -1
+    END
+  `;
+  const incomingSessionCompletenessRankExpression = `
+    CASE excluded.completeness
+      WHEN 'best-effort' THEN 0
+      WHEN 'partial' THEN 1
+      WHEN 'complete' THEN 2
+      ELSE -1
+    END
+  `;
+  const storedSessionCompletenessRankExpression = `
+    CASE sessions.completeness
+      WHEN 'best-effort' THEN 0
+      WHEN 'partial' THEN 1
+      WHEN 'complete' THEN 2
+      ELSE -1
+    END
+  `;
+  const shouldReplaceSessionObservationExpression = `
+    ${incomingSessionIdentityRankExpression} > ${storedSessionIdentityRankExpression}
+    OR (
+      ${incomingSessionIdentityRankExpression} = ${storedSessionIdentityRankExpression}
+      AND ${incomingSessionCompletenessRankExpression} > ${storedSessionCompletenessRankExpression}
+    )
+  `;
+  const effectiveSessionIdentityStateExpression = `
+    CASE
+      WHEN ${incomingSessionIdentityRankExpression} >= ${storedSessionIdentityRankExpression}
+        THEN excluded.identity_state
+      ELSE sessions.identity_state
+    END
+  `;
+  const effectiveSessionCompletenessExpression = `
+    CASE
+      WHEN NOT (${shouldReplaceSessionObservationExpression})
+        THEN sessions.completeness
+      WHEN ${incomingSessionCompletenessRankExpression} >= ${storedSessionCompletenessRankExpression}
+        THEN excluded.completeness
+      ELSE sessions.completeness
+    END
+  `;
   const incomingTurnStatusRankExpression = `
     CASE excluded.status
       WHEN 'started' THEN 0
@@ -58,25 +158,46 @@ export function createConversationRepository(database: Database) {
       ELSE turns.status
     END
   `;
+  const shouldReplaceUsageProviderPayloadExpression = `
+    excluded.input_tokens >= turn_usage.input_tokens
+    AND excluded.output_tokens >= turn_usage.output_tokens
+  `;
+  const incomingToolEventStatusRankExpression = `
+    CASE excluded.status
+      WHEN 'started' THEN 0
+      WHEN 'updated' THEN 1
+      WHEN 'completed' THEN 2
+      ELSE -1
+    END
+  `;
+  const storedToolEventStatusRankExpression = `
+    CASE tool_events.status
+      WHEN 'started' THEN 0
+      WHEN 'updated' THEN 1
+      WHEN 'completed' THEN 2
+      ELSE -1
+    END
+  `;
+  const shouldReplaceToolEventPayloadExpression = `
+    ${incomingToolEventStatusRankExpression} >= ${storedToolEventStatusRankExpression}
+  `;
+  const effectiveToolEventStatusExpression = `
+    CASE
+      WHEN ${shouldReplaceToolEventPayloadExpression}
+        THEN excluded.status
+      ELSE tool_events.status
+    END
+  `;
+  const effectiveToolEventOutcomeExpression = `
+    CASE
+      WHEN ${shouldReplaceToolEventPayloadExpression}
+        THEN COALESCE(excluded.outcome, tool_events.outcome)
+      ELSE tool_events.outcome
+    END
+  `;
   const selectSessionStatement = database.query(`
     SELECT
-      provider,
-      session_id as sessionId,
-      identity_state as identityState,
-      working_directory as workingDirectory,
-      session_metadata_json as metadataJson,
-      source_provider as sourceProvider,
-      source_kind as sourceKind,
-      discovery_phase as sourceDiscoveryPhase,
-      source_root_path as sourceRootPath,
-      source_file_path as sourceFilePath,
-      source_line as sourceLine,
-      source_byte_offset as sourceByteOffset,
-      source_metadata_json as sourceMetadataJson,
-      completeness,
-      observation_reason as observationReason,
-      observed_at as observedAt,
-      updated_at as updatedAt
+      ${sessionRowProjection}
     FROM sessions
     WHERE provider = ? AND session_id = ?
   `);
@@ -101,21 +222,71 @@ export function createConversationRepository(database: Database) {
       updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (provider, session_id) DO UPDATE SET
-      identity_state = excluded.identity_state,
-      working_directory = excluded.working_directory,
-      session_metadata_json = excluded.session_metadata_json,
-      source_provider = excluded.source_provider,
-      source_kind = excluded.source_kind,
-      discovery_phase = excluded.discovery_phase,
-      source_root_path = excluded.source_root_path,
-      source_file_path = excluded.source_file_path,
-      source_line = excluded.source_line,
-      source_byte_offset = excluded.source_byte_offset,
-      source_metadata_json = excluded.source_metadata_json,
-      completeness = excluded.completeness,
-      observation_reason = excluded.observation_reason,
-      observed_at = excluded.observed_at,
+      identity_state = ${effectiveSessionIdentityStateExpression},
+      working_directory = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN COALESCE(excluded.working_directory, sessions.working_directory)
+        ELSE sessions.working_directory
+      END,
+      session_metadata_json = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN COALESCE(excluded.session_metadata_json, sessions.session_metadata_json)
+        ELSE sessions.session_metadata_json
+      END,
+      source_line = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN excluded.source_line
+        ELSE sessions.source_line
+      END,
+      source_byte_offset = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN excluded.source_byte_offset
+        ELSE sessions.source_byte_offset
+      END,
+      source_metadata_json = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN excluded.source_metadata_json
+        ELSE sessions.source_metadata_json
+      END,
+      source_provider = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN excluded.source_provider
+        ELSE sessions.source_provider
+      END,
+      source_kind = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN excluded.source_kind
+        ELSE sessions.source_kind
+      END,
+      discovery_phase = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN excluded.discovery_phase
+        ELSE sessions.discovery_phase
+      END,
+      source_root_path = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN excluded.source_root_path
+        ELSE sessions.source_root_path
+      END,
+      source_file_path = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN excluded.source_file_path
+        ELSE sessions.source_file_path
+      END,
+      completeness = ${effectiveSessionCompletenessExpression},
+      observation_reason = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN excluded.observation_reason
+        ELSE sessions.observation_reason
+      END,
+      observed_at = CASE
+        WHEN ${shouldReplaceSessionObservationExpression}
+          THEN COALESCE(?, sessions.observed_at, excluded.observed_at)
+        ELSE sessions.observed_at
+      END,
       updated_at = excluded.updated_at
+    RETURNING
+      ${sessionRowProjection}
   `);
   const selectTurnStatement = database.query(`
     SELECT
@@ -246,15 +417,7 @@ export function createConversationRepository(database: Database) {
   `);
   const selectTurnUsageStatement = database.query(`
     SELECT
-      provider,
-      session_id as sessionId,
-      turn_id as turnId,
-      input_tokens as inputTokens,
-      output_tokens as outputTokens,
-      cached_input_tokens as cachedInputTokens,
-      cost_usd as costUsd,
-      provider_usage_json as providerUsageJson,
-      updated_at as updatedAt
+      ${turnUsageRowProjection}
     FROM turn_usage
     WHERE provider = ? AND session_id = ? AND turn_id = ?
   `);
@@ -271,50 +434,52 @@ export function createConversationRepository(database: Database) {
       updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (provider, session_id, turn_id) DO UPDATE SET
-      input_tokens = excluded.input_tokens,
-      output_tokens = excluded.output_tokens,
-      cached_input_tokens = excluded.cached_input_tokens,
-      cost_usd = excluded.cost_usd,
-      provider_usage_json = excluded.provider_usage_json,
+      input_tokens = CASE
+        WHEN excluded.input_tokens >= turn_usage.input_tokens
+          THEN excluded.input_tokens
+        ELSE turn_usage.input_tokens
+      END,
+      output_tokens = CASE
+        WHEN excluded.output_tokens >= turn_usage.output_tokens
+          THEN excluded.output_tokens
+        ELSE turn_usage.output_tokens
+      END,
+      cached_input_tokens = CASE
+        WHEN turn_usage.cached_input_tokens IS NULL
+          THEN excluded.cached_input_tokens
+        WHEN excluded.cached_input_tokens IS NULL
+          THEN turn_usage.cached_input_tokens
+        WHEN excluded.cached_input_tokens >= turn_usage.cached_input_tokens
+          THEN excluded.cached_input_tokens
+        ELSE turn_usage.cached_input_tokens
+      END,
+      cost_usd = CASE
+        WHEN turn_usage.cost_usd IS NULL
+          THEN excluded.cost_usd
+        WHEN excluded.cost_usd IS NULL
+          THEN turn_usage.cost_usd
+        WHEN excluded.cost_usd >= turn_usage.cost_usd
+          THEN excluded.cost_usd
+        ELSE turn_usage.cost_usd
+      END,
+      provider_usage_json = CASE
+        WHEN ${shouldReplaceUsageProviderPayloadExpression}
+          THEN COALESCE(excluded.provider_usage_json, turn_usage.provider_usage_json)
+        ELSE turn_usage.provider_usage_json
+      END,
       updated_at = excluded.updated_at
+    RETURNING
+      ${turnUsageRowProjection}
   `);
   const selectToolEventStatement = database.query(`
     SELECT
-      provider,
-      session_id as sessionId,
-      turn_id as turnId,
-      tool_call_id as toolCallId,
-      status,
-      tool_name as toolName,
-      tool_kind as toolKind,
-      input_json as inputJson,
-      output_json as outputJson,
-      status_text as statusText,
-      outcome,
-      error_message as errorMessage,
-      started_at as startedAt,
-      completed_at as completedAt,
-      updated_at as updatedAt
+      ${toolEventRowProjection}
     FROM tool_events
     WHERE provider = ? AND session_id = ? AND turn_id = ? AND tool_call_id = ?
   `);
   const listToolEventsStatement = database.query(`
     SELECT
-      provider,
-      session_id as sessionId,
-      turn_id as turnId,
-      tool_call_id as toolCallId,
-      status,
-      tool_name as toolName,
-      tool_kind as toolKind,
-      input_json as inputJson,
-      output_json as outputJson,
-      status_text as statusText,
-      outcome,
-      error_message as errorMessage,
-      started_at as startedAt,
-      completed_at as completedAt,
-      updated_at as updatedAt
+      ${toolEventRowProjection}
     FROM tool_events
     WHERE provider = ? AND session_id = ? AND turn_id = ?
     ORDER BY tool_call_id
@@ -338,17 +503,52 @@ export function createConversationRepository(database: Database) {
       updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (provider, session_id, turn_id, tool_call_id) DO UPDATE SET
-      status = excluded.status,
-      tool_name = excluded.tool_name,
-      tool_kind = excluded.tool_kind,
-      input_json = excluded.input_json,
-      output_json = excluded.output_json,
-      status_text = excluded.status_text,
-      outcome = excluded.outcome,
-      error_message = excluded.error_message,
-      started_at = excluded.started_at,
-      completed_at = excluded.completed_at,
+      status = ${effectiveToolEventStatusExpression},
+      tool_name = CASE
+        WHEN ${shouldReplaceToolEventPayloadExpression}
+          THEN COALESCE(excluded.tool_name, tool_events.tool_name)
+        ELSE tool_events.tool_name
+      END,
+      tool_kind = CASE
+        WHEN ${shouldReplaceToolEventPayloadExpression}
+          THEN COALESCE(excluded.tool_kind, tool_events.tool_kind)
+        ELSE tool_events.tool_kind
+      END,
+      input_json = CASE
+        WHEN ${shouldReplaceToolEventPayloadExpression}
+          THEN COALESCE(excluded.input_json, tool_events.input_json)
+        ELSE tool_events.input_json
+      END,
+      output_json = CASE
+        WHEN ${shouldReplaceToolEventPayloadExpression}
+          THEN COALESCE(excluded.output_json, tool_events.output_json)
+        ELSE tool_events.output_json
+      END,
+      status_text = CASE
+        WHEN ${shouldReplaceToolEventPayloadExpression}
+          THEN COALESCE(excluded.status_text, tool_events.status_text)
+        ELSE tool_events.status_text
+      END,
+      outcome = ${effectiveToolEventOutcomeExpression},
+      error_message = CASE
+        WHEN ${effectiveToolEventOutcomeExpression} = 'success' THEN NULL
+        WHEN ${shouldReplaceToolEventPayloadExpression}
+          THEN COALESCE(excluded.error_message, tool_events.error_message)
+        ELSE tool_events.error_message
+      END,
+      started_at = CASE
+        WHEN ${shouldReplaceToolEventPayloadExpression}
+          THEN COALESCE(excluded.started_at, tool_events.started_at)
+        ELSE tool_events.started_at
+      END,
+      completed_at = CASE
+        WHEN ${shouldReplaceToolEventPayloadExpression}
+          THEN COALESCE(excluded.completed_at, tool_events.completed_at)
+        ELSE tool_events.completed_at
+      END,
       updated_at = excluded.updated_at
+    RETURNING
+      ${toolEventRowProjection}
   `);
 
   function getSession(provider: StoreSessionInput["provider"], sessionId: string) {
@@ -408,11 +608,17 @@ export function createConversationRepository(database: Database) {
   return {
     getSession,
     upsertSession(input: StoreSessionInput): StoredSessionRecord {
-      const existing = getSession(input.provider, input.sessionId);
-      const merged = mergeSessionRecord(existing, input);
-      upsertSessionStatement.run(...sessionStatementParams(merged));
+      const candidateSession = mergeSessionRecord(null, input);
+      const row = upsertSessionStatement.get(
+        ...sessionStatementParams(candidateSession),
+        input.observedAt ?? null,
+      ) as SessionRow | null;
 
-      return merged;
+      if (row === null) {
+        throw new Error("Session write succeeded but no row was returned.");
+      }
+
+      return mapSessionRow(row);
     },
     getTurn,
     upsertTurn(input: StoreTurnInput): StoredTurnRecord {
@@ -429,27 +635,30 @@ export function createConversationRepository(database: Database) {
     },
     getTurnUsage,
     upsertTurnUsage(input: StoreTurnUsageInput): StoredTurnUsageRecord {
-      const merged = mergeTurnUsageRecord(
-        getTurnUsage(input.provider, input.sessionId, input.turnId),
-        input,
-      );
-      upsertTurnUsageStatement.run(...turnUsageStatementParams(merged));
+      const candidateUsage = mergeTurnUsageRecord(null, input);
+      const row = upsertTurnUsageStatement.get(
+        ...turnUsageStatementParams(candidateUsage),
+      ) as TurnUsageRow | null;
 
-      return merged;
+      if (row === null) {
+        throw new Error("Turn usage write succeeded but no row was returned.");
+      }
+
+      return mapTurnUsageRow(row);
     },
     getToolEvent,
     listToolEvents,
     upsertToolEvent(input: StoreToolEventInput): StoredToolEventRecord {
-      const existing = getToolEvent(
-        input.provider,
-        input.sessionId,
-        input.turnId,
-        input.toolCallId,
-      );
-      const merged = mergeToolEventRecord(existing, input);
-      upsertToolEventStatement.run(...toolEventStatementParams(merged));
+      const candidateToolEvent = mergeToolEventRecord(null, input);
+      const row = upsertToolEventStatement.get(
+        ...toolEventStatementParams(candidateToolEvent),
+      ) as ToolEventRow | null;
 
-      return merged;
+      if (row === null) {
+        throw new Error("Tool event write succeeded but no row was returned.");
+      }
+
+      return mapToolEventRow(row);
     },
   };
 }
