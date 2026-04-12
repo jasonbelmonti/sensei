@@ -178,6 +178,40 @@ test("writer replay keeps canonical rows stable and warnings append-only", () =>
   });
 });
 
+test("writer uses explicit session provenance even when event records arrive first", () => {
+  const harness = createStorageTestHarness("sensei-ingest-session-provenance");
+  cleanups.push(harness.cleanup);
+
+  writePassiveScanResultToStorage(
+    harness.storage,
+    createEventBeforeSessionResult(),
+  );
+
+  expect(
+    harness.storage.conversations.getSession("codex", "session-1"),
+  ).toMatchObject({
+    provider: "codex",
+    sessionId: "session-1",
+    observationReason: "index",
+    metadata: {
+      origin: "session-index",
+    },
+    source: {
+      kind: "session-index",
+      discoveryPhase: "initial_scan",
+      filePath: "/Users/test/.codex/sessions/index.json",
+      metadata: {
+        source: "session-index",
+      },
+    },
+  });
+  expect(
+    harness.storage.conversations.getTurn("codex", "session-1", "turn-1"),
+  ).toMatchObject({
+    status: "completed",
+  });
+});
+
 test("writer keeps cursor progress monotonic during stale replays", () => {
   const harness = createStorageTestHarness("sensei-ingest-storage-monotonic");
   cleanups.push(harness.cleanup);
@@ -326,6 +360,45 @@ function createMixedScanResult(): SenseiPassiveScanResult {
         discoveryPhase: "initial_scan",
       },
     ],
+  };
+}
+
+function createEventBeforeSessionResult(): SenseiPassiveScanResult {
+  return {
+    records: [
+      {
+        kind: "event",
+        observedEvent: createObservedAgentEvent({
+          type: "turn.completed",
+          provider: "codex",
+          session: {
+            provider: "codex",
+            sessionId: "session-1",
+          },
+          turnId: "turn-1",
+          timestamp: "2026-04-11T12:00:04.000Z",
+          result: {
+            provider: "codex",
+            session: {
+              provider: "codex",
+              sessionId: "session-1",
+            },
+            turnId: "turn-1",
+            text: "Out-of-order session provenance.",
+            usage: null,
+          },
+          raw: {
+            step: "turn-complete-before-session",
+          },
+        }, 4, 40, "turn-complete-before-session"),
+      },
+      {
+        kind: "session",
+        observedSession: createObservedSessionRecord(),
+      },
+    ],
+    warnings: [],
+    discoveryEvents: [],
   };
 }
 

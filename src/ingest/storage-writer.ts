@@ -1,5 +1,6 @@
-import type { SenseiStorage } from "../storage";
+import type { StoreSessionInput, SenseiStorage } from "../storage";
 import { mapPassiveScanRecordToStorageWrites, mapPassiveScanWarningToStorageInput } from "./record-mapper";
+import type { SenseiPassiveScanRecord } from "./scan-result";
 import type { SenseiPassiveScanResult } from "./scan-result";
 
 export type PassiveScanWriteSummary = {
@@ -16,6 +17,8 @@ export function writePassiveScanResultToStorage(
   storage: Pick<SenseiStorage, "transaction">,
   result: SenseiPassiveScanResult,
 ): PassiveScanWriteSummary {
+  const explicitSessionWrites = collectExplicitSessionWrites(result.records);
+
   return storage.transaction((repositories) => {
     const summary: PassiveScanWriteSummary = {
       processedRecords: 0,
@@ -30,9 +33,14 @@ export function writePassiveScanResultToStorage(
     for (const record of result.records) {
       summary.processedRecords += 1;
       const writes = mapPassiveScanRecordToStorageWrites(record);
+      const sessionWrite = resolveSessionWrite(
+        record,
+        writes.session,
+        explicitSessionWrites,
+      );
 
-      if (writes.session) {
-        repositories.conversations.upsertSession(writes.session);
+      if (sessionWrite) {
+        repositories.conversations.upsertSession(sessionWrite);
         summary.sessionWrites += 1;
       }
 
@@ -71,4 +79,50 @@ export function writePassiveScanResultToStorage(
 
     return summary;
   });
+}
+
+function collectExplicitSessionWrites(
+  records: readonly SenseiPassiveScanRecord[],
+): Map<string, StoreSessionInput> {
+  const explicitSessionWrites = new Map<string, StoreSessionInput>();
+
+  for (const record of records) {
+    if (record.kind !== "session") {
+      continue;
+    }
+
+    const writes = mapPassiveScanRecordToStorageWrites(record);
+
+    if (!writes.session) {
+      continue;
+    }
+
+    const key = getSessionKey(writes.session.provider, writes.session.sessionId);
+
+    if (!explicitSessionWrites.has(key)) {
+      explicitSessionWrites.set(key, writes.session);
+    }
+  }
+
+  return explicitSessionWrites;
+}
+
+function resolveSessionWrite(
+  record: SenseiPassiveScanRecord,
+  sessionWrite: StoreSessionInput | undefined,
+  explicitSessionWrites: Map<string, StoreSessionInput>,
+): StoreSessionInput | undefined {
+  if (!sessionWrite || record.kind === "session") {
+    return sessionWrite;
+  }
+
+  return (
+    explicitSessionWrites.get(
+      getSessionKey(sessionWrite.provider, sessionWrite.sessionId),
+    ) ?? sessionWrite
+  );
+}
+
+function getSessionKey(provider: string, sessionId: string): string {
+  return `${provider}:${sessionId}`;
 }
