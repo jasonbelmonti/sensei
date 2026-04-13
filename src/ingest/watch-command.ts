@@ -49,34 +49,35 @@ export async function runSenseiIngestWatchCommand(
   const storage = openStorage({
     databasePath: config.paths.databasePath,
   });
-  const shutdownSignal = createShutdownSignalSubscription();
-  let watch: SenseiIngestWatch | null = null;
-  let watchStarted = false;
 
   try {
-    watch = createWatch(config, { storage });
-    const summary = createWatchCommandSummary(config, watch);
-
-    await watch.start();
-    watchStarted = true;
-    if (!shutdownSignal.isTriggered()) {
-      await options.onStarted?.(summary);
-    }
-    await shutdownSignal.promise;
-    watchStarted = false;
-    await stopWatch(watch);
-
-    return summary;
-  } finally {
-    shutdownSignal.dispose();
+    const shutdownSignal = createShutdownSignalSubscription();
+    let watch: SenseiIngestWatch | null = null;
+    let watchNeedsStop = false;
 
     try {
-      if (watchStarted && watch) {
+      watch = createWatch(config, { storage });
+      const summary = createWatchCommandSummary(config, watch);
+
+      watchNeedsStop = true;
+      await watch.start();
+      if (!shutdownSignal.isTriggered()) {
+        await options.onStarted?.(summary);
+      }
+      await shutdownSignal.promise;
+      watchNeedsStop = false;
+      await stopWatch(watch);
+
+      return summary;
+    } finally {
+      shutdownSignal.dispose();
+
+      if (watchNeedsStop && watch) {
         await stopWatch(watch);
       }
-    } finally {
-      storage.close();
     }
+  } finally {
+    storage.close();
   }
 }
 

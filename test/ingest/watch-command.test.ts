@@ -159,6 +159,52 @@ test("watch command closes storage if watch creation fails", async () => {
   expect(closeCalls).toBe(1);
 });
 
+test("watch command stops partial startup and closes storage if watch start fails", async () => {
+  const config = createSenseiConfig({
+    repoRoot: "/repo/sensei",
+    homeDir: "/Users/test",
+  });
+  const startFailure = new Error("watch start failed");
+  const shutdownSignal = createShutdownSignalHarness();
+  let stopCalls = 0;
+  let closeCalls = 0;
+
+  await expect(
+    runSenseiIngestWatchCommand(config, {
+      openStorage() {
+        return {
+          transaction(callback) {
+            return callback({} as never);
+          },
+          ingestState: {} as never,
+          close() {
+            closeCalls += 1;
+          },
+        };
+      },
+      createWatch() {
+        return {
+          roots: [],
+          async start() {
+            shutdownSignal.resolve();
+            throw startFailure;
+          },
+          async reconcileNow() {},
+          async stop() {
+            stopCalls += 1;
+          },
+        };
+      },
+      createShutdownSignalSubscription() {
+        return shutdownSignal.subscription;
+      },
+    }),
+  ).rejects.toThrow(startFailure.message);
+
+  expect(stopCalls).toBe(1);
+  expect(closeCalls).toBe(1);
+});
+
 test("watch command closes storage if watch shutdown fails", async () => {
   const config = createSenseiConfig({
     repoRoot: "/repo/sensei",
@@ -200,6 +246,36 @@ test("watch command closes storage if watch shutdown fails", async () => {
   ).rejects.toThrow(stopFailure.message);
 
   expect(stopCalls).toBe(1);
+  expect(closeCalls).toBe(1);
+});
+
+test("watch command closes storage if shutdown subscription setup fails", async () => {
+  const config = createSenseiConfig({
+    repoRoot: "/repo/sensei",
+    homeDir: "/Users/test",
+  });
+  const subscriptionFailure = new Error("subscription setup failed");
+  let closeCalls = 0;
+
+  await expect(
+    runSenseiIngestWatchCommand(config, {
+      openStorage() {
+        return {
+          transaction(callback) {
+            return callback({} as never);
+          },
+          ingestState: {} as never,
+          close() {
+            closeCalls += 1;
+          },
+        };
+      },
+      createShutdownSignalSubscription() {
+        throw subscriptionFailure;
+      },
+    }),
+  ).rejects.toThrow(subscriptionFailure.message);
+
   expect(closeCalls).toBe(1);
 });
 
