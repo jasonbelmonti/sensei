@@ -1,4 +1,7 @@
-import type { SenseiIngestScanCommandSummary } from "../../ingest";
+import type {
+  SenseiIngestScanCommandSummary,
+  SenseiIngestWatchCommandSummary,
+} from "../../ingest";
 import {
   createCommandResult,
   stderrLine,
@@ -6,7 +9,7 @@ import {
 } from "../command-results";
 import type { SenseiCliCommandResult } from "../types";
 
-const ingestUsageLine = "Usage: sensei ingest scan";
+const ingestUsageLine = "Usage: sensei ingest <scan|watch>";
 const ingestHelpHintLine =
   "Run 'sensei ingest --help' to inspect the available subcommands.";
 const ingestHelpLines = [
@@ -15,6 +18,7 @@ const ingestHelpLines = [
   stdoutLine(""),
   stdoutLine("Available subcommands:"),
   stdoutLine("  scan   Backfill configured provider roots into canonical storage"),
+  stdoutLine("  watch  Observe configured provider roots until shutdown"),
 ] as const;
 
 export function createIngestHelpResult(): SenseiCliCommandResult {
@@ -51,6 +55,31 @@ export function createScanSuccessResult(
 export function createScanFailureResult(error: unknown): SenseiCliCommandResult {
   return createCommandResult(1, [
     stderrLine("sensei ingest scan failed."),
+    stderrLine(renderErrorMessage(error)),
+  ]);
+}
+
+export function createWatchRunningResult(
+  summary: SenseiIngestWatchCommandSummary,
+): SenseiCliCommandResult {
+  return createCommandResult(0, [
+    stdoutLine("sensei ingest watch is running."),
+    stdoutLine(`Roots watched: ${summary.rootCount}`),
+    stdoutLine(`Watch interval (ms): ${summary.watchIntervalMs}`),
+    stdoutLine(`Status: ${summary.status}`),
+    stdoutLine("Press Ctrl+C to stop."),
+  ]);
+}
+
+export function createWatchStoppedResult(): SenseiCliCommandResult {
+  return createCommandResult(0, [
+    stdoutLine("sensei ingest watch stopped."),
+  ]);
+}
+
+export function createWatchFailureResult(error: unknown): SenseiCliCommandResult {
+  return createCommandResult(1, [
+    stderrLine("sensei ingest watch failed."),
     stderrLine(renderErrorMessage(error)),
   ]);
 }

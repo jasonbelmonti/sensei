@@ -274,6 +274,47 @@ export function mergeSessionRecord(
   };
 }
 
+export function mergeAuthoritativeSessionRecord(
+  existing: StoredSessionRecord | null,
+  input: StoreSessionInput,
+): StoredSessionRecord {
+  const timestamp = nowIsoString();
+
+  if (existing === null) {
+    return mergeSessionRecord(null, input);
+  }
+
+  const canReuseSourceDetails = matchesSessionSourceIdentity(
+    existing.source,
+    input.source,
+  );
+
+  return {
+    provider: input.provider,
+    sessionId: input.sessionId,
+    identityState: input.identityState,
+    workingDirectory: input.workingDirectory ?? existing.workingDirectory,
+    metadata: input.metadata ?? existing.metadata,
+    source: {
+      provider: input.source.provider,
+      kind: input.source.kind,
+      discoveryPhase: input.source.discoveryPhase,
+      rootPath: input.source.rootPath,
+      filePath: input.source.filePath,
+      location: canReuseSourceDetails
+        ? (input.source.location ?? existing.source.location)
+        : input.source.location,
+      metadata: canReuseSourceDetails
+        ? (input.source.metadata ?? existing.source.metadata)
+        : input.source.metadata,
+    },
+    completeness: input.completeness,
+    observationReason: input.observationReason,
+    observedAt: input.observedAt ?? existing.observedAt ?? timestamp,
+    updatedAt: timestamp,
+  };
+}
+
 export function mergeTurnRecord(
   existing: StoredTurnRecord | null,
   input: StoreTurnInput,

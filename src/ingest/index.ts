@@ -4,3 +4,5 @@ export * from "./record-mapper";
 export * from "./scan-result";
 export * from "./scan-command";
 export * from "./storage-writer";
+export * from "./watch";
+export * from "./watch-command";

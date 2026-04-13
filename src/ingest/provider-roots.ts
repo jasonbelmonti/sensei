@@ -15,8 +15,8 @@ export function createSenseiPassiveScanRoots(
   providerRoots: SenseiProviderRoots,
 ): SenseiPassiveScanRoot[] {
   return [
-    createSenseiPassiveScanRoot("claude", providerRoots.claude),
-    createSenseiPassiveScanRoot("codex", providerRoots.codex),
+    createSenseiPassiveRoot("claude", providerRoots.claude, false),
+    createSenseiPassiveRoot("codex", providerRoots.codex, false),
   ];
 }
 
@@ -26,6 +26,21 @@ export function createSenseiPassiveScanRootsForConfig(
   return createSenseiPassiveScanRoots(config.paths.providers);
 }
 
+export function createSenseiPassiveWatchRoots(
+  providerRoots: SenseiProviderRoots,
+): SenseiPassiveScanRoot[] {
+  return [
+    createSenseiPassiveRoot("claude", providerRoots.claude, true),
+    createSenseiPassiveRoot("codex", providerRoots.codex, true),
+  ];
+}
+
+export function createSenseiPassiveWatchRootsForConfig(
+  config: Pick<SenseiRuntimeConfig, "paths">,
+): SenseiPassiveScanRoot[] {
+  return createSenseiPassiveWatchRoots(config.paths.providers);
+}
+
 export function createSenseiPassiveIngestRegistries(): IngestProviderRegistry[] {
   return [
     ...createClaudeIngestRegistries(),
@@ -33,14 +48,15 @@ export function createSenseiPassiveIngestRegistries(): IngestProviderRegistry[] 
   ];
 }
 
-function createSenseiPassiveScanRoot(
+function createSenseiPassiveRoot(
   provider: SenseiPassiveScanRoot["provider"],
   path: string,
+  watch: boolean,
 ): SenseiPassiveScanRoot {
   return {
     provider,
     path,
     recursive: true,
-    watch: false,
+    watch,
   };
 }

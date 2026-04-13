@@ -17,18 +17,32 @@ const commandHandlers = [
 
 function createExecutionContext(
   command: SenseiCliCommandExecutionContext["command"],
-): SenseiCliCommandExecutionContext {
+): {
+  context: SenseiCliCommandExecutionContext;
+  stdout: string[];
+  stderr: string[];
+} {
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+
   return {
-    command,
-    args: [],
-    cli: createSenseiCliApplication({
-      repoRoot: "/repo/sensei",
-    }).context,
+    stdout,
+    stderr,
+    context: {
+      command,
+      args: [],
+      cli: createSenseiCliApplication({
+        repoRoot: "/repo/sensei",
+        stdout: (line) => stdout.push(line),
+        stderr: (line) => stderr.push(line),
+      }).context,
+    },
   };
 }
 
 test("ingest command requires the explicit scan subcommand", async () => {
-  const result = await createIngestCommandHandler()(createExecutionContext("ingest"));
+  const { context } = createExecutionContext("ingest");
+  const result = await createIngestCommandHandler()(context);
 
   expect(result.exitCode).toBe(1);
   expect(result.lines).toEqual([
@@ -38,7 +52,7 @@ test("ingest command requires the explicit scan subcommand", async () => {
     },
     {
       channel: "stderr",
-      text: "Usage: sensei ingest scan",
+      text: "Usage: sensei ingest <scan|watch>",
     },
     {
       channel: "stderr",
@@ -48,20 +62,21 @@ test("ingest command requires the explicit scan subcommand", async () => {
 });
 
 test("ingest command rejects unsupported subcommands", async () => {
+  const { context } = createExecutionContext("ingest");
   const result = await createIngestCommandHandler()({
-    ...createExecutionContext("ingest"),
-    args: ["watch"],
+    ...context,
+    args: ["mystery"],
   });
 
   expect(result.exitCode).toBe(1);
   expect(result.lines).toEqual([
     {
       channel: "stderr",
-      text: "Unsupported ingest subcommand 'watch'.",
+      text: "Unsupported ingest subcommand 'mystery'.",
     },
     {
       channel: "stderr",
-      text: "Usage: sensei ingest scan",
+      text: "Usage: sensei ingest <scan|watch>",
     },
     {
       channel: "stderr",
@@ -71,6 +86,7 @@ test("ingest command rejects unsupported subcommands", async () => {
 });
 
 test("ingest command renders scan summaries returned by the scan service", async () => {
+  const { context } = createExecutionContext("ingest");
   const result = await createIngestCommandHandler({
     async runSenseiIngestScanCommand() {
       return {
@@ -88,7 +104,7 @@ test("ingest command renders scan summaries returned by the scan service", async
       };
     },
   })({
-    ...createExecutionContext("ingest"),
+    ...context,
     args: ["scan"],
   });
 
@@ -137,9 +153,83 @@ test("ingest command renders scan summaries returned by the scan service", async
   ]);
 });
 
+test("ingest command dispatches the watch subcommand", async () => {
+  const harness = createExecutionContext("ingest");
+  const result = await createIngestCommandHandler({
+    async runSenseiIngestWatchCommand(_config, options) {
+      await options?.onStarted?.({
+        rootCount: 2,
+        watchIntervalMs: 250,
+        status: "running",
+      });
+
+      return {
+        rootCount: 2,
+        watchIntervalMs: 250,
+        status: "running",
+      };
+    },
+  })({
+    ...harness.context,
+    args: ["watch"],
+  });
+
+  expect(harness.stdout).toEqual([
+    "sensei ingest watch is running.",
+    "Roots watched: 2",
+    "Watch interval (ms): 250",
+    "Status: running",
+    "Press Ctrl+C to stop.",
+  ]);
+  expect(result.exitCode).toBe(0);
+  expect(result.lines).toEqual([
+    {
+      channel: "stdout",
+      text: "sensei ingest watch stopped.",
+    },
+  ]);
+});
+
+test("ingest command help includes the watch subcommand", async () => {
+  const { context } = createExecutionContext("ingest");
+  const result = await createIngestCommandHandler()({
+    ...context,
+    args: ["--help"],
+  });
+
+  expect(result.exitCode).toBe(0);
+  expect(result.lines).toEqual([
+    {
+      channel: "stdout",
+      text: "sensei ingest",
+    },
+    {
+      channel: "stdout",
+      text: "Usage: sensei ingest <scan|watch>",
+    },
+    {
+      channel: "stdout",
+      text: "",
+    },
+    {
+      channel: "stdout",
+      text: "Available subcommands:",
+    },
+    {
+      channel: "stdout",
+      text: "  scan   Backfill configured provider roots into canonical storage",
+    },
+    {
+      channel: "stdout",
+      text: "  watch  Observe configured provider roots until shutdown",
+    },
+  ]);
+});
+
 for (const [commandName, handler] of commandHandlers) {
   test(`${commandName} command shell returns a failing placeholder result`, async () => {
-    const result = await handler(createExecutionContext(commandName));
+    const { context } = createExecutionContext(commandName);
+    const result = await handler(context);
 
     expect(result.exitCode).toBe(1);
     expect(result.lines).toEqual([
