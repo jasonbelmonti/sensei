@@ -48,7 +48,7 @@ The initial env overrides are:
 
 ## Current status
 
-This repository currently contains the initial Bun/TypeScript scaffold and smoke coverage for the bootstrap layer. Ingest, storage, analysis, and the final skill behavior land in subsequent issues.
+This repository now contains the ingest and storage foundation for canonical local history, along with focused verification for the scan/watch/store contract. Analysis, reporting, drafting, and the higher-level mentoring behavior still land in subsequent issues.
 
 ## CLI bootstrap surface
 
@@ -65,7 +65,12 @@ The registered command groups are:
 - `report`: render operator-facing summaries over stored insights
 - `draft`: prepare reviewable draft skills, scripts, and automations
 
-These command groups are intentionally placeholder shells in the current slice. Each command dispatches through the CLI wiring, then exits non-zero with:
+The ingest command group is live today:
+
+- `bun run sensei -- ingest scan` backfills canonical sessions, turns, usage, tool events, cursors, and warnings into the local store
+- `bun run sensei -- ingest watch` starts the long-running watch seam and persists appended provider history into the same store
+
+The `analyze`, `report`, and `draft` command groups still use placeholder shells in the current slice. Each dispatches through the CLI wiring, then exits non-zero with:
 
 - `Command group '<name>' is not implemented yet.`
 - `Command dispatch is active; '<name>' still uses a placeholder shell.`
