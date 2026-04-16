@@ -3,8 +3,10 @@ import type { IngestCursor } from "@jasonbelmonti/claudex/ingest";
 
 import {
   countRows,
-  createBaselineScanResult,
   createScanWatchContractHarness,
+} from "./scan-watch-contract.fixture";
+import {
+  createBaselineScanResult,
   createWarningOnlyScanResult,
   createWarningWatchService,
   createWatchContinuationService,
@@ -12,7 +14,7 @@ import {
   fixtureSessionId,
   fixtureThreadName,
   fixtureTranscriptPath,
-} from "./scan-watch-contract.fixture";
+} from "./scan-watch-contract-scenarios";
 
 const cleanups: Array<() => void> = [];
 
