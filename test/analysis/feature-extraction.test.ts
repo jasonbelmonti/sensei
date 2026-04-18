@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 
 import {
+  buildTurnFeatureRow,
   CURRENT_TURN_FEATURE_VERSION,
   extractTurnFeatures,
   getTurnFeatureEligibility,
@@ -235,6 +236,50 @@ test("feature extraction exposes explicit eligibility decisions", () => {
     ),
   ).toEqual({
     eligible: true,
+  });
+});
+
+test("rollup derives prompt evidence from the turn payload", () => {
+  const row = buildTurnFeatureRow(
+    createOrderedTurnInput({
+      turnSequence: 5,
+      turnId: "turn-direct-rollup-no-prompt",
+    }),
+    {
+      analyzedAt: FIXED_ANALYZED_AT,
+      featureVersion: CURRENT_TURN_FEATURE_VERSION,
+    },
+  );
+
+  expect(row.promptCharacterCount).toBe(0);
+  expect(row.evidence.eligibility).toEqual({
+    reasons: [],
+    hasPrompt: false,
+    hasStructuredOutput: false,
+    hasError: false,
+  });
+});
+
+test("rollup guards non-finite analyzer scores before clamping", () => {
+  const row = buildTurnFeatureRow(
+    createOrderedTurnInput({
+      turnSequence: 6,
+      turnId: "turn-direct-rollup-invalid-scores",
+      prompt: "Explain the score guard behavior.",
+    }),
+    {
+      analyzedAt: FIXED_ANALYZED_AT,
+      featureVersion: CURRENT_TURN_FEATURE_VERSION,
+      signals: {
+        retryScore: Number.NaN,
+        frictionScore: Number.POSITIVE_INFINITY,
+      },
+    },
+  );
+
+  expect(row.detail.scores).toEqual({
+    retry: TURN_FEATURE_SCORE_RANGE.min,
+    friction: TURN_FEATURE_SCORE_RANGE.min,
   });
 });
 

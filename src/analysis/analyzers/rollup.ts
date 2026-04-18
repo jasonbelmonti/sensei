@@ -9,7 +9,6 @@ import {
   type WriteReadyTurnFeatureRow,
 } from "../turn-feature-row";
 
-const DEFAULT_ELIGIBILITY_REASONS = ["prompt-present"] as const;
 const DEFAULT_TRACE_RULE_IDS = ["rollup:base-fields"] as const;
 
 export type BuildTurnFeatureRowOptions = Pick<
@@ -25,6 +24,7 @@ export function buildTurnFeatureRow(
 ): WriteReadyTurnFeatureRow {
   const { turn, usage, toolEvents } = input;
   const prompt = turn.input?.prompt ?? "";
+  const hasPrompt = prompt.trim().length > 0;
   const hasStructuredOutput = turn.output?.structuredOutput !== undefined;
   const hasError = turn.status === "failed" || turn.error !== undefined;
   const signals = options.signals;
@@ -49,6 +49,7 @@ export function buildTurnFeatureRow(
     detail: buildTurnFeatureDetail(signals),
     evidence: buildTurnFeatureEvidence(
       signals,
+      hasPrompt,
       toolEvents,
       hasStructuredOutput,
       hasError,
@@ -71,6 +72,7 @@ function buildTurnFeatureDetail(
 
 function buildTurnFeatureEvidence(
   signals: TurnFeatureRollupSignals | undefined,
+  hasPrompt: boolean,
   toolEvents: OrderedAnalysisTurnInput["toolEvents"],
   hasStructuredOutput: boolean,
   hasError: boolean,
@@ -78,9 +80,9 @@ function buildTurnFeatureEvidence(
   return {
     eligibility: {
       reasons: stableUniqueStrings(
-        signals?.eligibilityReasons ?? DEFAULT_ELIGIBILITY_REASONS,
+        signals?.eligibilityReasons ?? getDefaultEligibilityReasons(hasPrompt),
       ),
-      hasPrompt: true,
+      hasPrompt,
       hasStructuredOutput,
       hasError,
     },
@@ -116,7 +118,11 @@ function buildAnalyzerSnapshot(
 }
 
 function clampTurnFeatureScore(value: number | undefined): number {
-  const roundedValue = Math.round(value ?? 0);
+  if (value === undefined || !Number.isFinite(value)) {
+    return TURN_FEATURE_SCORE_RANGE.min;
+  }
+
+  const roundedValue = Math.round(value);
 
   return Math.min(
     TURN_FEATURE_SCORE_RANGE.max,
@@ -142,6 +148,14 @@ function stableUniqueStrings(values: readonly string[] | undefined): string[] {
   }
 
   return uniqueValues;
+}
+
+function getDefaultEligibilityReasons(hasPrompt: boolean): string[] {
+  if (!hasPrompt) {
+    return [];
+  }
+
+  return ["prompt-present"];
 }
 
 export type {
