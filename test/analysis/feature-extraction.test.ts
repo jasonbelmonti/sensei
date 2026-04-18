@@ -194,7 +194,7 @@ test("feature extraction returns one write-ready row per eligible turn", () => {
     detail: {
       labels: [
         "text-structure:single-line",
-        "correction-marker:fix-cue",
+        "correction-markers:fix-cue",
         "workflow-intent:debug",
       ],
       analyzers: {

@@ -5,7 +5,7 @@ import { analyzeWorkflowIntent } from "./workflow-intent";
 
 const ANALYZER_LABEL_PREFIXES = {
   textStructure: "text-structure",
-  correctionMarkers: "correction-marker",
+  correctionMarkers: "correction-markers",
   workflowIntent: "workflow-intent",
 } as const;
 
