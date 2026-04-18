@@ -1,4 +1,6 @@
 import type { OrderedAnalysisTurnInput } from "../../storage";
+import { resolveAnalyzedAt } from "../analyzed-at";
+import { resolveTurnFeatureVersion } from "../feature-version";
 import {
   TURN_FEATURE_SCORE_RANGE,
   type TurnFeatureAnalyzerSnapshot,
@@ -23,6 +25,8 @@ export function buildTurnFeatureRow(
   options: BuildTurnFeatureRowOptions,
 ): WriteReadyTurnFeatureRow {
   const { turn, usage, toolEvents } = input;
+  const featureVersion = resolveTurnFeatureVersion(options.featureVersion);
+  const analyzedAt = resolveAnalyzedAt(options.analyzedAt);
   const prompt = turn.input?.prompt ?? "";
   const hasPrompt = prompt.trim().length > 0;
   const hasStructuredOutput = turn.output?.structuredOutput !== undefined;
@@ -33,8 +37,8 @@ export function buildTurnFeatureRow(
     provider: turn.provider,
     sessionId: turn.sessionId,
     turnId: turn.turnId,
-    featureVersion: options.featureVersion,
-    analyzedAt: options.analyzedAt,
+    featureVersion,
+    analyzedAt,
     turnSequence: input.turnSequence,
     turnStatus: turn.status,
     promptCharacterCount: prompt.length,

@@ -1,5 +1,6 @@
 import type { OrderedAnalysisTurnInput } from "../storage";
 import { buildTurnFeatureRow } from "./analyzers/rollup";
+import { resolveAnalyzedAt } from "./analyzed-at";
 import {
   CURRENT_TURN_FEATURE_VERSION,
   resolveTurnFeatureVersion,
@@ -50,7 +51,7 @@ export function extractTurnFeatures(
   const featureVersion = resolveTurnFeatureVersion(
     options.featureVersion ?? CURRENT_TURN_FEATURE_VERSION,
   );
-  const analyzedAt = requireAnalyzedAt(options.analyzedAt);
+  const analyzedAt = resolveAnalyzedAt(options.analyzedAt);
   const rows: WriteReadyTurnFeatureRow[] = [];
   const skipped: SkippedTurnFeatureExtraction[] = [];
 
@@ -112,13 +113,4 @@ export function getTurnFeatureEligibility(
     eligible: true,
   };
 }
-
-function requireAnalyzedAt(analyzedAt: string): string {
-  if (analyzedAt.trim().length === 0) {
-    throw new Error("analyzedAt must be a non-empty timestamp string.");
-  }
-
-  return analyzedAt;
-}
-
 export type { WriteReadyTurnFeatureRow } from "./turn-feature-row";

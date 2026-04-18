@@ -283,6 +283,38 @@ test("rollup guards non-finite analyzer scores before clamping", () => {
   });
 });
 
+test("rollup rejects invalid feature version values", () => {
+  expect(() =>
+    buildTurnFeatureRow(
+      createOrderedTurnInput({
+        turnSequence: 7,
+        turnId: "turn-direct-rollup-invalid-version",
+        prompt: "Explain invalid version handling.",
+      }),
+      {
+        analyzedAt: FIXED_ANALYZED_AT,
+        featureVersion: 0,
+      },
+    ),
+  ).toThrow("Turn feature version must be a positive integer.");
+});
+
+test("rollup rejects blank analyzed timestamps", () => {
+  expect(() =>
+    buildTurnFeatureRow(
+      createOrderedTurnInput({
+        turnSequence: 8,
+        turnId: "turn-direct-rollup-blank-analyzed-at",
+        prompt: "Explain analyzedAt validation.",
+      }),
+      {
+        analyzedAt: "   ",
+        featureVersion: CURRENT_TURN_FEATURE_VERSION,
+      },
+    ),
+  ).toThrow("analyzedAt must be a non-empty timestamp string.");
+});
+
 type OrderedTurnInputOverrides = {
   turnSequence: number;
   turnId: string;
