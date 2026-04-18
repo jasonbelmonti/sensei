@@ -1,5 +1,6 @@
 export type NormalizedPrompt = {
   text: string;
+  textExcludingFencedBlocks: string;
   lines: string[];
   lineCount: number;
   bulletLineCount: number;
@@ -11,6 +12,7 @@ export type NormalizedPrompt = {
 
 export function normalizePromptForAnalysis(prompt: string): NormalizedPrompt {
   const text = prompt.toLowerCase().replace(/\r\n?/g, "\n");
+  const textExcludingFencedBlocks = stripFencedBlocks(text);
   const lines = text
     .split("\n")
     .map((line) => line.trim())
@@ -18,12 +20,13 @@ export function normalizePromptForAnalysis(prompt: string): NormalizedPrompt {
 
   return {
     text,
+    textExcludingFencedBlocks,
     lines,
     lineCount: lines.length,
     bulletLineCount: countMatchingLines(lines, BULLET_LINE_PATTERN),
     numberedLineCount: countMatchingLines(lines, NUMBERED_LINE_PATTERN),
     codeFenceCount: countPatternMatches(text, [CODE_FENCE_PATTERN]),
-    questionLineCount: countMatchingLines(lines, QUESTION_LINE_PATTERN),
+    questionLineCount: countQuestionLikeLines(lines),
     headingLineCount: countMatchingLines(lines, HEADING_LINE_PATTERN),
   };
 }
@@ -42,7 +45,10 @@ export function countPatternMatches(
 }
 
 export function isQuestionLikeLine(line: string): boolean {
-  return QUESTION_LINE_PATTERN.test(line);
+  return (
+    line.endsWith("?") ||
+    QUESTION_LEADING_PATTERN.test(line)
+  );
 }
 
 function countMatchingLines(lines: readonly string[], pattern: RegExp): number {
@@ -50,6 +56,18 @@ function countMatchingLines(lines: readonly string[], pattern: RegExp): number {
 
   for (const line of lines) {
     if (pattern.test(line)) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+function countQuestionLikeLines(lines: readonly string[]): number {
+  let count = 0;
+
+  for (const line of lines) {
+    if (isQuestionLikeLine(line)) {
       count += 1;
     }
   }
@@ -73,9 +91,15 @@ function toGlobalPattern(pattern: RegExp): RegExp {
   return new RegExp(pattern.source, flags);
 }
 
+function stripFencedBlocks(text: string): string {
+  return text.replace(CODE_FENCE_BLOCK_PATTERN, "\n");
+}
+
 const BULLET_LINE_PATTERN = /^[-*+]\s+\S+/;
 const NUMBERED_LINE_PATTERN = /^\d+[\.\)]\s+\S+/;
 const CODE_FENCE_PATTERN = /```/g;
-const QUESTION_LINE_PATTERN = /^(?:.+\?|who\b|what\b|when\b|where\b|why\b|how\b)/;
+const CODE_FENCE_BLOCK_PATTERN = /```[\s\S]*?```/g;
+const QUESTION_LEADING_PATTERN =
+  /^(?:who|what|when|where|why|how)\s+(?:is|are|was|were|do|does|did|can|could|would|should|will|has|have|had|may|might|must)\b/;
 const HEADING_LINE_PATTERN =
   /^(?:#{1,6}\s+\S+|[a-z0-9][a-z0-9 /-]{0,80}:)$/;

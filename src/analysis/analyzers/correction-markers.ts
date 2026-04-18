@@ -25,7 +25,12 @@ const CORRECTION_MARKER_RULES = [
   {
     label: "replacement-cue",
     countKey: "replacementCueCount",
-    patterns: [/\binstead\b/, /\breplace\b/, /\breplacement\b/, /\bchange\b/],
+    patterns: [
+      /\binstead\b/,
+      /\breplace\b/,
+      /\breplacement\b/,
+      /\bchange (?:it|this|that|the)\b/,
+    ],
     reason: "matched replacement-oriented lexical cues",
   },
   {

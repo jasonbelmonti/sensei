@@ -17,7 +17,7 @@ export function analyzeLexicalCueRules(
   rules: readonly LexicalCueRule[],
 ): TurnFeatureAnalyzerSnapshot {
   const normalizedPrompt = normalizePromptForAnalysis(prompt);
-  const counts = buildCounts(normalizedPrompt.text, rules);
+  const counts = buildCounts(normalizedPrompt.textExcludingFencedBlocks, rules);
   const matchedRules = rules.filter((rule) => counts[rule.countKey] > 0);
 
   return {

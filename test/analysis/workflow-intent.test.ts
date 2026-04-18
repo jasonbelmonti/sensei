@@ -223,6 +223,34 @@ test("text structure analyzer emits deterministic structural labels and counts",
     ],
   });
 
+  expect(analyzeTextStructure("What follows is a changelog entry")).toEqual({
+    applied: true,
+    labels: ["single-line"],
+    ruleIds: ["text-structure:single-line"],
+    counts: {
+      lineCount: 1,
+      bulletLineCount: 0,
+      numberedLineCount: 0,
+      codeFenceCount: 0,
+      questionLineCount: 0,
+    },
+    reasons: ["detected a single non-empty line"],
+  });
+
+  expect(analyzeTextStructure("How to configure the analyzer")).toEqual({
+    applied: true,
+    labels: ["single-line"],
+    ruleIds: ["text-structure:single-line"],
+    counts: {
+      lineCount: 1,
+      bulletLineCount: 0,
+      numberedLineCount: 0,
+      codeFenceCount: 0,
+      questionLineCount: 0,
+    },
+    reasons: ["detected a single non-empty line"],
+  });
+
   expect(analyzeTextStructure("Overview:\nImplement analyzer heuristics.")).toEqual(
     {
       applied: true,
@@ -334,5 +362,56 @@ test("correction marker analyzer emits deterministic marker counts", () => {
       correctionCueCount: 0,
     },
     reasons: [],
+  });
+
+  expect(
+    analyzeCorrectionMarkers("Implement change detection for prompts."),
+  ).toEqual({
+    applied: false,
+    labels: [],
+    ruleIds: [],
+    counts: {
+      fixCueCount: 0,
+      failureCueCount: 0,
+      replacementCueCount: 0,
+      rollbackCueCount: 0,
+      correctionCueCount: 0,
+    },
+    reasons: [],
+  });
+
+  expect(
+    analyzeCorrectionMarkers(
+      "Explain this stack trace\n```log\ntimeout error bug\n```",
+    ),
+  ).toEqual({
+    applied: false,
+    labels: [],
+    ruleIds: [],
+    counts: {
+      fixCueCount: 0,
+      failureCueCount: 0,
+      replacementCueCount: 0,
+      rollbackCueCount: 0,
+      correctionCueCount: 0,
+    },
+    reasons: [],
+  });
+});
+
+test("workflow intent ignores fenced code and log lexical cues", () => {
+  expect(
+    analyzeWorkflowIntent(
+      "Explain this snippet\n```ts\nfunction debugTimeoutError() { return bug; }\n```",
+    ),
+  ).toEqual({
+    applied: true,
+    labels: ["explain"],
+    ruleIds: ["workflow-intent:explain"],
+    counts: {
+      ...EMPTY_WORKFLOW_COUNTS,
+      explain: 1,
+    },
+    reasons: ["matched explain intent lexical cues"],
   });
 });
