@@ -4,6 +4,8 @@ import type {
   StoredTurnUsageRecord,
 } from "./schema";
 
+const SQLITE_BINARY_TEXT_ENCODER = new TextEncoder();
+
 export const ANALYSIS_TURN_ORDER_BY_SQL_TERMS = [
   "COALESCE(started_at, completed_at, failed_at, updated_at)",
   "turn_id",
@@ -89,11 +91,30 @@ function compareSortTimestampAndId(
   leftId: string,
   rightId: string,
 ): number {
-  const timestampComparison = leftTimestamp.localeCompare(rightTimestamp);
+  const timestampComparison = compareSqliteBinaryText(
+    leftTimestamp,
+    rightTimestamp,
+  );
 
   if (timestampComparison !== 0) {
     return timestampComparison;
   }
 
-  return leftId.localeCompare(rightId);
+  return compareSqliteBinaryText(leftId, rightId);
+}
+
+function compareSqliteBinaryText(left: string, right: string): number {
+  const leftBytes = SQLITE_BINARY_TEXT_ENCODER.encode(left);
+  const rightBytes = SQLITE_BINARY_TEXT_ENCODER.encode(right);
+  const sharedLength = Math.min(leftBytes.length, rightBytes.length);
+
+  for (let index = 0; index < sharedLength; index += 1) {
+    const byteDifference = leftBytes[index] - rightBytes[index];
+
+    if (byteDifference !== 0) {
+      return byteDifference;
+    }
+  }
+
+  return leftBytes.length - rightBytes.length;
 }
