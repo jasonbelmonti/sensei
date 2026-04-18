@@ -4,20 +4,19 @@ import type {
   StoredTurnUsageRecord,
 } from "./schema";
 
-export const ANALYSIS_TURN_ORDER_COLUMNS = [
-  "started_at",
-  "completed_at",
-  "failed_at",
-  "updated_at",
+export const ANALYSIS_TURN_ORDER_BY_SQL_TERMS = [
+  "COALESCE(started_at, completed_at, failed_at, updated_at)",
   "turn_id",
 ] as const;
+export const ANALYSIS_TURN_ORDER_BY_SQL =
+  ANALYSIS_TURN_ORDER_BY_SQL_TERMS.join(", ");
 
-export const ANALYSIS_TOOL_EVENT_ORDER_COLUMNS = [
-  "started_at",
-  "completed_at",
-  "updated_at",
+export const ANALYSIS_TOOL_EVENT_ORDER_BY_SQL_TERMS = [
+  "COALESCE(started_at, completed_at, updated_at)",
   "tool_call_id",
 ] as const;
+export const ANALYSIS_TOOL_EVENT_ORDER_BY_SQL =
+  ANALYSIS_TOOL_EVENT_ORDER_BY_SQL_TERMS.join(", ");
 
 type AnalysisTurnSortRecord = Pick<
   StoredTurnRecord,
