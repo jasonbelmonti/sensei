@@ -16,6 +16,8 @@ export type TurnFeatureAnalyzerSnapshot = {
   applied: boolean;
   labels: string[];
   ruleIds: string[];
+  counts: Record<string, number>;
+  reasons: string[];
 };
 
 export type TurnFeatureAnalyzerSnapshots = Record<

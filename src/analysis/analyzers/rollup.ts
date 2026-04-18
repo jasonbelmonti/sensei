@@ -91,7 +91,10 @@ function buildTurnFeatureEvidence(
       hasError,
     },
     trace: {
-      ruleIds: stableUniqueStrings(signals?.ruleIds ?? DEFAULT_TRACE_RULE_IDS),
+      ruleIds: stableUniqueStrings([
+        ...DEFAULT_TRACE_RULE_IDS,
+        ...(signals?.ruleIds ?? []),
+      ]),
       priorTurnIds: stableUniqueStrings(signals?.priorTurnIds),
       toolCallIds: stableUniqueStrings(
         toolEvents.map((toolEvent) => toolEvent.toolCallId),
@@ -118,6 +121,8 @@ function buildAnalyzerSnapshot(
     applied: analyzer?.applied ?? false,
     labels: stableUniqueStrings(analyzer?.labels),
     ruleIds: stableUniqueStrings(analyzer?.ruleIds),
+    counts: normalizeAnalyzerCounts(analyzer?.counts),
+    reasons: stableUniqueStrings(analyzer?.reasons),
   };
 }
 
@@ -152,6 +157,26 @@ function stableUniqueStrings(values: readonly string[] | undefined): string[] {
   }
 
   return uniqueValues;
+}
+
+function normalizeAnalyzerCounts(
+  counts: Record<string, number> | undefined,
+): Record<string, number> {
+  if (!counts) {
+    return {};
+  }
+
+  const normalizedCounts: Record<string, number> = {};
+
+  for (const [key, value] of Object.entries(counts)) {
+    if (!Number.isFinite(value) || value < 0) {
+      continue;
+    }
+
+    normalizedCounts[key] = Math.round(value);
+  }
+
+  return normalizedCounts;
 }
 
 function getDefaultEligibilityReasons(hasPrompt: boolean): string[] {
