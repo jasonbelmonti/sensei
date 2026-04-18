@@ -1,5 +1,8 @@
 import type { OrderedAnalysisTurnInput } from "../storage";
-import { buildTurnFeatureRow } from "./analyzers/rollup";
+import { buildPromptSemanticSignals } from "./analyzers/prompt-semantic-signals";
+import {
+  buildTurnFeatureRow,
+} from "./analyzers/rollup";
 import { resolveAnalyzedAt } from "./analyzed-at";
 import {
   CURRENT_TURN_FEATURE_VERSION,
@@ -73,6 +76,7 @@ export function extractTurnFeatures(
       buildTurnFeatureRow(orderedTurn, {
         analyzedAt,
         featureVersion,
+        signals: buildPromptSemanticSignals(orderedTurn.turn.input?.prompt ?? ""),
       }),
     );
   }
