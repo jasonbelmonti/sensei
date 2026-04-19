@@ -2,6 +2,7 @@ export * from "./analyzed-at";
 export * from "./feature-version";
 export * from "./turn-feature-row";
 export * from "./feature-extraction";
+export * from "./turn-feature-rollup";
 export * from "./analyzers/rollup";
 export * from "./analyzers/friction-signals";
 export * from "./analyzers/text-structure";

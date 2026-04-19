@@ -1,12 +1,11 @@
 import type { OrderedAnalysisTurnInput } from "../storage";
-import { buildTurnFeatureRow } from "./analyzers/rollup";
 import { resolveAnalyzedAt } from "./analyzed-at";
 import {
   CURRENT_TURN_FEATURE_VERSION,
   resolveTurnFeatureVersion,
   type TurnFeatureVersion,
 } from "./feature-version";
-import { buildTurnFeatureSignals } from "./turn-feature-signals";
+import { buildTurnFeatureRollupRow } from "./turn-feature-rollup";
 import type { WriteReadyTurnFeatureRow } from "./turn-feature-row";
 
 export const TURN_FEATURE_SKIP_REASONS = [
@@ -45,6 +44,11 @@ type TurnFeatureEligibility =
   | { eligible: true }
   | { eligible: false; reason: TurnFeatureSkipReason };
 
+type SessionTurnHistory = Map<
+  OrderedAnalysisTurnInput["turn"]["provider"],
+  Map<string, OrderedAnalysisTurnInput[]>
+>;
+
 export function extractTurnFeatures(
   orderedTurns: readonly OrderedAnalysisTurnInput[],
   options: TurnFeatureExtractionOptions,
@@ -55,12 +59,14 @@ export function extractTurnFeatures(
   const analyzedAt = resolveAnalyzedAt(options.analyzedAt);
   const rows: WriteReadyTurnFeatureRow[] = [];
   const skipped: SkippedTurnFeatureExtraction[] = [];
-  const priorTurnsBySession = new Map<string, OrderedAnalysisTurnInput[]>();
+  const sessionTurnHistory: SessionTurnHistory = new Map();
 
   for (const orderedTurn of orderedTurns) {
     const eligibility = getTurnFeatureEligibility(orderedTurn);
-    const sessionKey = getAnalysisSessionKey(orderedTurn);
-    const priorTurns = getOrCreateSessionTurns(priorTurnsBySession, sessionKey);
+    const priorTurns = getOrCreateSessionTurns(
+      sessionTurnHistory,
+      orderedTurn,
+    );
 
     if (eligibility.eligible === false) {
       skipped.push({
@@ -74,15 +80,11 @@ export function extractTurnFeatures(
       continue;
     }
 
-    const signals = buildTurnFeatureSignals(orderedTurn, {
-      priorTurns,
-    });
-
     rows.push(
-      buildTurnFeatureRow(orderedTurn, {
+      buildTurnFeatureRollupRow(orderedTurn, {
         analyzedAt,
         featureVersion,
-        signals,
+        priorTurns,
       }),
     );
 
@@ -126,23 +128,37 @@ export function getTurnFeatureEligibility(
   };
 }
 
-function getAnalysisSessionKey(orderedTurn: OrderedAnalysisTurnInput): string {
-  return `${orderedTurn.turn.provider}:${orderedTurn.turn.sessionId}`;
+function getOrCreateSessionTurns(
+  sessionTurnHistory: SessionTurnHistory,
+  orderedTurn: OrderedAnalysisTurnInput,
+): OrderedAnalysisTurnInput[] {
+  const providerTurns = getOrCreateMapValue(
+    sessionTurnHistory,
+    orderedTurn.turn.provider,
+    () => new Map<string, OrderedAnalysisTurnInput[]>(),
+  );
+
+  return getOrCreateMapValue(
+    providerTurns,
+    orderedTurn.turn.sessionId,
+    () => [],
+  );
 }
 
-function getOrCreateSessionTurns(
-  priorTurnsBySession: Map<string, OrderedAnalysisTurnInput[]>,
-  sessionKey: string,
-): OrderedAnalysisTurnInput[] {
-  const existingTurns = priorTurnsBySession.get(sessionKey);
+function getOrCreateMapValue<TKey, TValue>(
+  map: Map<TKey, TValue>,
+  key: TKey,
+  createValue: () => TValue,
+): TValue {
+  const existingValue = map.get(key);
 
-  if (existingTurns) {
-    return existingTurns;
+  if (existingValue !== undefined) {
+    return existingValue;
   }
 
-  const sessionTurns: OrderedAnalysisTurnInput[] = [];
-  priorTurnsBySession.set(sessionKey, sessionTurns);
+  const value = createValue();
+  map.set(key, value);
 
-  return sessionTurns;
+  return value;
 }
 export type { WriteReadyTurnFeatureRow } from "./turn-feature-row";

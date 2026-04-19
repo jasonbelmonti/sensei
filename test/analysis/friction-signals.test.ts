@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 
 import { buildFrictionSignals } from "../../src/analysis";
-import type { OrderedAnalysisTurnInput } from "../../src/storage";
+import { createOrderedTurnInput } from "./ordered-analysis-turn-fixture";
 
 test("friction analyzer emits retry context from consecutive prior failure turns", () => {
   const signals = buildFrictionSignals(
@@ -148,77 +148,3 @@ test("friction analyzer emits tool failure and repeated tool labels from canonic
     priorTurnIds: [],
   });
 });
-
-type OrderedTurnInputOverrides = {
-  turnSequence: number;
-  turnId: string;
-  prompt?: string;
-  status?: OrderedAnalysisTurnInput["turn"]["status"];
-  error?: OrderedAnalysisTurnInput["turn"]["error"];
-  toolEvents?: Array<{
-    toolCallId: string;
-    status: OrderedAnalysisTurnInput["toolEvents"][number]["status"];
-    toolName?: string;
-    outcome?: OrderedAnalysisTurnInput["toolEvents"][number]["outcome"];
-    errorMessage?: string;
-  }>;
-};
-
-function createOrderedTurnInput(
-  overrides: OrderedTurnInputOverrides,
-): OrderedAnalysisTurnInput {
-  const status = overrides.status ?? "completed";
-  const timestamp = createFixtureTimestamp(overrides.turnSequence);
-
-  return {
-    turnSequence: overrides.turnSequence,
-    turn: {
-      provider: "codex",
-      sessionId: "session-1",
-      turnId: overrides.turnId,
-      status,
-      input: {
-        prompt: overrides.prompt ?? "",
-        attachments: [],
-      },
-      error: overrides.error,
-      updatedAt: timestamp,
-      completedAt: status === "completed" ? timestamp : undefined,
-      failedAt: status === "failed" ? timestamp : undefined,
-    },
-    toolEvents: (overrides.toolEvents ?? []).map((toolEvent, index) =>
-      createToolEvent(overrides.turnId, overrides.turnSequence, toolEvent, index),
-    ),
-  };
-}
-
-function createToolEvent(
-  turnId: string,
-  turnSequence: number,
-  toolEvent: NonNullable<OrderedTurnInputOverrides["toolEvents"]>[number],
-  index: number,
-): OrderedAnalysisTurnInput["toolEvents"][number] {
-  const timestamp = createFixtureTimestamp(turnSequence, index);
-
-  return {
-    provider: "codex",
-    sessionId: "session-1",
-    turnId,
-    toolCallId: toolEvent.toolCallId,
-    status: toolEvent.status,
-    toolName: toolEvent.toolName,
-    outcome: toolEvent.outcome,
-    errorMessage: toolEvent.errorMessage,
-    updatedAt: timestamp,
-    completedAt: toolEvent.status === "completed" ? timestamp : undefined,
-  };
-}
-
-function createFixtureTimestamp(
-  turnSequence: number,
-  second = 0,
-): string {
-  return `2026-04-18T20:${String(turnSequence).padStart(2, "0")}:${String(
-    second,
-  ).padStart(2, "0")}.000Z`;
-}

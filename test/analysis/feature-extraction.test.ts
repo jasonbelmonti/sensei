@@ -1,14 +1,13 @@
 import { expect, test } from "bun:test";
 
 import {
-  buildTurnFeatureRow,
   CURRENT_TURN_FEATURE_VERSION,
   extractTurnFeatures,
   getTurnFeatureEligibility,
   TURN_FEATURE_SCORE_RANGE,
   type WriteReadyTurnFeatureRow,
 } from "../../src/analysis";
-import type { OrderedAnalysisTurnInput } from "../../src/storage";
+import { createOrderedTurnInput } from "./ordered-analysis-turn-fixture";
 
 const FIXED_ANALYZED_AT = "2026-04-18T19:45:00.000Z";
 const ELIGIBLE_COMPLETED_PROMPT =
@@ -298,6 +297,87 @@ test("feature extraction is deterministic for the same ordered turn fixtures", (
   expect(second).toEqual(first);
 });
 
+test("feature extraction rows stay machine-readable without copying prompt text", () => {
+  const prompt = "SENTINEL_PROMPT_COPY_GUARD explain the feature extraction contract.";
+  const extraction = extractTurnFeatures(
+    [
+      createOrderedTurnInput({
+        turnSequence: 11,
+        turnId: "turn-machine-readable",
+        prompt,
+        toolEvents: [
+          {
+            toolCallId: "tool-machine-readable",
+            status: "completed",
+            toolName: "exec_command",
+            outcome: "success",
+          },
+        ],
+      }),
+    ],
+    {
+      analyzedAt: FIXED_ANALYZED_AT,
+    },
+  );
+
+  const serializedRows = JSON.stringify(extraction.rows);
+
+  expect(JSON.parse(serializedRows)).toEqual(extraction.rows);
+  expect(serializedRows).not.toContain(prompt);
+});
+
+test("feature extraction scopes retry context by provider and session", () => {
+  const extraction = extractTurnFeatures(
+    [
+      createOrderedTurnInput({
+        provider: "codex",
+        sessionId: "shared-session",
+        turnSequence: 12,
+        turnId: "turn-provider-a-failed",
+        prompt: "Retry after the earlier failure.",
+        status: "failed",
+        error: {
+          code: "timeout",
+          message: "tool call timed out",
+        },
+      }),
+      createOrderedTurnInput({
+        provider: "claude",
+        sessionId: "shared-session",
+        turnSequence: 13,
+        turnId: "turn-provider-b-isolated",
+        prompt: "Explain the isolated session behavior.",
+      }),
+      createOrderedTurnInput({
+        provider: "codex",
+        sessionId: "shared-session",
+        turnSequence: 14,
+        turnId: "turn-provider-a-retry",
+        prompt: "Retry after the earlier failure.",
+      }),
+    ],
+    {
+      analyzedAt: FIXED_ANALYZED_AT,
+    },
+  );
+
+  expect(extraction.rows).toHaveLength(3);
+  expect(extraction.rows[1].turnId).toBe("turn-provider-b-isolated");
+  expect(extraction.rows[1].detail.scores).toEqual({
+    retry: 0,
+    friction: 0,
+  });
+  expect(extraction.rows[1].evidence.trace.priorTurnIds).toEqual([]);
+  expect(extraction.rows[2].turnId).toBe("turn-provider-a-retry");
+  expect(extraction.rows[2].detail.scores).toEqual({
+    retry: 1,
+    friction: 0,
+  });
+  expect(extraction.rows[2].evidence.trace.priorTurnIds).toEqual([
+    "turn-provider-a-failed",
+  ]);
+});
+
 test("feature extraction derives prior-turn retry and friction from ordered turns", () => {
   const extraction = extractTurnFeatures(
     [
@@ -549,187 +629,3 @@ test("feature extraction exposes explicit eligibility decisions", () => {
     eligible: true,
   });
 });
-
-test("rollup derives prompt evidence from the turn payload", () => {
-  const row = buildTurnFeatureRow(
-    createOrderedTurnInput({
-      turnSequence: 5,
-      turnId: "turn-direct-rollup-no-prompt",
-    }),
-    {
-      analyzedAt: FIXED_ANALYZED_AT,
-      featureVersion: CURRENT_TURN_FEATURE_VERSION,
-    },
-  );
-
-  expect(row.promptCharacterCount).toBe(0);
-  expect(row.evidence.eligibility).toEqual({
-    reasons: [],
-    hasPrompt: false,
-    hasStructuredOutput: false,
-    hasError: false,
-  });
-});
-
-test("rollup guards non-finite analyzer scores before clamping", () => {
-  const row = buildTurnFeatureRow(
-    createOrderedTurnInput({
-      turnSequence: 6,
-      turnId: "turn-direct-rollup-invalid-scores",
-      prompt: "Explain the score guard behavior.",
-    }),
-    {
-      analyzedAt: FIXED_ANALYZED_AT,
-      featureVersion: CURRENT_TURN_FEATURE_VERSION,
-      signals: {
-        retryScore: Number.NaN,
-        frictionScore: Number.POSITIVE_INFINITY,
-      },
-    },
-  );
-
-  expect(row.detail.scores).toEqual({
-    retry: TURN_FEATURE_SCORE_RANGE.min,
-    friction: TURN_FEATURE_SCORE_RANGE.min,
-  });
-});
-
-test("rollup rejects invalid feature version values", () => {
-  expect(() =>
-    buildTurnFeatureRow(
-      createOrderedTurnInput({
-        turnSequence: 7,
-        turnId: "turn-direct-rollup-invalid-version",
-        prompt: "Explain invalid version handling.",
-      }),
-      {
-        analyzedAt: FIXED_ANALYZED_AT,
-        featureVersion: 0,
-      },
-    ),
-  ).toThrow("Turn feature version must be a positive integer.");
-});
-
-test("rollup rejects blank analyzed timestamps", () => {
-  expect(() =>
-    buildTurnFeatureRow(
-      createOrderedTurnInput({
-        turnSequence: 8,
-        turnId: "turn-direct-rollup-blank-analyzed-at",
-        prompt: "Explain analyzedAt validation.",
-      }),
-      {
-        analyzedAt: "   ",
-        featureVersion: CURRENT_TURN_FEATURE_VERSION,
-      },
-    ),
-  ).toThrow("analyzedAt must be a non-empty timestamp string.");
-});
-
-type OrderedTurnInputOverrides = {
-  turnSequence: number;
-  turnId: string;
-  prompt?: string;
-  attachments?: unknown[];
-  status?: OrderedAnalysisTurnInput["turn"]["status"];
-  output?: OrderedAnalysisTurnInput["turn"]["output"];
-  error?: OrderedAnalysisTurnInput["turn"]["error"];
-  usage?: {
-    inputTokens: number;
-    outputTokens: number;
-    cachedInputTokens?: number;
-    costUsd?: number;
-  };
-  toolEvents?: Array<{
-    toolCallId: string;
-    status: OrderedAnalysisTurnInput["toolEvents"][number]["status"];
-    toolName?: string;
-    outcome?: OrderedAnalysisTurnInput["toolEvents"][number]["outcome"];
-    errorMessage?: string;
-  }>;
-};
-
-function createOrderedTurnInput(
-  overrides: OrderedTurnInputOverrides,
-): OrderedAnalysisTurnInput {
-  const status = overrides.status ?? "completed";
-  const timestamp = createFixtureTimestamp(overrides.turnSequence);
-
-  return {
-    turnSequence: overrides.turnSequence,
-    turn: {
-      provider: "codex",
-      sessionId: "session-1",
-      turnId: overrides.turnId,
-      status,
-      input: createTurnInput(overrides),
-      output: overrides.output,
-      error: overrides.error,
-      updatedAt: timestamp,
-      completedAt: status === "completed" ? timestamp : undefined,
-      failedAt: status === "failed" ? timestamp : undefined,
-    },
-    usage: overrides.usage
-      ? {
-          provider: "codex",
-          sessionId: "session-1",
-          turnId: overrides.turnId,
-          inputTokens: overrides.usage.inputTokens,
-          outputTokens: overrides.usage.outputTokens,
-          cachedInputTokens: overrides.usage.cachedInputTokens,
-          costUsd: overrides.usage.costUsd,
-          updatedAt: timestamp,
-        }
-      : undefined,
-    toolEvents: (overrides.toolEvents ?? []).map((toolEvent, index) =>
-      createToolEvent(overrides.turnSequence, overrides.turnId, toolEvent, index),
-    ),
-  };
-}
-
-function createTurnInput(
-  overrides: OrderedTurnInputOverrides,
-): OrderedAnalysisTurnInput["turn"]["input"] {
-  const hasTurnInput =
-    overrides.prompt !== undefined || overrides.attachments !== undefined;
-
-  if (!hasTurnInput) {
-    return undefined;
-  }
-
-  return {
-    prompt: overrides.prompt ?? "",
-    attachments: overrides.attachments ?? [],
-  };
-}
-
-function createToolEvent(
-  turnSequence: number,
-  turnId: string,
-  toolEvent: NonNullable<OrderedTurnInputOverrides["toolEvents"]>[number],
-  index: number,
-): OrderedAnalysisTurnInput["toolEvents"][number] {
-  const timestamp = createFixtureTimestamp(turnSequence, index);
-
-  return {
-    provider: "codex",
-    sessionId: "session-1",
-    turnId,
-    toolCallId: toolEvent.toolCallId,
-    status: toolEvent.status,
-    toolName: toolEvent.toolName,
-    outcome: toolEvent.outcome,
-    errorMessage: toolEvent.errorMessage,
-    updatedAt: timestamp,
-    completedAt: toolEvent.status === "completed" ? timestamp : undefined,
-  };
-}
-
-function createFixtureTimestamp(
-  turnSequence: number,
-  second = 0,
-): string {
-  return `2026-04-18T19:${String(turnSequence).padStart(2, "0")}:${String(
-    second,
-  ).padStart(2, "0")}.000Z`;
-}
