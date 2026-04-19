@@ -1,14 +1,12 @@
 import type { OrderedAnalysisTurnInput } from "../storage";
-import { buildPromptSemanticSignals } from "./analyzers/prompt-semantic-signals";
-import {
-  buildTurnFeatureRow,
-} from "./analyzers/rollup";
+import { buildTurnFeatureRow } from "./analyzers/rollup";
 import { resolveAnalyzedAt } from "./analyzed-at";
 import {
   CURRENT_TURN_FEATURE_VERSION,
   resolveTurnFeatureVersion,
   type TurnFeatureVersion,
 } from "./feature-version";
+import { buildTurnFeatureSignals } from "./turn-feature-signals";
 import type { WriteReadyTurnFeatureRow } from "./turn-feature-row";
 
 export const TURN_FEATURE_SKIP_REASONS = [
@@ -57,9 +55,12 @@ export function extractTurnFeatures(
   const analyzedAt = resolveAnalyzedAt(options.analyzedAt);
   const rows: WriteReadyTurnFeatureRow[] = [];
   const skipped: SkippedTurnFeatureExtraction[] = [];
+  const priorTurnsBySession = new Map<string, OrderedAnalysisTurnInput[]>();
 
   for (const orderedTurn of orderedTurns) {
     const eligibility = getTurnFeatureEligibility(orderedTurn);
+    const sessionKey = getAnalysisSessionKey(orderedTurn);
+    const priorTurns = getOrCreateSessionTurns(priorTurnsBySession, sessionKey);
 
     if (eligibility.eligible === false) {
       skipped.push({
@@ -69,16 +70,23 @@ export function extractTurnFeatures(
         turnSequence: orderedTurn.turnSequence,
         reason: eligibility.reason,
       });
+      priorTurns.push(orderedTurn);
       continue;
     }
+
+    const signals = buildTurnFeatureSignals(orderedTurn, {
+      priorTurns,
+    });
 
     rows.push(
       buildTurnFeatureRow(orderedTurn, {
         analyzedAt,
         featureVersion,
-        signals: buildPromptSemanticSignals(orderedTurn.turn.input?.prompt ?? ""),
+        signals,
       }),
     );
+
+    priorTurns.push(orderedTurn);
   }
 
   return {
@@ -116,5 +124,25 @@ export function getTurnFeatureEligibility(
   return {
     eligible: true,
   };
+}
+
+function getAnalysisSessionKey(orderedTurn: OrderedAnalysisTurnInput): string {
+  return `${orderedTurn.turn.provider}:${orderedTurn.turn.sessionId}`;
+}
+
+function getOrCreateSessionTurns(
+  priorTurnsBySession: Map<string, OrderedAnalysisTurnInput[]>,
+  sessionKey: string,
+): OrderedAnalysisTurnInput[] {
+  const existingTurns = priorTurnsBySession.get(sessionKey);
+
+  if (existingTurns) {
+    return existingTurns;
+  }
+
+  const sessionTurns: OrderedAnalysisTurnInput[] = [];
+  priorTurnsBySession.set(sessionKey, sessionTurns);
+
+  return sessionTurns;
 }
 export type { WriteReadyTurnFeatureRow } from "./turn-feature-row";

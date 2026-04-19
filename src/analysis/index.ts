@@ -3,6 +3,7 @@ export * from "./feature-version";
 export * from "./turn-feature-row";
 export * from "./feature-extraction";
 export * from "./analyzers/rollup";
+export * from "./analyzers/friction-signals";
 export * from "./analyzers/text-structure";
 export * from "./analyzers/correction-markers";
 export * from "./analyzers/workflow-intent";
