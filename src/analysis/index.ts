@@ -1,4 +1,5 @@
 export * from "./analyzed-at";
+export * from "./command";
 export * from "./feature-version";
 export * from "./turn-feature-row";
 export * from "./feature-extraction";
