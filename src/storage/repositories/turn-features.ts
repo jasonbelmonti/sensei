@@ -113,6 +113,16 @@ export function createTurnFeatureRepository(
     RETURNING
       ${turnFeatureProjection}
   `);
+	const deleteFeatureVersionStatement = database.query(`
+    DELETE FROM turn_features
+    WHERE feature_version = ?
+  `);
+	const upsertTurnFeature = (input: StoreTurnFeatureInput) =>
+		mapTurnFeatureRow(
+			upsertTurnFeatureStatement.get(
+				...turnFeatureStatementParams(input),
+			) as TurnFeatureRow,
+		);
 
 	return {
 		listAll(): StoredTurnFeatureRecord[] {
@@ -120,17 +130,22 @@ export function createTurnFeatureRepository(
 				mapTurnFeatureRow,
 			);
 		},
+		replaceFeatureVersion(
+			featureVersion: number,
+			inputs: readonly StoreTurnFeatureInput[],
+		): StoredTurnFeatureRecord[] {
+			assertFeatureVersionInputs(featureVersion, inputs);
+			deleteFeatureVersionStatement.run(featureVersion);
+
+			return inputs.map(upsertTurnFeature);
+		},
 		upsert(input: StoreTurnFeatureInput): StoredTurnFeatureRecord {
-			return mapTurnFeatureRow(
-				upsertTurnFeatureStatement.get(
-					...turnFeatureStatementParams(input),
-				) as TurnFeatureRow,
-			);
+			return upsertTurnFeature(input);
 		},
 		upsertMany(
 			inputs: readonly StoreTurnFeatureInput[],
 		): StoredTurnFeatureRecord[] {
-			return inputs.map((input) => this.upsert(input));
+			return inputs.map(upsertTurnFeature);
 		},
 	};
 }
@@ -139,6 +154,14 @@ function createUnavailableTurnFeatureRepository() {
 	return {
 		listAll(): StoredTurnFeatureRecord[] {
 			return [];
+		},
+		replaceFeatureVersion(
+			_featureVersion: number,
+			_inputs: readonly StoreTurnFeatureInput[],
+		): StoredTurnFeatureRecord[] {
+			throw new Error(
+				"turn_features is unavailable in this database; reopen without readonly to run migrations first.",
+			);
 		},
 		upsert(_input: StoreTurnFeatureInput): StoredTurnFeatureRecord {
 			throw new Error(
@@ -180,6 +203,19 @@ function mapTurnFeatureRow(row: TurnFeatureRow): StoredTurnFeatureRecord {
 		detail: parseJson(row.detailJson),
 		evidence: parseJson(row.evidenceJson),
 	};
+}
+
+function assertFeatureVersionInputs(
+	featureVersion: number,
+	inputs: readonly StoreTurnFeatureInput[],
+): void {
+	for (const input of inputs) {
+		if (input.featureVersion !== featureVersion) {
+			throw new Error(
+				`turn_features refresh expected feature version ${featureVersion}, received ${input.featureVersion} for ${input.provider}/${input.sessionId}/${input.turnId}.`,
+			);
+		}
+	}
 }
 
 function turnFeatureStatementParams(input: StoreTurnFeatureInput) {

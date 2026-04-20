@@ -66,6 +66,67 @@ test("analyze command reruns in place for the current feature version without du
 	]);
 });
 
+test("analyze command removes stale current-version rows when turns become ineligible", async () => {
+	const harness = createStorageTestHarness("sensei-analyze-stale-rows");
+	cleanups.push(harness.cleanup);
+	const fixture = seedAnalyzeFixture(harness.storage);
+	const config = createAnalyzeConfig(harness.databasePath);
+
+	await runSenseiAnalyzeCommand(config, {
+		now: () => "2026-04-19T02:00:00.000Z",
+	});
+
+	harness.storage.conversations.upsertTurn({
+		provider: "codex",
+		sessionId: fixture.canonicalSessionId,
+		turnId: fixture.eligibleTurnIds[2],
+		status: "completed",
+		input: {
+			prompt: "   ",
+		},
+		output: {
+			text: "This turn should now be skipped.",
+		},
+		startedAt: "2026-04-18T19:03:00.000Z",
+		completedAt: "2026-04-18T19:03:05.000Z",
+	});
+
+	const rerun = await runSenseiAnalyzeCommand(config, {
+		now: () => "2026-04-19T03:00:00.000Z",
+	});
+
+	expect(rerun).toMatchObject({
+		featureVersion: CURRENT_TURN_FEATURE_VERSION,
+		analyzedAt: "2026-04-19T03:00:00.000Z",
+		totalTurns: 5,
+		eligibleTurns: 2,
+		skippedTurns: 3,
+		persistedRows: 2,
+		skippedByReason: {
+			"blank-prompt-input": 2,
+			"missing-prompt-input": 1,
+		},
+	});
+	expect(
+		harness.storage.turnFeatures.listAll().map((row) => ({
+			featureVersion: row.featureVersion,
+			analyzedAt: row.analyzedAt,
+			turnId: row.turnId,
+		})),
+	).toEqual([
+		{
+			featureVersion: CURRENT_TURN_FEATURE_VERSION,
+			analyzedAt: "2026-04-19T03:00:00.000Z",
+			turnId: "turn-001",
+		},
+		{
+			featureVersion: CURRENT_TURN_FEATURE_VERSION,
+			analyzedAt: "2026-04-19T03:00:00.000Z",
+			turnId: "turn-002",
+		},
+	]);
+});
+
 test("analyze command writes parallel rows when the feature version changes", async () => {
 	const harness = createStorageTestHarness("sensei-analyze-version-bump");
 	cleanups.push(harness.cleanup);

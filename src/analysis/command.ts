@@ -56,7 +56,11 @@ export async function runSenseiAnalyzeCommand(
 			featureVersion: options.featureVersion ?? CURRENT_TURN_FEATURE_VERSION,
 		});
 		const persistedRows = storage.transaction(
-			({ turnFeatures }) => turnFeatures.upsertMany(extraction.rows).length,
+			({ turnFeatures }) =>
+				turnFeatures.replaceFeatureVersion(
+					extraction.featureVersion,
+					extraction.rows,
+				).length,
 		);
 
 		return {
