@@ -18,6 +18,7 @@ type OrderedTurnInputToolEventOverrides = {
 export type OrderedTurnInputOverrides = {
   provider?: OrderedAnalysisTurnInput["turn"]["provider"];
   sessionId?: string;
+  session?: Partial<OrderedAnalysisTurnInput["session"]>;
   turnSequence: number;
   turnId: string;
   prompt?: string;
@@ -37,6 +38,7 @@ export function createOrderedTurnInput(
   const {
     provider = "codex",
     sessionId = "session-1",
+    session,
     turnSequence,
     turnId,
     status = "completed",
@@ -49,6 +51,7 @@ export function createOrderedTurnInput(
 
   return {
     turnSequence,
+    session: createSessionContext(session),
     turn: {
       provider,
       sessionId,
@@ -83,6 +86,17 @@ export function createOrderedTurnInput(
         index,
       ),
     ),
+  };
+}
+
+function createSessionContext(
+  session: OrderedTurnInputOverrides["session"],
+): OrderedAnalysisTurnInput["session"] {
+  return {
+    workingDirectory: session?.workingDirectory,
+    metadata: session?.metadata,
+    threadName: session?.threadName,
+    tags: session?.tags ?? [],
   };
 }
 
