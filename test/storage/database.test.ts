@@ -130,21 +130,9 @@ test("fresh bootstrap tolerates concurrent storage opens", async () => {
 });
 
 test("readonly opens tolerate legacy databases without turn_features", () => {
-	const rootDir = mkdtempSync(
-		join(tmpdir(), "sensei-storage-readonly-legacy-"),
+	const databasePath = createLegacyCanonicalDatabasePath(
+		"sensei-storage-readonly-legacy-",
 	);
-	const databasePath = join(rootDir, "sensei.sqlite");
-	cleanups.push(() => rmSync(rootDir, { recursive: true, force: true }));
-
-	const legacyDatabase = new Database(databasePath);
-
-	try {
-		for (const statement of STORAGE_MIGRATIONS[0].statements) {
-			legacyDatabase.exec(statement);
-		}
-	} finally {
-		legacyDatabase.close();
-	}
 
 	const storage = openSenseiStorage({
 		databasePath,
@@ -166,3 +154,69 @@ test("readonly opens tolerate legacy databases without turn_features", () => {
 			.all(),
 	).toEqual([]);
 });
+
+test("writable opens upgrade legacy databases without replaying canonical storage", () => {
+	const databasePath = createLegacyCanonicalDatabasePath(
+		"sensei-storage-writable-legacy-",
+	);
+
+	const storage = openSenseiStorage({
+		databasePath,
+	});
+	cleanups.push(() => storage.close());
+
+	expect(storage.migrations).toEqual([
+		{
+			id: "0001_canonical_storage",
+			appliedAt: expect.any(String),
+		},
+		{
+			id: "0002_turn_features",
+			appliedAt: expect.any(String),
+		},
+	]);
+	expect(storage.turnFeatures.listAll()).toEqual([]);
+	expect(
+		storage.database
+			.query(
+				`
+					SELECT id
+					FROM _sensei_migrations
+					ORDER BY id
+				`,
+			)
+			.all(),
+	).toEqual([
+		{ id: "0001_canonical_storage" },
+		{ id: "0002_turn_features" },
+	]);
+	expect(
+		storage.database
+			.query(
+				`
+					SELECT name
+					FROM sqlite_master
+					WHERE type = 'table' AND name = 'turn_features'
+				`,
+			)
+			.all(),
+	).toEqual([{ name: "turn_features" }]);
+});
+
+function createLegacyCanonicalDatabasePath(prefix: string): string {
+	const rootDir = mkdtempSync(join(tmpdir(), prefix));
+	const databasePath = join(rootDir, "sensei.sqlite");
+	cleanups.push(() => rmSync(rootDir, { recursive: true, force: true }));
+
+	const legacyDatabase = new Database(databasePath);
+
+	try {
+		for (const statement of STORAGE_MIGRATIONS[0].statements) {
+			legacyDatabase.exec(statement);
+		}
+	} finally {
+		legacyDatabase.close();
+	}
+
+	return databasePath;
+}

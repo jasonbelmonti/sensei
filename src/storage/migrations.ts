@@ -13,6 +13,39 @@ const ALL_STORAGE_MIGRATIONS = [
 	TURN_FEATURE_STORAGE_MIGRATION,
 ] as const;
 
+const LEGACY_MIGRATION_FOOTPRINTS = {
+	"0001_canonical_storage": {
+		tables: [
+			"sessions",
+			"turns",
+			"turn_usage",
+			"tool_events",
+			"ingest_cursors",
+			"ingest_warnings",
+		],
+		indexes: [
+			"sessions_source_file_path_idx",
+			"turns_session_updated_at_idx",
+			"tool_events_turn_updated_at_idx",
+			"ingest_warnings_detected_at_idx",
+			"ingest_warnings_provider_file_idx",
+		],
+	},
+	"0002_turn_features": {
+		tables: ["turn_features"],
+		indexes: [
+			"turn_features_session_version_turn_sequence_idx",
+			"turn_features_provider_version_status_idx",
+		],
+	},
+} as const satisfies Record<
+	(typeof ALL_STORAGE_MIGRATIONS)[number]["id"],
+	{
+		tables: readonly string[];
+		indexes: readonly string[];
+	}
+>;
+
 export function migrateSenseiDatabase(
 	database: Database,
 ): StorageMigrationRecord[] {
@@ -29,6 +62,8 @@ export function migrateSenseiDatabase(
       );
     `);
 
+		bootstrapLegacyMigrationHistory(database);
+
 		const appliedMigrationIds = new Set(loadAppliedMigrationIds(database));
 
 		for (const migration of ALL_STORAGE_MIGRATIONS) {
@@ -42,14 +77,7 @@ export function migrateSenseiDatabase(
 				database.exec(statement);
 			}
 
-			database
-				.query(
-					`
-            INSERT INTO _sensei_migrations (id, applied_at)
-            VALUES (?, ?)
-          `,
-				)
-				.run(migration.id, appliedAt);
+			recordAppliedMigration(database, migration.id, appliedAt);
 
 			appliedMigrationIds.add(migration.id);
 		}
@@ -82,4 +110,68 @@ function loadAppliedMigrationIds(database: Database): string[] {
 		.query("SELECT id FROM _sensei_migrations ORDER BY id")
 		.all()
 		.map((row) => (row as { id: string }).id);
+}
+
+function bootstrapLegacyMigrationHistory(database: Database): void {
+	if (loadAppliedMigrationIds(database).length > 0) {
+		return;
+	}
+
+	for (const migration of ALL_STORAGE_MIGRATIONS) {
+		if (!hasSchemaFootprint(database, LEGACY_MIGRATION_FOOTPRINTS[migration.id])) {
+			continue;
+		}
+
+		recordAppliedMigration(database, migration.id, new Date().toISOString());
+	}
+}
+
+function hasSchemaFootprint(
+	database: Database,
+	footprint: {
+		tables: readonly string[];
+		indexes: readonly string[];
+	},
+): boolean {
+	return (
+		footprint.tables.every((tableName) =>
+			hasSchemaObject(database, "table", tableName),
+		) &&
+		footprint.indexes.every((indexName) =>
+			hasSchemaObject(database, "index", indexName),
+		)
+	);
+}
+
+function hasSchemaObject(
+	database: Database,
+	type: "table" | "index",
+	name: string,
+): boolean {
+	const row = database
+		.query(
+			`
+				SELECT 1 as found
+				FROM sqlite_master
+				WHERE type = ? AND name = ?
+			`,
+		)
+		.get(type, name) as { found: number } | null;
+
+	return row?.found === 1;
+}
+
+function recordAppliedMigration(
+	database: Database,
+	id: string,
+	appliedAt: string,
+): void {
+	database
+		.query(
+			`
+				INSERT INTO _sensei_migrations (id, applied_at)
+				VALUES (?, ?)
+			`,
+		)
+		.run(id, appliedAt);
 }
