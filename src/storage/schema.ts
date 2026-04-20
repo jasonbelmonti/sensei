@@ -3,85 +3,87 @@ export const STORAGE_PROVIDER_IDS = ["claude", "codex"] as const;
 export type StorageProviderId = (typeof STORAGE_PROVIDER_IDS)[number];
 
 export const STORAGE_SOURCE_KINDS = [
-  "transcript",
-  "snapshot",
-  "session-index",
+	"transcript",
+	"snapshot",
+	"session-index",
 ] as const;
 
 export type StorageSourceKind = (typeof STORAGE_SOURCE_KINDS)[number];
 
 export const STORAGE_DISCOVERY_PHASES = [
-  "initial_scan",
-  "watch",
-  "reconcile",
+	"initial_scan",
+	"watch",
+	"reconcile",
 ] as const;
 
 export type StorageDiscoveryPhase = (typeof STORAGE_DISCOVERY_PHASES)[number];
 
 export const STORAGE_COMPLETENESS_VALUES = [
-  "complete",
-  "partial",
-  "best-effort",
+	"complete",
+	"partial",
+	"best-effort",
 ] as const;
 
 export type StorageCompleteness = (typeof STORAGE_COMPLETENESS_VALUES)[number];
 
 export const STORAGE_SESSION_IDENTITY_STATES = [
-  "canonical",
-  "provisional",
+	"canonical",
+	"provisional",
 ] as const;
 
 export type StorageSessionIdentityState =
-  (typeof STORAGE_SESSION_IDENTITY_STATES)[number];
+	(typeof STORAGE_SESSION_IDENTITY_STATES)[number];
 
 export const STORAGE_SESSION_OBSERVATION_REASONS = [
-  "bootstrap",
-  "index",
-  "snapshot",
-  "transcript",
-  "reconcile",
+	"bootstrap",
+	"index",
+	"snapshot",
+	"transcript",
+	"reconcile",
 ] as const;
 
 export type StorageSessionObservationReason =
-  (typeof STORAGE_SESSION_OBSERVATION_REASONS)[number];
+	(typeof STORAGE_SESSION_OBSERVATION_REASONS)[number];
 
 export const STORAGE_TURN_STATUSES = [
-  "started",
-  "completed",
-  "failed",
+	"started",
+	"completed",
+	"failed",
 ] as const;
 
 export type StorageTurnStatus = (typeof STORAGE_TURN_STATUSES)[number];
 
-export const STORAGE_TOOL_KINDS = ["command", "mcp", "custom", "unknown"] as const;
+export const STORAGE_TOOL_KINDS = [
+	"command",
+	"mcp",
+	"custom",
+	"unknown",
+] as const;
 
 export type StorageToolKind = (typeof STORAGE_TOOL_KINDS)[number];
 
 export const STORAGE_TOOL_EVENT_STATUSES = [
-  "started",
-  "updated",
-  "completed",
+	"started",
+	"updated",
+	"completed",
 ] as const;
 
-export type StorageToolEventStatus = (typeof STORAGE_TOOL_EVENT_STATUSES)[number];
+export type StorageToolEventStatus =
+	(typeof STORAGE_TOOL_EVENT_STATUSES)[number];
 
-export const STORAGE_TOOL_OUTCOMES = [
-  "success",
-  "error",
-  "cancelled",
-] as const;
+export const STORAGE_TOOL_OUTCOMES = ["success", "error", "cancelled"] as const;
 
 export type StorageToolOutcome = (typeof STORAGE_TOOL_OUTCOMES)[number];
 
 export const STORAGE_WARNING_CODES = [
-  "watch-failed",
-  "file-open-failed",
-  "parse-failed",
-  "unsupported-record",
-  "duplicate-root",
-  "cursor-reset",
-  "truncated-file",
-  "rotated-file",
+	"watch-failed",
+	"file-open-failed",
+	"parse-failed",
+	"unsupported-record",
+	"duplicate-root",
+	"cursor-reset",
+	"truncated-file",
+	"rotated-file",
 ] as const;
 
 export type StorageWarningCode = (typeof STORAGE_WARNING_CODES)[number];
@@ -89,186 +91,191 @@ export type StorageWarningCode = (typeof STORAGE_WARNING_CODES)[number];
 export type JsonRecord = Readonly<Record<string, unknown>>;
 
 export type StorageEventLocation = {
-  line?: number;
-  byteOffset?: number;
+	line?: number;
+	byteOffset?: number;
 };
 
 export type StorageEventSource = {
-  provider: StorageProviderId;
-  kind: StorageSourceKind;
-  discoveryPhase: StorageDiscoveryPhase;
-  rootPath: string;
-  filePath: string;
-  location?: StorageEventLocation;
-  metadata?: JsonRecord;
+	provider: StorageProviderId;
+	kind: StorageSourceKind;
+	discoveryPhase: StorageDiscoveryPhase;
+	rootPath: string;
+	filePath: string;
+	location?: StorageEventLocation;
+	metadata?: JsonRecord;
 };
 
 export type StorageSessionKey = {
-  provider: StorageProviderId;
-  sessionId: string;
+	provider: StorageProviderId;
+	sessionId: string;
 };
 
 export type StoredSessionRecord = StorageSessionKey & {
-  identityState: StorageSessionIdentityState;
-  workingDirectory?: string;
-  metadata?: JsonRecord;
-  source: StorageEventSource;
-  completeness: StorageCompleteness;
-  observationReason: StorageSessionObservationReason;
-  observedAt: string;
-  updatedAt: string;
+	identityState: StorageSessionIdentityState;
+	workingDirectory?: string;
+	metadata?: JsonRecord;
+	source: StorageEventSource;
+	completeness: StorageCompleteness;
+	observationReason: StorageSessionObservationReason;
+	observedAt: string;
+	updatedAt: string;
 };
 
 export type StoreSessionInput = StorageSessionKey & {
-  identityState: StorageSessionIdentityState;
-  workingDirectory?: string;
-  metadata?: JsonRecord;
-  source: StorageEventSource;
-  completeness: StorageCompleteness;
-  observationReason: StorageSessionObservationReason;
-  observedAt?: string;
+	identityState: StorageSessionIdentityState;
+	workingDirectory?: string;
+	metadata?: JsonRecord;
+	source: StorageEventSource;
+	completeness: StorageCompleteness;
+	observationReason: StorageSessionObservationReason;
+	observedAt?: string;
 };
 
 export type StorageTurnKey = StorageSessionKey & {
-  turnId: string;
+	turnId: string;
 };
 
 export type StorageTurnInput = {
-  prompt: string;
-  attachments?: unknown[];
-  metadata?: JsonRecord;
+	prompt: string;
+	attachments?: unknown[];
+	metadata?: JsonRecord;
 };
 
 export type StorageTurnOutput = {
-  text: string;
-  structuredOutput?: unknown;
-  stopReason?: string | null;
+	text: string;
+	structuredOutput?: unknown;
+	stopReason?: string | null;
 };
 
 export type StorageTurnError = {
-  code: string;
-  message: string;
-  details?: JsonRecord;
+	code: string;
+	message: string;
+	details?: JsonRecord;
 };
 
 export type StoredTurnRecord = StorageTurnKey & {
-  status: StorageTurnStatus;
-  input?: StorageTurnInput;
-  output?: StorageTurnOutput;
-  error?: StorageTurnError;
-  raw?: unknown;
-  extensions?: JsonRecord;
-  startedAt?: string;
-  completedAt?: string;
-  failedAt?: string;
-  updatedAt: string;
+	status: StorageTurnStatus;
+	input?: StorageTurnInput;
+	output?: StorageTurnOutput;
+	error?: StorageTurnError;
+	raw?: unknown;
+	extensions?: JsonRecord;
+	startedAt?: string;
+	completedAt?: string;
+	failedAt?: string;
+	updatedAt: string;
 };
 
 export type StoreTurnInput = StorageTurnKey & {
-  status: StorageTurnStatus;
-  input?: StorageTurnInput;
-  output?: StorageTurnOutput;
-  error?: StorageTurnError;
-  raw?: unknown;
-  extensions?: JsonRecord;
-  startedAt?: string;
-  completedAt?: string;
-  failedAt?: string;
+	status: StorageTurnStatus;
+	input?: StorageTurnInput;
+	output?: StorageTurnOutput;
+	error?: StorageTurnError;
+	raw?: unknown;
+	extensions?: JsonRecord;
+	startedAt?: string;
+	completedAt?: string;
+	failedAt?: string;
 };
 
 export type StoredTurnUsageRecord = StorageTurnKey & {
-  inputTokens: number;
-  outputTokens: number;
-  cachedInputTokens?: number;
-  costUsd?: number;
-  providerUsage?: JsonRecord;
-  updatedAt: string;
+	inputTokens: number;
+	outputTokens: number;
+	cachedInputTokens?: number;
+	costUsd?: number;
+	providerUsage?: JsonRecord;
+	updatedAt: string;
 };
 
 export type StoreTurnUsageInput = StorageTurnKey & {
-  inputTokens: number;
-  outputTokens: number;
-  cachedInputTokens?: number;
-  costUsd?: number;
-  providerUsage?: JsonRecord;
+	inputTokens: number;
+	outputTokens: number;
+	cachedInputTokens?: number;
+	costUsd?: number;
+	providerUsage?: JsonRecord;
 };
 
 export type StorageToolEventKey = StorageTurnKey & {
-  toolCallId: string;
+	toolCallId: string;
 };
 
 export type StoredToolEventRecord = StorageToolEventKey & {
-  status: StorageToolEventStatus;
-  toolName?: string;
-  toolKind?: StorageToolKind;
-  input?: unknown;
-  output?: unknown;
-  statusText?: string;
-  outcome?: StorageToolOutcome;
-  errorMessage?: string;
-  startedAt?: string;
-  completedAt?: string;
-  updatedAt: string;
+	status: StorageToolEventStatus;
+	toolName?: string;
+	toolKind?: StorageToolKind;
+	input?: unknown;
+	output?: unknown;
+	statusText?: string;
+	outcome?: StorageToolOutcome;
+	errorMessage?: string;
+	startedAt?: string;
+	completedAt?: string;
+	updatedAt: string;
 };
 
 export type StoreToolEventInput = StorageToolEventKey & {
-  status: StorageToolEventStatus;
-  toolName?: string;
-  toolKind?: StorageToolKind;
-  input?: unknown;
-  output?: unknown;
-  statusText?: string;
-  outcome?: StorageToolOutcome;
-  errorMessage?: string;
-  startedAt?: string;
-  completedAt?: string;
+	status: StorageToolEventStatus;
+	toolName?: string;
+	toolKind?: StorageToolKind;
+	input?: unknown;
+	output?: unknown;
+	statusText?: string;
+	outcome?: StorageToolOutcome;
+	errorMessage?: string;
+	startedAt?: string;
+	completedAt?: string;
 };
 
 export type StorageCursorKey = {
-  provider: StorageProviderId;
-  rootPath: string;
-  filePath: string;
+	provider: StorageProviderId;
+	rootPath: string;
+	filePath: string;
 };
 
 export type StoredCursorRecord = StorageCursorKey & {
-  byteOffset: number;
-  line: number;
-  fingerprint?: string;
-  continuityToken?: string;
-  metadata?: JsonRecord;
-  updatedAt: string;
+	byteOffset: number;
+	line: number;
+	fingerprint?: string;
+	continuityToken?: string;
+	metadata?: JsonRecord;
+	updatedAt: string;
 };
 
 export type StoreCursorInput = StorageCursorKey & {
-  byteOffset: number;
-  line: number;
-  fingerprint?: string;
-  continuityToken?: string;
-  metadata?: JsonRecord;
-  updatedAt?: string;
+	byteOffset: number;
+	line: number;
+	fingerprint?: string;
+	continuityToken?: string;
+	metadata?: JsonRecord;
+	updatedAt?: string;
 };
 
 export type StoredWarningRecord = {
-  id: number;
-  code: StorageWarningCode;
-  message: string;
-  provider?: StorageProviderId;
-  filePath?: string;
-  source?: StorageEventSource;
-  cause?: unknown;
-  raw?: unknown;
-  detectedAt: string;
+	id: number;
+	code: StorageWarningCode;
+	message: string;
+	provider?: StorageProviderId;
+	filePath?: string;
+	source?: StorageEventSource;
+	cause?: unknown;
+	raw?: unknown;
+	detectedAt: string;
 };
 
 export type StoreWarningInput = {
-  code: StorageWarningCode;
-  message: string;
-  provider?: StorageProviderId;
-  filePath?: string;
-  source?: StorageEventSource;
-  cause?: unknown;
-  raw?: unknown;
-  detectedAt?: string;
+	code: StorageWarningCode;
+	message: string;
+	provider?: StorageProviderId;
+	filePath?: string;
+	source?: StorageEventSource;
+	cause?: unknown;
+	raw?: unknown;
+	detectedAt?: string;
+};
+
+export type StorageMigrationDefinition = {
+	id: string;
+	statements: readonly string[];
 };
 
 const providerValues = quotedValues(STORAGE_PROVIDER_IDS);
@@ -276,7 +283,9 @@ const sourceKindValues = quotedValues(STORAGE_SOURCE_KINDS);
 const discoveryPhaseValues = quotedValues(STORAGE_DISCOVERY_PHASES);
 const completenessValues = quotedValues(STORAGE_COMPLETENESS_VALUES);
 const sessionIdentityValues = quotedValues(STORAGE_SESSION_IDENTITY_STATES);
-const observationReasonValues = quotedValues(STORAGE_SESSION_OBSERVATION_REASONS);
+const observationReasonValues = quotedValues(
+	STORAGE_SESSION_OBSERVATION_REASONS,
+);
 const turnStatusValues = quotedValues(STORAGE_TURN_STATUSES);
 const toolKindValues = quotedValues(STORAGE_TOOL_KINDS);
 const toolEventStatusValues = quotedValues(STORAGE_TOOL_EVENT_STATUSES);
@@ -284,10 +293,10 @@ const toolOutcomeValues = quotedValues(STORAGE_TOOL_OUTCOMES);
 const warningCodeValues = quotedValues(STORAGE_WARNING_CODES);
 
 export const STORAGE_MIGRATIONS = [
-  {
-    id: "0001_canonical_storage",
-    statements: [
-      `
+	{
+		id: "0001_canonical_storage",
+		statements: [
+			`
         CREATE TABLE sessions (
           provider TEXT NOT NULL CHECK (provider IN (${providerValues})),
           session_id TEXT NOT NULL,
@@ -309,11 +318,11 @@ export const STORAGE_MIGRATIONS = [
           PRIMARY KEY (provider, session_id)
         );
       `,
-      `
+			`
         CREATE INDEX sessions_source_file_path_idx
         ON sessions (source_file_path);
       `,
-      `
+			`
         CREATE TABLE turns (
           provider TEXT NOT NULL CHECK (provider IN (${providerValues})),
           session_id TEXT NOT NULL,
@@ -340,11 +349,11 @@ export const STORAGE_MIGRATIONS = [
             ON DELETE CASCADE
         );
       `,
-      `
+			`
         CREATE INDEX turns_session_updated_at_idx
         ON turns (provider, session_id, updated_at);
       `,
-      `
+			`
         CREATE TABLE turn_usage (
           provider TEXT NOT NULL CHECK (provider IN (${providerValues})),
           session_id TEXT NOT NULL,
@@ -361,7 +370,7 @@ export const STORAGE_MIGRATIONS = [
             ON DELETE CASCADE
         );
       `,
-      `
+			`
         CREATE TABLE tool_events (
           provider TEXT NOT NULL CHECK (provider IN (${providerValues})),
           session_id TEXT NOT NULL,
@@ -384,11 +393,11 @@ export const STORAGE_MIGRATIONS = [
             ON DELETE CASCADE
         );
       `,
-      `
+			`
         CREATE INDEX tool_events_turn_updated_at_idx
         ON tool_events (provider, session_id, turn_id, updated_at);
       `,
-      `
+			`
         CREATE TABLE ingest_cursors (
           provider TEXT NOT NULL CHECK (provider IN (${providerValues})),
           root_path TEXT NOT NULL,
@@ -402,7 +411,7 @@ export const STORAGE_MIGRATIONS = [
           PRIMARY KEY (provider, root_path, file_path)
         );
       `,
-      `
+			`
         CREATE TABLE ingest_warnings (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           code TEXT NOT NULL CHECK (code IN (${warningCodeValues})),
@@ -422,18 +431,18 @@ export const STORAGE_MIGRATIONS = [
           detected_at TEXT NOT NULL
         );
       `,
-      `
+			`
         CREATE INDEX ingest_warnings_detected_at_idx
         ON ingest_warnings (detected_at);
       `,
-      `
+			`
         CREATE INDEX ingest_warnings_provider_file_idx
         ON ingest_warnings (provider, file_path);
       `,
-    ],
-  },
-] as const;
+		],
+	},
+] as const satisfies readonly StorageMigrationDefinition[];
 
 function quotedValues(values: readonly string[]): string {
-  return values.map((value) => `'${value}'`).join(", ");
+	return values.map((value) => `'${value}'`).join(", ");
 }
