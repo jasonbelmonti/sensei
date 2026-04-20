@@ -7,6 +7,10 @@ import {
 } from "../analysis-ordering";
 import type { StoredToolEventRecord } from "../schema";
 import {
+	mapOrderedTurnSessionContext,
+	type AnalysisTurnSessionContextRow,
+} from "./analysis-turn-session-context";
+import {
 	mapToolEventRow,
 	mapTurnRow,
 	mapTurnUsageRow,
@@ -19,7 +23,8 @@ export type AnalysisTurnRepository = ReturnType<
 	typeof createAnalysisTurnRepository
 >;
 
-type OrderedAnalysisTurnRow = TurnRow & {
+type OrderedAnalysisTurnRow = TurnRow &
+	AnalysisTurnSessionContextRow & {
 	turnSequence: number;
 	inputTokens: number | null;
 	outputTokens: number | null;
@@ -57,6 +62,8 @@ export function createAnalysisTurnRepository(database: Database) {
       turns.completed_at as completedAt,
       turns.failed_at as failedAt,
       turns.updated_at as updatedAt,
+      sessions.working_directory as sessionWorkingDirectory,
+      sessions.session_metadata_json as sessionMetadataJson,
       turn_usage.input_tokens as inputTokens,
       turn_usage.output_tokens as outputTokens,
       turn_usage.cached_input_tokens as cachedInputTokens,
@@ -120,9 +127,11 @@ export function createAnalysisTurnRepository(database: Database) {
 				(row) => {
 					const turn = mapTurnRow(row);
 					const usage = mapOrderedTurnUsageRow(row);
+					const session = mapOrderedTurnSessionContext(row);
 
 					return {
 						turnSequence: row.turnSequence,
+						session,
 						turn,
 						usage,
 						toolEvents:

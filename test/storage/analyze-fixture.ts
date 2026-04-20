@@ -11,6 +11,10 @@ export type AnalyzeFixture = {
 	provisionalTurnId: string;
 };
 
+const CANONICAL_WORKING_DIRECTORY = "/repo/sensei";
+const CANONICAL_THREAD_NAME = "BEL-638 analyzer fixture";
+const CANONICAL_TAGS = ["analysis", "bel-638"] as const;
+
 export function seedAnalyzeFixture(
 	storage: Pick<SenseiStorage, "conversations">,
 ): AnalyzeFixture {
@@ -24,6 +28,11 @@ export function seedAnalyzeFixture(
 		provider: FIXTURE_PROVIDER,
 		sessionId: canonicalSessionId,
 		identityState: "canonical",
+		workingDirectory: CANONICAL_WORKING_DIRECTORY,
+		metadata: {
+			threadName: CANONICAL_THREAD_NAME,
+			tags: [...CANONICAL_TAGS],
+		},
 		source: createSessionSource(
 			canonicalSessionId,
 			"initial_scan",
@@ -38,6 +47,11 @@ export function seedAnalyzeFixture(
 		provider: FIXTURE_PROVIDER,
 		sessionId: provisionalSessionId,
 		identityState: "provisional",
+		workingDirectory: "/repo/provisional",
+		metadata: {
+			threadName: "Provisional analysis fixture",
+			tags: ["provisional"],
+		},
 		source: createSessionSource(
 			provisionalSessionId,
 			"watch",

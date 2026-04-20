@@ -36,6 +36,15 @@ test("analysis turn repository lists canonical turns in deterministic session or
 	).not.toContain(fixture.provisionalTurnId);
 	expect(orderedTurns[0]).toMatchObject({
 		turnSequence: 1,
+		session: {
+			workingDirectory: "/repo/sensei",
+			threadName: "BEL-638 analyzer fixture",
+			tags: ["analysis", "bel-638"],
+			metadata: {
+				threadName: "BEL-638 analyzer fixture",
+				tags: ["analysis", "bel-638"],
+			},
+		},
 		turn: {
 			sessionId: fixture.canonicalSessionId,
 			turnId: fixture.eligibleTurnIds[0],
@@ -62,6 +71,11 @@ test("analysis turn repository lists canonical turns in deterministic session or
 	).toEqual(["tool-003", "tool-004"]);
 	expect(orderedTurns[4]).toMatchObject({
 		turnSequence: 5,
+		session: {
+			workingDirectory: "/repo/sensei",
+			threadName: "BEL-638 analyzer fixture",
+			tags: ["analysis", "bel-638"],
+		},
 		turn: {
 			turnId: fixture.skippedTurnIds[1],
 			input: undefined,

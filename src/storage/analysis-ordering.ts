@@ -1,4 +1,5 @@
 import type {
+	JsonRecord,
 	StoredToolEventRecord,
 	StoredTurnRecord,
 	StoredTurnUsageRecord,
@@ -32,9 +33,17 @@ type AnalysisToolEventSortRecord = Pick<
 
 export type OrderedAnalysisTurnInput = {
 	turnSequence: number;
+	session: OrderedAnalysisTurnSessionContext;
 	turn: StoredTurnRecord;
 	usage?: StoredTurnUsageRecord;
 	toolEvents: readonly StoredToolEventRecord[];
+};
+
+export type OrderedAnalysisTurnSessionContext = {
+	workingDirectory?: string;
+	metadata?: JsonRecord;
+	threadName?: string;
+	tags: readonly string[];
 };
 
 export function getAnalysisTurnSortTimestamp(
