@@ -18,6 +18,17 @@ export type StoredWorkflowSearchDocumentRecord = WorkflowSearchDocumentKey & {
 	updatedAt: string;
 };
 
+export type SearchWorkflowSearchDocumentsInput = {
+	featureVersion: number;
+	queryText: string;
+	limit?: number;
+};
+
+export type SearchedWorkflowSearchDocumentRecord =
+	StoredWorkflowSearchDocumentRecord & {
+		ftsScore: number;
+	};
+
 export type StoreWorkflowSearchDocumentInput = WorkflowSearchDocumentKey & {
 	promptText: string;
 	normalizedPromptText?: string;
