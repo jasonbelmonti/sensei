@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 
 import { buildNearPromptFingerprint } from "../../src/analysis";
+import { buildNearCanonicalPromptText } from "../../src/analysis/near-prompt-canonical-text";
 
 test("near prompt fingerprint hashes conservative placeholder-normalized prompt text", () => {
 	const expectedFingerprint = buildSha256HexDigest(
@@ -50,6 +51,12 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	const usersRouteTwoFingerprint = buildNearPromptFingerprint(
 		"Call /users/list then inspect logs",
 	);
+	const dotRouteOneFingerprint = buildNearPromptFingerprint(
+		"Fetch /.well-known/openid-configuration for provider A",
+	);
+	const dotRouteTwoFingerprint = buildNearPromptFingerprint(
+		"Fetch /.well-known/jwks.json for provider A",
+	);
 
 	expect(apiVersionOneFingerprint).toBeDefined();
 	expect(apiVersionTwoFingerprint).toBeDefined();
@@ -57,9 +64,20 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	expect(rootedRouteTwoFingerprint).toBeDefined();
 	expect(usersRouteOneFingerprint).toBeDefined();
 	expect(usersRouteTwoFingerprint).toBeDefined();
+	expect(dotRouteOneFingerprint).toBeDefined();
+	expect(dotRouteTwoFingerprint).toBeDefined();
 	expect(apiVersionOneFingerprint).not.toBe(apiVersionTwoFingerprint);
 	expect(rootedRouteOneFingerprint).not.toBe(rootedRouteTwoFingerprint);
 	expect(usersRouteOneFingerprint).not.toBe(usersRouteTwoFingerprint);
+	expect(dotRouteOneFingerprint).not.toBe(dotRouteTwoFingerprint);
+	expect(
+		buildNearCanonicalPromptText(
+			"Fetch /.well-known/openid-configuration for provider A",
+		),
+	).toBe("fetch well known openid configuration for provider a");
+	expect(
+		buildNearCanonicalPromptText("Fetch /.well-known/jwks.json for provider A"),
+	).toBe("fetch well known jwks json for provider a");
 });
 
 test("near prompt fingerprint only normalizes conservative ticket identifiers", () => {
@@ -101,6 +119,19 @@ test("near prompt fingerprint only normalizes conservative ticket identifiers", 
 	expect(hyphenatedIsoFingerprint).toBe(
 		buildSha256HexDigest("investigate iso senseinumberplaceholder issue"),
 	);
+});
+
+test("near prompt fingerprint normalizes equivalent Windows absolute paths across separators", () => {
+	const backslashPathFingerprint = buildNearPromptFingerprint(
+		"Inspect C:\\work\\sensei\\notes.txt before follow up",
+	);
+	const slashPathFingerprint = buildNearPromptFingerprint(
+		"Inspect C:/work/sensei/notes.txt before follow up",
+	);
+
+	expect(backslashPathFingerprint).toBeDefined();
+	expect(slashPathFingerprint).toBeDefined();
+	expect(backslashPathFingerprint).toBe(slashPathFingerprint);
 });
 
 test("near prompt fingerprint returns undefined for normalization-empty prompt text", () => {

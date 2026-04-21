@@ -13,7 +13,7 @@ const SPACE_SEPARATED_TICKET_IDENTIFIER_PATTERN =
 const NUMERIC_LITERAL_PATTERN = /\b\d+\b/gu;
 const ROOTED_FILESYSTEM_PATH_PREFIX_PATTERN =
 	/^\/(?:Users|home|tmp|var|etc|opt|private|Volumes|Applications|Library)(?:\/|$)/;
-const WINDOWS_FILESYSTEM_PATH_PREFIX_PATTERN = /^(?:[a-z]:\\|\\\\)/i;
+const WINDOWS_FILESYSTEM_PATH_PREFIX_PATTERN = /^(?:[a-z]:[\\/]|\\\\)/i;
 const DOT_RELATIVE_PATH_PREFIX_PATTERN = /^(?:~\/|\.\.?[\\/])/;
 const FILE_EXTENSION_PATTERN = /\.[a-z0-9]{1,8}$/i;
 const ALLOWED_SPACE_SEPARATED_TICKET_PREFIX_PATTERN = /^(?:bel)$/i;
@@ -80,16 +80,21 @@ function isFilesystemPathLikeString(value: string): boolean {
 		return true;
 	}
 
+	if (value.startsWith("/.")) {
+		return false;
+	}
+
 	const segments = value.replaceAll("\\", "/").split("/").filter(Boolean);
 
 	if (segments.length < 2) {
 		return false;
 	}
 
-	if (
-		segments.some((segment) => segment === "." || segment === "..") ||
-		segments.some((segment) => segment.startsWith("."))
-	) {
+	if (segments.some((segment) => segment === "." || segment === "..")) {
+		return true;
+	}
+
+	if (value.startsWith("/") === false && segments.some(isHiddenPathSegment)) {
 		return true;
 	}
 
@@ -102,4 +107,8 @@ function isTicketPrefix(prefix: string): boolean {
 	}
 
 	return ALLOWED_SPACE_SEPARATED_TICKET_PREFIX_PATTERN.test(prefix);
+}
+
+function isHiddenPathSegment(segment: string): boolean {
+	return segment.startsWith(".") && segment !== "." && segment !== "..";
 }
