@@ -2,6 +2,7 @@ export * from "./analyzed-at";
 export * from "./build-workflow-search-row";
 export * from "./command";
 export * from "./derive-workflow-search-rows";
+export * from "./exact-prompt-fingerprint";
 export * from "./feature-version";
 export * from "./turn-feature-row";
 export * from "./feature-extraction";
