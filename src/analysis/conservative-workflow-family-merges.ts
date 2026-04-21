@@ -1,0 +1,168 @@
+import type {
+	ExactWorkflowFamilyGroup,
+	WorkflowFamilyCluster,
+	WorkflowFamilyMergeDecision,
+	WorkflowFamilyMergeReason,
+} from "./workflow-family-output";
+import { buildWorkflowSimilarityEvidence } from "./workflow-similarity-evidence";
+
+export function buildConservativeWorkflowFamilyClusters(
+	exactGroups: readonly ExactWorkflowFamilyGroup[],
+): WorkflowFamilyCluster[] {
+	const clusters: WorkflowFamilyCluster[] = [];
+	const assignedGroupKeys = new Set<string>();
+
+	for (const exactGroup of exactGroups) {
+		if (assignedGroupKeys.has(exactGroup.key)) {
+			continue;
+		}
+
+		const cluster = createWorkflowFamilyCluster(exactGroup);
+		assignedGroupKeys.add(exactGroup.key);
+
+		for (const candidateGroup of exactGroups) {
+			if (
+				assignedGroupKeys.has(candidateGroup.key) ||
+				candidateGroup.key === exactGroup.key
+			) {
+				continue;
+			}
+
+			const mergeDecision = buildWorkflowFamilyMergeDecision(
+				cluster,
+				candidateGroup,
+			);
+
+			if (mergeDecision === undefined) {
+				continue;
+			}
+
+			mergeWorkflowFamilyCluster(cluster, candidateGroup, mergeDecision);
+			assignedGroupKeys.add(candidateGroup.key);
+		}
+
+		clusters.push(cluster);
+	}
+
+	return clusters;
+}
+
+function createWorkflowFamilyCluster(
+	seedGroup: ExactWorkflowFamilyGroup,
+): WorkflowFamilyCluster {
+	return {
+		seedGroup,
+		exactGroups: [seedGroup],
+		mergeDecisions: [],
+		sharedTags: [...seedGroup.tags],
+		sharedWorkflowIntentLabels: [...seedGroup.workflowIntentLabels],
+		sharedProjectPaths: [...seedGroup.projectPaths],
+		sharedThreadNames: [...seedGroup.threadNames],
+	};
+}
+
+function buildWorkflowFamilyMergeDecision(
+	cluster: WorkflowFamilyCluster,
+	candidateGroup: ExactWorkflowFamilyGroup,
+): WorkflowFamilyMergeDecision | undefined {
+	if (
+		cluster.seedGroup.nearFingerprint === undefined ||
+		cluster.seedGroup.nearFingerprint !== candidateGroup.nearFingerprint
+	) {
+		return undefined;
+	}
+
+	const sharedWorkflowIntentLabels = intersectSortedStrings(
+		cluster.sharedWorkflowIntentLabels,
+		candidateGroup.workflowIntentLabels,
+	);
+
+	if (sharedWorkflowIntentLabels.length === 0) {
+		return undefined;
+	}
+
+	const sharedProjectPaths = intersectSortedStrings(
+		cluster.sharedProjectPaths,
+		candidateGroup.projectPaths,
+	);
+	const sharedThreadNames = intersectSortedStrings(
+		cluster.sharedThreadNames,
+		candidateGroup.threadNames,
+	);
+
+	if (sharedProjectPaths.length === 0 && sharedThreadNames.length === 0) {
+		return undefined;
+	}
+
+	const similarityEvidence = buildWorkflowSimilarityEvidence(
+		cluster.seedGroup.anchor,
+		candidateGroup.anchor,
+	);
+
+	if (similarityEvidence === undefined) {
+		return undefined;
+	}
+
+	return {
+		addedGroupKey: candidateGroup.key,
+		reasons: buildWorkflowFamilyMergeReasons(
+			sharedProjectPaths.length > 0,
+			sharedThreadNames.length > 0,
+		),
+		similarityEvidence,
+	};
+}
+
+function mergeWorkflowFamilyCluster(
+	cluster: WorkflowFamilyCluster,
+	candidateGroup: ExactWorkflowFamilyGroup,
+	mergeDecision: WorkflowFamilyMergeDecision,
+): void {
+	cluster.exactGroups.push(candidateGroup);
+	cluster.mergeDecisions.push(mergeDecision);
+	cluster.sharedTags = intersectSortedStrings(
+		cluster.sharedTags,
+		candidateGroup.tags,
+	);
+	cluster.sharedWorkflowIntentLabels = intersectSortedStrings(
+		cluster.sharedWorkflowIntentLabels,
+		candidateGroup.workflowIntentLabels,
+	);
+	cluster.sharedProjectPaths = intersectSortedStrings(
+		cluster.sharedProjectPaths,
+		candidateGroup.projectPaths,
+	);
+	cluster.sharedThreadNames = intersectSortedStrings(
+		cluster.sharedThreadNames,
+		candidateGroup.threadNames,
+	);
+}
+
+function buildWorkflowFamilyMergeReasons(
+	hasSharedProjectPath: boolean,
+	hasSharedThreadName: boolean,
+): WorkflowFamilyMergeReason[] {
+	const reasons: WorkflowFamilyMergeReason[] = [
+		"near-fingerprint",
+		"workflow-intent-overlap",
+	];
+
+	if (hasSharedProjectPath) {
+		reasons.push("project-path-overlap");
+	}
+
+	if (hasSharedThreadName) {
+		reasons.push("thread-name-overlap");
+	}
+
+	return reasons;
+}
+
+function intersectSortedStrings(
+	left: readonly string[],
+	right: readonly string[],
+): string[] {
+	const rightValues = new Set(right);
+
+	return left.filter((value) => rightValues.has(value));
+}
