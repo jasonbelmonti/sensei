@@ -12,7 +12,7 @@ const SPACE_SEPARATED_TICKET_IDENTIFIER_PATTERN =
 	/\b([a-z]{2,10})\s+(\d{2,8})\b/giu;
 const NUMERIC_LITERAL_PATTERN = /\b\d+\b/gu;
 const ROOTED_FILESYSTEM_PATH_PREFIX_PATTERN =
-	/^\/(?:users|home|tmp|var|etc|opt|private|volumes|applications|library)(?:\/|$)/i;
+	/^\/(?:Users|home|tmp|var|etc|opt|private|Volumes|Applications|Library)(?:\/|$)/;
 const WINDOWS_FILESYSTEM_PATH_PREFIX_PATTERN = /^(?:[a-z]:\\|\\\\)/i;
 const DOT_RELATIVE_PATH_PREFIX_PATTERN = /^(?:~\/|\.\.?[\\/])/;
 const FILE_EXTENSION_PATTERN = /\.[a-z0-9]{1,8}$/i;
@@ -47,14 +47,15 @@ function replacePathLikeStrings(promptText: string): string {
 
 function replaceTicketIdentifiers(promptText: string): string {
 	return promptText
-		.replace(
-			PUNCTUATED_TICKET_IDENTIFIER_PATTERN,
-			(_match, ticketPrefix) => `${ticketPrefix} ${TICKET_PLACEHOLDER}`,
+		.replace(PUNCTUATED_TICKET_IDENTIFIER_PATTERN, (match, ticketPrefix) =>
+			isTicketPrefix(ticketPrefix)
+				? `${ticketPrefix} ${TICKET_PLACEHOLDER}`
+				: match,
 		)
 		.replace(
 			SPACE_SEPARATED_TICKET_IDENTIFIER_PATTERN,
 			(match, ticketPrefix) =>
-				isSpaceSeparatedTicketPrefix(ticketPrefix)
+				isTicketPrefix(ticketPrefix)
 					? `${ticketPrefix} ${TICKET_PLACEHOLDER}`
 					: match,
 		);
@@ -95,7 +96,7 @@ function isFilesystemPathLikeString(value: string): boolean {
 	return FILE_EXTENSION_PATTERN.test(segments.at(-1) ?? "");
 }
 
-function isSpaceSeparatedTicketPrefix(prefix: string): boolean {
+function isTicketPrefix(prefix: string): boolean {
 	if (DISALLOWED_SPACE_SEPARATED_TICKET_PREFIX_PATTERN.test(prefix)) {
 		return false;
 	}

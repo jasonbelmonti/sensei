@@ -44,16 +44,25 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	const rootedRouteTwoFingerprint = buildNearPromptFingerprint(
 		"Call /v1/files then inspect logs",
 	);
+	const usersRouteOneFingerprint = buildNearPromptFingerprint(
+		"Call /users/me then inspect logs",
+	);
+	const usersRouteTwoFingerprint = buildNearPromptFingerprint(
+		"Call /users/list then inspect logs",
+	);
 
 	expect(apiVersionOneFingerprint).toBeDefined();
 	expect(apiVersionTwoFingerprint).toBeDefined();
 	expect(rootedRouteOneFingerprint).toBeDefined();
 	expect(rootedRouteTwoFingerprint).toBeDefined();
+	expect(usersRouteOneFingerprint).toBeDefined();
+	expect(usersRouteTwoFingerprint).toBeDefined();
 	expect(apiVersionOneFingerprint).not.toBe(apiVersionTwoFingerprint);
 	expect(rootedRouteOneFingerprint).not.toBe(rootedRouteTwoFingerprint);
+	expect(usersRouteOneFingerprint).not.toBe(usersRouteTwoFingerprint);
 });
 
-test("near prompt fingerprint only normalizes conservative space-separated ticket identifiers", () => {
+test("near prompt fingerprint only normalizes conservative ticket identifiers", () => {
 	const uppercaseTicketFingerprint = buildNearPromptFingerprint(
 		"Plan BEL 820 follow up",
 	);
@@ -66,16 +75,30 @@ test("near prompt fingerprint only normalizes conservative space-separated ticke
 	const isoFingerprint = buildNearPromptFingerprint(
 		"Investigate ISO 27001 issue",
 	);
+	const hyphenatedHttpFingerprint = buildNearPromptFingerprint(
+		"Investigate HTTP-404 issue",
+	);
+	const hyphenatedIsoFingerprint = buildNearPromptFingerprint(
+		"Investigate ISO-27001 issue",
+	);
 
 	expect(uppercaseTicketFingerprint).toBeDefined();
 	expect(lowercaseTicketFingerprint).toBeDefined();
 	expect(httpFingerprint).toBeDefined();
 	expect(isoFingerprint).toBeDefined();
+	expect(hyphenatedHttpFingerprint).toBeDefined();
+	expect(hyphenatedIsoFingerprint).toBeDefined();
 	expect(uppercaseTicketFingerprint).toBe(lowercaseTicketFingerprint);
 	expect(httpFingerprint).toBe(
 		buildSha256HexDigest("investigate http senseinumberplaceholder issue"),
 	);
 	expect(isoFingerprint).toBe(
+		buildSha256HexDigest("investigate iso senseinumberplaceholder issue"),
+	);
+	expect(hyphenatedHttpFingerprint).toBe(
+		buildSha256HexDigest("investigate http senseinumberplaceholder issue"),
+	);
+	expect(hyphenatedIsoFingerprint).toBe(
 		buildSha256HexDigest("investigate iso senseinumberplaceholder issue"),
 	);
 });
