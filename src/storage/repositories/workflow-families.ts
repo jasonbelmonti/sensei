@@ -127,6 +127,19 @@ export function createWorkflowFamiliesRepository(
 				...workflowFamilyMemberStatementParams(input),
 			) as WorkflowFamilyMemberRow,
 		);
+	const replaceFeatureVersionTransaction = database.transaction(
+		(featureVersion: number, input: ReplaceWorkflowFamiliesInput) => {
+			deleteFeatureVersionStatement.run(featureVersion);
+
+			const families = input.families.map(upsertFamily);
+			const members = input.members.map(upsertMember);
+
+			return {
+				families,
+				members,
+			};
+		},
+	);
 
 	return {
 		listAll(): StoredWorkflowFamilyRecord[] {
@@ -147,15 +160,8 @@ export function createWorkflowFamiliesRepository(
 			members: StoredWorkflowFamilyMemberRecord[];
 		} {
 			assertReplaceWorkflowFamiliesInput(featureVersion, input);
-			deleteFeatureVersionStatement.run(featureVersion);
 
-			const families = input.families.map(upsertFamily);
-			const members = input.members.map(upsertMember);
-
-			return {
-				families,
-				members,
-			};
+			return replaceFeatureVersionTransaction(featureVersion, input);
 		},
 	};
 }

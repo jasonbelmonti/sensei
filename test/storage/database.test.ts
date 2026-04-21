@@ -187,6 +187,81 @@ test("workflow storage surfaces persist version-scoped search documents and fami
 	]);
 });
 
+test("workflow search replacement keeps prior rows when a later write fails", () => {
+	const harness = createStorageTestHarness(
+		"sensei-storage-workflow-search-atomic-refresh",
+	);
+	cleanups.push(harness.cleanup);
+
+	seedWorkflowStorageFixture(harness.storage);
+	harness.storage.workflowSearch.replaceFeatureVersion(1, [
+		createWorkflowSearchDocumentInput(1),
+	]);
+
+	const invalidSearchDocument = {
+		...createWorkflowSearchDocumentInput(1),
+		sessionId: "missing-session",
+	};
+
+	expect(() =>
+		harness.storage.workflowSearch.replaceFeatureVersion(1, [
+			createWorkflowSearchDocumentInput(1),
+			invalidSearchDocument,
+		]),
+	).toThrow(/FOREIGN KEY/i);
+	expect(harness.storage.workflowSearch.listAll()).toEqual([
+		expect.objectContaining({
+			featureVersion: 1,
+			sessionId: "workflow-session",
+			exactFingerprint: "exact-v1-stable",
+		}),
+	]);
+});
+
+test("workflow family replacement keeps prior rows when a later member write fails", () => {
+	const harness = createStorageTestHarness(
+		"sensei-storage-workflow-family-atomic-refresh",
+	);
+	cleanups.push(harness.cleanup);
+
+	seedWorkflowStorageFixture(harness.storage);
+	harness.storage.workflowFamilies.replaceFeatureVersion(
+		1,
+		createWorkflowFamiliesInput(1),
+	);
+
+	const invalidWorkflowFamiliesInput = {
+		...createWorkflowFamiliesInput(1),
+		members: [
+			...createWorkflowFamiliesInput(1).members,
+			{
+				...createWorkflowFamiliesInput(1).members[0],
+				sessionId: "missing-session",
+			},
+		],
+	};
+
+	expect(() =>
+		harness.storage.workflowFamilies.replaceFeatureVersion(
+			1,
+			invalidWorkflowFamiliesInput,
+		),
+	).toThrow(/FOREIGN KEY/i);
+	expect(harness.storage.workflowFamilies.listAll()).toEqual([
+		expect.objectContaining({
+			featureVersion: 1,
+			familyId: "family-stable",
+		}),
+	]);
+	expect(harness.storage.workflowFamilies.listMembers()).toEqual([
+		expect.objectContaining({
+			featureVersion: 1,
+			familyId: "family-stable",
+			sessionId: "workflow-session",
+		}),
+	]);
+});
+
 test("fresh bootstrap tolerates concurrent storage opens", async () => {
 	const rootDir = mkdtempSync(join(tmpdir(), "sensei-storage-concurrent-"));
 	const databasePath = join(rootDir, "sensei.sqlite");

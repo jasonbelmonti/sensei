@@ -108,6 +108,16 @@ export function createWorkflowSearchRepository(
 				...workflowSearchStatementParams(input),
 			) as WorkflowSearchRow,
 		);
+	const replaceFeatureVersionTransaction = database.transaction(
+		(
+			featureVersion: number,
+			inputs: readonly StoreWorkflowSearchDocumentInput[],
+		) => {
+			deleteFeatureVersionStatement.run(featureVersion);
+
+			return inputs.map(upsertWorkflowSearchDocument);
+		},
+	);
 
 	return {
 		listAll(): StoredWorkflowSearchDocumentRecord[] {
@@ -120,9 +130,8 @@ export function createWorkflowSearchRepository(
 			inputs: readonly StoreWorkflowSearchDocumentInput[],
 		): StoredWorkflowSearchDocumentRecord[] {
 			assertFeatureVersionInputs(featureVersion, inputs);
-			deleteFeatureVersionStatement.run(featureVersion);
 
-			return inputs.map(upsertWorkflowSearchDocument);
+			return replaceFeatureVersionTransaction(featureVersion, inputs);
 		},
 		upsert(
 			input: StoreWorkflowSearchDocumentInput,
