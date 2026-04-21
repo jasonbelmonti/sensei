@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 
 import { STORAGE_MIGRATIONS } from "./schema";
 import { TURN_FEATURE_STORAGE_MIGRATION } from "./turn-feature-schema";
+import { WORKFLOW_STORAGE_MIGRATION } from "./workflow-storage-schema";
 
 export type StorageMigrationRecord = {
 	id: string;
@@ -11,6 +12,7 @@ export type StorageMigrationRecord = {
 const ALL_STORAGE_MIGRATIONS = [
 	...STORAGE_MIGRATIONS,
 	TURN_FEATURE_STORAGE_MIGRATION,
+	WORKFLOW_STORAGE_MIGRATION,
 ] as const;
 
 const LEGACY_MIGRATION_FOOTPRINTS = {
@@ -36,6 +38,21 @@ const LEGACY_MIGRATION_FOOTPRINTS = {
 		indexes: [
 			"turn_features_session_version_turn_sequence_idx",
 			"turn_features_provider_version_status_idx",
+		],
+	},
+	"0003_workflow_storage": {
+		tables: [
+			"turn_search_documents",
+			"turn_search_documents_fts",
+			"workflow_families",
+			"workflow_family_members",
+		],
+		indexes: [
+			"turn_search_documents_feature_version_idx",
+			"turn_search_documents_exact_fingerprint_idx",
+			"turn_search_documents_near_fingerprint_idx",
+			"workflow_families_family_id_idx",
+			"workflow_family_members_turn_key_idx",
 		],
 	},
 } as const satisfies Record<
@@ -118,7 +135,9 @@ function bootstrapLegacyMigrationHistory(database: Database): void {
 	}
 
 	for (const migration of ALL_STORAGE_MIGRATIONS) {
-		if (!hasSchemaFootprint(database, LEGACY_MIGRATION_FOOTPRINTS[migration.id])) {
+		if (
+			!hasSchemaFootprint(database, LEGACY_MIGRATION_FOOTPRINTS[migration.id])
+		) {
 			continue;
 		}
 

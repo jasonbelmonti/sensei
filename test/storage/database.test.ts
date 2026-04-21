@@ -7,8 +7,35 @@ import { fileURLToPath } from "node:url";
 
 import { openSenseiStorage, STORAGE_MIGRATIONS } from "../../src/storage";
 import { createStorageTestHarness } from "./helpers";
+import {
+	createWorkflowFamiliesInput,
+	createWorkflowSearchDocumentInput,
+	seedWorkflowStorageFixture,
+} from "./workflow-storage-fixture";
 
 const cleanups: Array<() => void> = [];
+const WORKFLOW_STORAGE_TABLES = [
+	"turn_search_documents",
+	"turn_search_documents_fts",
+	"workflow_families",
+	"workflow_family_members",
+] as const;
+const STORAGE_TABLES = [
+	"_sensei_migrations",
+	"ingest_cursors",
+	"ingest_warnings",
+	"sessions",
+	"turn_features",
+	"tool_events",
+	"turn_usage",
+	"turns",
+	...WORKFLOW_STORAGE_TABLES,
+] as const;
+const EXPECTED_MIGRATION_IDS = [
+	"0001_canonical_storage",
+	"0002_turn_features",
+	"0003_workflow_storage",
+] as const;
 
 afterEach(() => {
 	while (cleanups.length > 0) {
@@ -32,17 +59,9 @@ test("storage bootstrap creates the configured sqlite database and canonical tab
 		.all() as Array<{ name: string }>;
 
 	expect(tables.map((table) => table.name)).toEqual(
-		expect.arrayContaining([
-			"_sensei_migrations",
-			"ingest_cursors",
-			"ingest_warnings",
-			"sessions",
-			"turn_features",
-			"tool_events",
-			"turn_usage",
-			"turns",
-		]),
+		expect.arrayContaining([...STORAGE_TABLES]),
 	);
+	expectWorkflowStorageRepositoriesEmpty(harness.storage);
 });
 
 test("storage bootstrap can be invoked repeatedly without duplicating migrations", () => {
@@ -65,20 +84,101 @@ test("storage bootstrap can be invoked repeatedly without duplicating migrations
     `)
 		.all() as Array<{ id: string }>;
 
-	expect(initialMigrations).toEqual([
-		{
-			id: "0001_canonical_storage",
+	expect(initialMigrations).toEqual(
+		EXPECTED_MIGRATION_IDS.map((id) => ({
+			id,
 			appliedAt: expect.any(String),
-		},
-		{
-			id: "0002_turn_features",
-			appliedAt: expect.any(String),
-		},
+		})),
+	);
+	expect(reopenedStorage.migrations).toHaveLength(
+		EXPECTED_MIGRATION_IDS.length,
+	);
+	expect(migrationRows).toEqual(EXPECTED_MIGRATION_IDS.map((id) => ({ id })));
+});
+
+test("workflow storage surfaces persist version-scoped search documents and family outputs", () => {
+	const harness = createStorageTestHarness("sensei-storage-workflow-storage");
+	cleanups.push(harness.cleanup);
+
+	seedWorkflowStorageFixture(harness.storage);
+
+	harness.storage.workflowSearch.replaceFeatureVersion(1, [
+		createWorkflowSearchDocumentInput(1),
 	]);
-	expect(reopenedStorage.migrations).toHaveLength(2);
-	expect(migrationRows).toEqual([
-		{ id: "0001_canonical_storage" },
-		{ id: "0002_turn_features" },
+	harness.storage.workflowSearch.replaceFeatureVersion(2, [
+		createWorkflowSearchDocumentInput(2),
+	]);
+	harness.storage.workflowSearch.replaceFeatureVersion(1, [
+		createWorkflowSearchDocumentInput(1),
+	]);
+
+	expect(harness.storage.workflowSearch.listAll()).toEqual([
+		expect.objectContaining({
+			featureVersion: 1,
+			exactFingerprint: "exact-v1-stable",
+			tags: ["storage", "bel-805", "stable"],
+		}),
+		expect.objectContaining({
+			featureVersion: 2,
+			exactFingerprint: "exact-v2",
+			tags: ["storage", "bel-805", "refresh"],
+		}),
+	]);
+	expect(
+		harness.storage.database
+			.query(`
+        SELECT count(*) as count
+        FROM turn_search_documents_fts
+      `)
+			.get(),
+	).toEqual({ count: 2 });
+
+	harness.storage.workflowFamilies.replaceFeatureVersion(
+		1,
+		createWorkflowFamiliesInput(1),
+	);
+	harness.storage.workflowFamilies.replaceFeatureVersion(
+		2,
+		createWorkflowFamiliesInput(2),
+	);
+	harness.storage.workflowFamilies.replaceFeatureVersion(
+		1,
+		createWorkflowFamiliesInput(1),
+	);
+
+	expect(harness.storage.workflowFamilies.listAll()).toEqual([
+		expect.objectContaining({
+			featureVersion: 1,
+			familyId: "family-stable",
+			evidence: {
+				reason: "stable prompt family rerun",
+			},
+		}),
+		expect.objectContaining({
+			featureVersion: 2,
+			familyId: "family-refreshed",
+			evidence: {
+				reason: "refreshed prompt family",
+			},
+		}),
+	]);
+	expect(harness.storage.workflowFamilies.listMembers()).toEqual([
+		expect.objectContaining({
+			featureVersion: 1,
+			familyId: "family-stable",
+			turnId: "turn-001",
+			evidence: {
+				match: "exact-rerun",
+			},
+		}),
+		expect.objectContaining({
+			featureVersion: 2,
+			familyId: "family-refreshed",
+			turnId: "turn-001",
+			evidence: {
+				match: "near",
+			},
+		}),
 	]);
 });
 
@@ -142,16 +242,9 @@ test("readonly opens tolerate legacy databases without turn_features", () => {
 
 	expect(storage.migrations).toEqual([]);
 	expect(storage.turnFeatures.listAll()).toEqual([]);
+	expectWorkflowStorageRepositoriesEmpty(storage);
 	expect(
-		storage.database
-			.query(
-				`
-					SELECT name
-					FROM sqlite_master
-					WHERE type = 'table' AND name = 'turn_features'
-				`,
-			)
-			.all(),
+		listTables(storage.database, "turn_features", ...WORKFLOW_STORAGE_TABLES),
 	).toEqual([]);
 });
 
@@ -165,42 +258,23 @@ test("writable opens upgrade legacy databases without replaying canonical storag
 	});
 	cleanups.push(() => storage.close());
 
-	expect(storage.migrations).toEqual([
-		{
-			id: "0001_canonical_storage",
+	expect(storage.migrations).toEqual(
+		EXPECTED_MIGRATION_IDS.map((id) => ({
+			id,
 			appliedAt: expect.any(String),
-		},
-		{
-			id: "0002_turn_features",
-			appliedAt: expect.any(String),
-		},
-	]);
+		})),
+	);
 	expect(storage.turnFeatures.listAll()).toEqual([]);
+	expectWorkflowStorageRepositoriesEmpty(storage);
+	expect(loadMigrationRows(storage.database)).toEqual(
+		EXPECTED_MIGRATION_IDS.map((id) => ({ id })),
+	);
 	expect(
-		storage.database
-			.query(
-				`
-					SELECT id
-					FROM _sensei_migrations
-					ORDER BY id
-				`,
-			)
-			.all(),
+		listTables(storage.database, "turn_features", ...WORKFLOW_STORAGE_TABLES),
 	).toEqual([
-		{ id: "0001_canonical_storage" },
-		{ id: "0002_turn_features" },
+		{ name: "turn_features" },
+		...WORKFLOW_STORAGE_TABLES.map((name) => ({ name })),
 	]);
-	expect(
-		storage.database
-			.query(
-				`
-					SELECT name
-					FROM sqlite_master
-					WHERE type = 'table' AND name = 'turn_features'
-				`,
-			)
-			.all(),
-	).toEqual([{ name: "turn_features" }]);
 });
 
 function createLegacyCanonicalDatabasePath(prefix: string): string {
@@ -219,4 +293,43 @@ function createLegacyCanonicalDatabasePath(prefix: string): string {
 	}
 
 	return databasePath;
+}
+
+function expectWorkflowStorageRepositoriesEmpty(
+	storage: ReturnType<typeof openSenseiStorage>,
+): void {
+	expect(storage.workflowSearch.listAll()).toEqual([]);
+	expect(storage.workflowFamilies.listAll()).toEqual([]);
+	expect(storage.workflowFamilies.listMembers()).toEqual([]);
+}
+
+function loadMigrationRows(
+	database: ReturnType<typeof openSenseiStorage>["database"],
+) {
+	return database
+		.query(`
+      SELECT id
+      FROM _sensei_migrations
+      ORDER BY id
+    `)
+		.all();
+}
+
+function listTables(
+	database: ReturnType<typeof openSenseiStorage>["database"],
+	...tableNames: readonly string[]
+) {
+	const placeholders = tableNames.map(() => "?").join(", ");
+
+	return database
+		.query(
+			`
+				SELECT name
+				FROM sqlite_master
+				WHERE type = 'table'
+					AND name IN (${placeholders})
+				ORDER BY name
+			`,
+		)
+		.all(...tableNames);
 }
