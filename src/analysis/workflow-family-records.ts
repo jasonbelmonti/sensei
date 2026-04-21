@@ -18,7 +18,7 @@ export function buildWorkflowFamilyClusterRecords(
 	family: StoreWorkflowFamilyInput;
 	members: StoreWorkflowFamilyMemberInput[];
 } {
-	const familyId = buildWorkflowFamilyId(cluster.seedGroup);
+	const familyId = buildWorkflowFamilyId(cluster);
 	const sortedRows = getSortedWorkflowFamilyClusterRows(cluster);
 	const exactGroupsByRowKey = indexExactGroupsByRowKey(cluster.exactGroups);
 

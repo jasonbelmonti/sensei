@@ -108,6 +108,48 @@ test("workflow family clustering keeps the same family identifier when an older 
 	);
 });
 
+test("workflow family clustering keeps the same family identifier when a lower-key near-mergeable group is backfilled", () => {
+	const exactGroupA = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText:
+			"Implement BEL-809 workflow family clustering in /repo/sensei before 2026-04-21.",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis", "clustering", "bel-809"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const exactGroupB = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText:
+			"Implement BEL-810 workflow family clustering in /repo/sensei before 2026-05-01.",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis", "clustering", "bel-810"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:03:00.000Z",
+	});
+
+	expect(exactGroupA.nearFingerprint).toBe(exactGroupB.nearFingerprint);
+
+	const [backfilledGroup, existingGroup] = [exactGroupA, exactGroupB].sort(
+		(left, right) =>
+			(left.exactFingerprint ?? "").localeCompare(right.exactFingerprint ?? ""),
+	);
+
+	const initialResult = clusterWorkflowFamilies([existingGroup]);
+	const backfilledResult = clusterWorkflowFamilies([
+		existingGroup,
+		backfilledGroup,
+	]);
+
+	expect(initialResult.families[0]?.familyId).toBe(
+		backfilledResult.families[0]?.familyId,
+	);
+});
+
 test("workflow family clustering merges related prompt variants when near fingerprint, intent, and project context align", () => {
 	const result = clusterWorkflowFamilies([
 		createWorkflowSearchRow({
