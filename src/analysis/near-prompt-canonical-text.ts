@@ -84,6 +84,10 @@ function isFilesystemPathLikeString(value: string): boolean {
 		return false;
 	}
 
+	if (value.startsWith("/")) {
+		return false;
+	}
+
 	const segments = value.replaceAll("\\", "/").split("/").filter(Boolean);
 
 	if (segments.length < 2) {
