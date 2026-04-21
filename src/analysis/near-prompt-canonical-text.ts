@@ -13,6 +13,7 @@ const SPACE_SEPARATED_TICKET_IDENTIFIER_PATTERN =
 const NUMERIC_LITERAL_PATTERN = /\b\d+\b/gu;
 const ROOTED_FILESYSTEM_PATH_PREFIX_PATTERN =
 	/^\/(?:Users|workspace|Volumes|Applications|Library)(?:\/|$)/;
+const ROOTED_HOME_FILESYSTEM_PATH_PATTERN = /^\/home\/[^/]+\/.+/;
 const WINDOWS_FILESYSTEM_PATH_PREFIX_PATTERN = /^(?:[a-z]:[\\/]|\\\\)/i;
 const DOT_RELATIVE_PATH_PREFIX_PATTERN = /^(?:~\/|\.\.?[\\/])/;
 const FILE_EXTENSION_PATTERN = /\.[a-z0-9]{1,8}$/i;
@@ -78,6 +79,7 @@ function isFilesystemPathLikeString(value: string): boolean {
 
 	if (
 		DOT_RELATIVE_PATH_PREFIX_PATTERN.test(value) ||
+		ROOTED_HOME_FILESYSTEM_PATH_PATTERN.test(value) ||
 		WINDOWS_FILESYSTEM_PATH_PREFIX_PATTERN.test(value) ||
 		ROOTED_FILESYSTEM_PATH_PREFIX_PATTERN.test(value)
 	) {
