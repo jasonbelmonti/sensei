@@ -307,6 +307,36 @@ test("workflow family clustering keeps tag-only overlap below the merge threshol
 	expect(result.members).toHaveLength(2);
 });
 
+test("workflow family clustering gives distinct family identifiers to near-only clusters that do not merge", () => {
+	const firstRow = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText: "123 /Users/alice/code/sensei/.worktrees/bel-819",
+		projectPath: undefined,
+		threadName: undefined,
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const secondRow = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText: "456 /workspace/sensei/.worktrees/bel-820",
+		projectPath: undefined,
+		threadName: undefined,
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:03:00.000Z",
+	});
+
+	expect(firstRow.nearFingerprint).toBe(secondRow.nearFingerprint);
+
+	const result = clusterWorkflowFamilies([firstRow, secondRow]);
+
+	expect(result.families).toHaveLength(2);
+	expect(result.families[0]?.familyId).not.toBe(result.families[1]?.familyId);
+});
+
 test("workflow family clustering does not claim an exact-fingerprint reason for fingerprintless singleton families", () => {
 	const result = clusterWorkflowFamilies([
 		{

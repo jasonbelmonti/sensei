@@ -23,7 +23,7 @@ function buildCanonicalWorkflowFamilyKey(
 	}
 
 	if (nearFingerprint !== undefined) {
-		return `near\u0000${nearFingerprint}`;
+		return `near\u0000${nearFingerprint}\u0000group\u0000${cluster.seedGroup.key}`;
 	}
 
 	return cluster.seedGroup.key;
