@@ -100,12 +100,12 @@ function isFilesystemPathLikeString(value: string): boolean {
 		return true;
 	}
 
-	if (value.startsWith("/") === false && segments.some(isHiddenPathSegment)) {
-		return true;
-	}
-
 	if (isUnrootedFilesystemPathPrefix(segments[0]) === false) {
 		return false;
+	}
+
+	if (segments.some(isHiddenPathSegment)) {
+		return true;
 	}
 
 	return FILE_EXTENSION_PATTERN.test(segments.at(-1) ?? "");

@@ -70,6 +70,12 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	const unrootedFileLikeRouteTwoFingerprint = buildNearPromptFingerprint(
 		"Fetch api/v1/spec.json for provider A",
 	);
+	const hiddenRouteOneFingerprint = buildNearPromptFingerprint(
+		"Fetch api/.well-known/openid-configuration for provider A",
+	);
+	const hiddenRouteTwoFingerprint = buildNearPromptFingerprint(
+		"Fetch api/.well-known/jwks.json for provider A",
+	);
 
 	expect(apiVersionOneFingerprint).toBeDefined();
 	expect(apiVersionTwoFingerprint).toBeDefined();
@@ -83,6 +89,8 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	expect(rootedFileLikeRouteTwoFingerprint).toBeDefined();
 	expect(unrootedFileLikeRouteOneFingerprint).toBeDefined();
 	expect(unrootedFileLikeRouteTwoFingerprint).toBeDefined();
+	expect(hiddenRouteOneFingerprint).toBeDefined();
+	expect(hiddenRouteTwoFingerprint).toBeDefined();
 	expect(apiVersionOneFingerprint).not.toBe(apiVersionTwoFingerprint);
 	expect(rootedRouteOneFingerprint).not.toBe(rootedRouteTwoFingerprint);
 	expect(usersRouteOneFingerprint).not.toBe(usersRouteTwoFingerprint);
@@ -93,6 +101,7 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	expect(unrootedFileLikeRouteOneFingerprint).not.toBe(
 		unrootedFileLikeRouteTwoFingerprint,
 	);
+	expect(hiddenRouteOneFingerprint).not.toBe(hiddenRouteTwoFingerprint);
 	expect(
 		buildNearCanonicalPromptText(
 			"Fetch /.well-known/openid-configuration for provider A",
@@ -113,6 +122,16 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	expect(
 		buildNearCanonicalPromptText("Fetch api/v1/spec.json for provider A"),
 	).toBe("fetch api v1 spec json for provider a");
+	expect(
+		buildNearCanonicalPromptText(
+			"Fetch api/.well-known/openid-configuration for provider A",
+		),
+	).toBe("fetch api well known openid configuration for provider a");
+	expect(
+		buildNearCanonicalPromptText(
+			"Fetch api/.well-known/jwks.json for provider A",
+		),
+	).toBe("fetch api well known jwks json for provider a");
 });
 
 test("near prompt fingerprint only normalizes conservative ticket identifiers", () => {
@@ -194,13 +213,27 @@ test("near prompt fingerprint still normalizes unrooted repo-relative filesystem
 	const testPathFingerprint = buildNearPromptFingerprint(
 		"Inspect src/storage/index.ts before follow up",
 	);
+	const hiddenSourcePathFingerprint = buildNearPromptFingerprint(
+		"Inspect src/.generated/index.ts before follow up",
+	);
+	const hiddenTestPathFingerprint = buildNearPromptFingerprint(
+		"Inspect src/.cache/index.ts before follow up",
+	);
 
 	expect(sourcePathFingerprint).toBeDefined();
 	expect(testPathFingerprint).toBeDefined();
+	expect(hiddenSourcePathFingerprint).toBeDefined();
+	expect(hiddenTestPathFingerprint).toBeDefined();
 	expect(sourcePathFingerprint).toBe(testPathFingerprint);
+	expect(hiddenSourcePathFingerprint).toBe(hiddenTestPathFingerprint);
 	expect(
 		buildNearCanonicalPromptText(
 			"Inspect src/analysis/index.ts before follow up",
+		),
+	).toBe("inspect senseipathplaceholder before follow up");
+	expect(
+		buildNearCanonicalPromptText(
+			"Inspect src/.generated/index.ts before follow up",
 		),
 	).toBe("inspect senseipathplaceholder before follow up");
 });
