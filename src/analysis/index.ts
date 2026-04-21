@@ -13,5 +13,7 @@ export * from "./feature-version";
 export * from "./near-prompt-fingerprint";
 export * from "./turn-feature-rollup";
 export * from "./turn-feature-row";
+export * from "./workflow-similarity-evidence-contract";
+export * from "./workflow-similarity-evidence";
 export * from "./workflow-search-row";
 export * from "./workflow-search-text";
