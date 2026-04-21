@@ -7,6 +7,8 @@ import { createAnalysisTurnRepository } from "./repositories/analysis-turns";
 import { createConversationRepository } from "./repositories/conversations";
 import { createIngestStateRepository } from "./repositories/ingest-state";
 import { createTurnFeatureRepository } from "./repositories/turn-features";
+import { createWorkflowFamiliesRepository } from "./repositories/workflow-families";
+import { createWorkflowSearchRepository } from "./repositories/workflow-search";
 
 export type OpenSenseiStorageOptions = {
 	databasePath: string;
@@ -34,13 +36,35 @@ export function openSenseiStorage(options: OpenSenseiStorageOptions) {
 	const conversations = createConversationRepository(database);
 	const ingestState = createIngestStateRepository(database);
 	const turnFeatures = createTurnFeatureRepository(database, {
-		available: options.readonly ? hasTable(database, "turn_features") : true,
+		available: hasTablesForReadonly(
+			database,
+			options.readonly,
+			"turn_features",
+		),
+	});
+	const workflowSearch = createWorkflowSearchRepository(database, {
+		available: hasTablesForReadonly(
+			database,
+			options.readonly,
+			"turn_search_documents",
+			"turn_search_documents_fts",
+		),
+	});
+	const workflowFamilies = createWorkflowFamiliesRepository(database, {
+		available: hasTablesForReadonly(
+			database,
+			options.readonly,
+			"workflow_families",
+			"workflow_family_members",
+		),
 	});
 	type TransactionStorage = {
 		analysisTurns: typeof analysisTurns;
 		conversations: typeof conversations;
 		ingestState: typeof ingestState;
 		turnFeatures: typeof turnFeatures;
+		workflowSearch: typeof workflowSearch;
+		workflowFamilies: typeof workflowFamilies;
 	};
 
 	return {
@@ -50,6 +74,8 @@ export function openSenseiStorage(options: OpenSenseiStorageOptions) {
 		conversations,
 		ingestState,
 		turnFeatures,
+		workflowSearch,
+		workflowFamilies,
 		transaction<T>(
 			callback: (
 				storage: TransactionStorage,
@@ -61,6 +87,8 @@ export function openSenseiStorage(options: OpenSenseiStorageOptions) {
 					conversations,
 					ingestState,
 					turnFeatures,
+					workflowSearch,
+					workflowFamilies,
 				}),
 			);
 
@@ -89,4 +117,16 @@ function hasTable(database: Database, tableName: string): boolean {
 		.get(tableName) as { found: number } | null;
 
 	return row?.found === 1;
+}
+
+function hasTablesForReadonly(
+	database: Database,
+	readonly: boolean | undefined,
+	...tableNames: string[]
+): boolean {
+	if (!readonly) {
+		return true;
+	}
+
+	return tableNames.every((tableName) => hasTable(database, tableName));
 }

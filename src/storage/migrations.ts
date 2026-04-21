@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 
 import { STORAGE_MIGRATIONS } from "./schema";
 import { TURN_FEATURE_STORAGE_MIGRATION } from "./turn-feature-schema";
+import { WORKFLOW_STORAGE_MIGRATION } from "./workflow-storage-schema";
 
 export type StorageMigrationRecord = {
 	id: string;
@@ -11,6 +12,7 @@ export type StorageMigrationRecord = {
 const ALL_STORAGE_MIGRATIONS = [
 	...STORAGE_MIGRATIONS,
 	TURN_FEATURE_STORAGE_MIGRATION,
+	WORKFLOW_STORAGE_MIGRATION,
 ] as const;
 
 const LEGACY_MIGRATION_FOOTPRINTS = {
@@ -30,6 +32,7 @@ const LEGACY_MIGRATION_FOOTPRINTS = {
 			"ingest_warnings_detected_at_idx",
 			"ingest_warnings_provider_file_idx",
 		],
+		triggers: [],
 	},
 	"0002_turn_features": {
 		tables: ["turn_features"],
@@ -37,12 +40,34 @@ const LEGACY_MIGRATION_FOOTPRINTS = {
 			"turn_features_session_version_turn_sequence_idx",
 			"turn_features_provider_version_status_idx",
 		],
+		triggers: [],
+	},
+	"0003_workflow_storage": {
+		tables: [
+			"turn_search_documents",
+			"turn_search_documents_fts",
+			"workflow_families",
+			"workflow_family_members",
+		],
+		indexes: [
+			"turn_search_documents_feature_version_idx",
+			"turn_search_documents_exact_fingerprint_idx",
+			"turn_search_documents_near_fingerprint_idx",
+			"workflow_families_family_id_idx",
+			"workflow_family_members_turn_key_idx",
+		],
+		triggers: [
+			"turn_search_documents_ai",
+			"turn_search_documents_ad",
+			"turn_search_documents_au",
+		],
 	},
 } as const satisfies Record<
 	(typeof ALL_STORAGE_MIGRATIONS)[number]["id"],
 	{
 		tables: readonly string[];
 		indexes: readonly string[];
+		triggers: readonly string[];
 	}
 >;
 
@@ -118,7 +143,9 @@ function bootstrapLegacyMigrationHistory(database: Database): void {
 	}
 
 	for (const migration of ALL_STORAGE_MIGRATIONS) {
-		if (!hasSchemaFootprint(database, LEGACY_MIGRATION_FOOTPRINTS[migration.id])) {
+		if (
+			!hasSchemaFootprint(database, LEGACY_MIGRATION_FOOTPRINTS[migration.id])
+		) {
 			continue;
 		}
 
@@ -131,6 +158,7 @@ function hasSchemaFootprint(
 	footprint: {
 		tables: readonly string[];
 		indexes: readonly string[];
+		triggers: readonly string[];
 	},
 ): boolean {
 	return (
@@ -139,13 +167,16 @@ function hasSchemaFootprint(
 		) &&
 		footprint.indexes.every((indexName) =>
 			hasSchemaObject(database, "index", indexName),
+		) &&
+		footprint.triggers.every((triggerName) =>
+			hasSchemaObject(database, "trigger", triggerName),
 		)
 	);
 }
 
 function hasSchemaObject(
 	database: Database,
-	type: "table" | "index",
+	type: "table" | "index" | "trigger",
 	name: string,
 ): boolean {
 	const row = database
