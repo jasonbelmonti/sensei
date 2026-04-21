@@ -52,6 +52,18 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	const usersRouteTwoFingerprint = buildNearPromptFingerprint(
 		"Call /users/list then inspect logs",
 	);
+	const privateRouteOneFingerprint = buildNearPromptFingerprint(
+		"Call /private/login then inspect logs",
+	);
+	const privateRouteTwoFingerprint = buildNearPromptFingerprint(
+		"Call /private/admin then inspect logs",
+	);
+	const homeRouteOneFingerprint = buildNearPromptFingerprint(
+		"Call /home/account then inspect logs",
+	);
+	const homeRouteTwoFingerprint = buildNearPromptFingerprint(
+		"Call /home/profile then inspect logs",
+	);
 	const dotRouteOneFingerprint = buildNearPromptFingerprint(
 		"Fetch /.well-known/openid-configuration for provider A",
 	);
@@ -83,6 +95,10 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	expect(rootedRouteTwoFingerprint).toBeDefined();
 	expect(usersRouteOneFingerprint).toBeDefined();
 	expect(usersRouteTwoFingerprint).toBeDefined();
+	expect(privateRouteOneFingerprint).toBeDefined();
+	expect(privateRouteTwoFingerprint).toBeDefined();
+	expect(homeRouteOneFingerprint).toBeDefined();
+	expect(homeRouteTwoFingerprint).toBeDefined();
 	expect(dotRouteOneFingerprint).toBeDefined();
 	expect(dotRouteTwoFingerprint).toBeDefined();
 	expect(rootedFileLikeRouteOneFingerprint).toBeDefined();
@@ -94,6 +110,8 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	expect(apiVersionOneFingerprint).not.toBe(apiVersionTwoFingerprint);
 	expect(rootedRouteOneFingerprint).not.toBe(rootedRouteTwoFingerprint);
 	expect(usersRouteOneFingerprint).not.toBe(usersRouteTwoFingerprint);
+	expect(privateRouteOneFingerprint).not.toBe(privateRouteTwoFingerprint);
+	expect(homeRouteOneFingerprint).not.toBe(homeRouteTwoFingerprint);
 	expect(dotRouteOneFingerprint).not.toBe(dotRouteTwoFingerprint);
 	expect(rootedFileLikeRouteOneFingerprint).not.toBe(
 		rootedFileLikeRouteTwoFingerprint,
@@ -132,6 +150,12 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 			"Fetch api/.well-known/jwks.json for provider A",
 		),
 	).toBe("fetch api well known jwks json for provider a");
+	expect(
+		buildNearCanonicalPromptText("Call /private/login then inspect logs"),
+	).toBe("call private login then inspect logs");
+	expect(
+		buildNearCanonicalPromptText("Call /home/account then inspect logs"),
+	).toBe("call home account then inspect logs");
 });
 
 test("near prompt fingerprint only normalizes conservative ticket identifiers", () => {
@@ -210,6 +234,12 @@ test("near prompt fingerprint still normalizes unrooted repo-relative filesystem
 	const sourcePathFingerprint = buildNearPromptFingerprint(
 		"Inspect src/analysis/index.ts before follow up",
 	);
+	const punctuatedSourcePathFingerprint = buildNearPromptFingerprint(
+		"Inspect src/analysis/index.ts, before follow up",
+	);
+	const wrappedSourcePathFingerprint = buildNearPromptFingerprint(
+		"Inspect (src/analysis/index.ts) before follow up",
+	);
 	const testPathFingerprint = buildNearPromptFingerprint(
 		"Inspect src/storage/index.ts before follow up",
 	);
@@ -221,10 +251,14 @@ test("near prompt fingerprint still normalizes unrooted repo-relative filesystem
 	);
 
 	expect(sourcePathFingerprint).toBeDefined();
+	expect(punctuatedSourcePathFingerprint).toBeDefined();
+	expect(wrappedSourcePathFingerprint).toBeDefined();
 	expect(testPathFingerprint).toBeDefined();
 	expect(hiddenSourcePathFingerprint).toBeDefined();
 	expect(hiddenTestPathFingerprint).toBeDefined();
 	expect(sourcePathFingerprint).toBe(testPathFingerprint);
+	expect(sourcePathFingerprint).toBe(punctuatedSourcePathFingerprint);
+	expect(sourcePathFingerprint).toBe(wrappedSourcePathFingerprint);
 	expect(hiddenSourcePathFingerprint).toBe(hiddenTestPathFingerprint);
 	expect(
 		buildNearCanonicalPromptText(
@@ -234,6 +268,16 @@ test("near prompt fingerprint still normalizes unrooted repo-relative filesystem
 	expect(
 		buildNearCanonicalPromptText(
 			"Inspect src/.generated/index.ts before follow up",
+		),
+	).toBe("inspect senseipathplaceholder before follow up");
+	expect(
+		buildNearCanonicalPromptText(
+			"Inspect src/analysis/index.ts, before follow up",
+		),
+	).toBe("inspect senseipathplaceholder before follow up");
+	expect(
+		buildNearCanonicalPromptText(
+			"Inspect (src/analysis/index.ts) before follow up",
 		),
 	).toBe("inspect senseipathplaceholder before follow up");
 });
