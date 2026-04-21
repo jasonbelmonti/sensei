@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 
 import {
+  buildExactPromptFingerprint,
+  buildNearPromptFingerprint,
   CURRENT_TURN_FEATURE_VERSION,
   deriveWorkflowSearchRows,
   extractTurnFeatures,
@@ -9,12 +11,14 @@ import { createOrderedTurnInput } from "./ordered-analysis-turn-fixture";
 
 const FIXED_ANALYZED_AT = "2026-04-19T02:00:00.000Z";
 
-test("workflow search derivation returns one ordered row per eligible analyzed turn and leaves fingerprints unset", () => {
+test("workflow search derivation returns one ordered row per eligible analyzed turn and populates fingerprints", () => {
+  const firstPromptText = "Explain the BEL-806 workflow storage foundation.";
+  const secondPromptText = "Plan the BEL-807 retrieval follow-up.";
   const orderedTurns = [
     createOrderedTurnInput({
       turnSequence: 1,
       turnId: "turn-001",
-      prompt: "Explain the BEL-806 workflow storage foundation.",
+      prompt: firstPromptText,
       session: {
         threadName: "BEL-806 derivation",
         workingDirectory: "/repo/sensei",
@@ -24,7 +28,7 @@ test("workflow search derivation returns one ordered row per eligible analyzed t
     createOrderedTurnInput({
       turnSequence: 2,
       turnId: "turn-002",
-      prompt: "Plan the BEL-807 retrieval follow-up.",
+      prompt: secondPromptText,
       session: {
         threadName: "BEL-806 derivation",
         workingDirectory: "/repo/sensei",
@@ -62,8 +66,16 @@ test("workflow search derivation returns one ordered row per eligible analyzed t
       sessionId: "session-1",
       turnId: "turn-001",
       featureVersion: CURRENT_TURN_FEATURE_VERSION,
-      promptText: "Explain the BEL-806 workflow storage foundation.",
+      promptText: firstPromptText,
       normalizedPromptText: "explain the bel 806 workflow storage foundation",
+      exactFingerprint: requireFingerprint(
+        buildExactPromptFingerprint(firstPromptText),
+        "expected exact fingerprint for first prompt",
+      ),
+      nearFingerprint: requireFingerprint(
+        buildNearPromptFingerprint(firstPromptText),
+        "expected near fingerprint for first prompt",
+      ),
       threadName: "BEL-806 derivation",
       projectPath: "/repo/sensei",
       tags: ["analysis", "bel-806"],
@@ -77,8 +89,16 @@ test("workflow search derivation returns one ordered row per eligible analyzed t
       sessionId: "session-1",
       turnId: "turn-002",
       featureVersion: CURRENT_TURN_FEATURE_VERSION,
-      promptText: "Plan the BEL-807 retrieval follow-up.",
+      promptText: secondPromptText,
       normalizedPromptText: "plan the bel 807 retrieval follow up",
+      exactFingerprint: requireFingerprint(
+        buildExactPromptFingerprint(secondPromptText),
+        "expected exact fingerprint for second prompt",
+      ),
+      nearFingerprint: requireFingerprint(
+        buildNearPromptFingerprint(secondPromptText),
+        "expected near fingerprint for second prompt",
+      ),
       threadName: "BEL-806 derivation",
       projectPath: "/repo/sensei",
       tags: ["analysis", "bel-806"],
@@ -89,3 +109,14 @@ test("workflow search derivation returns one ordered row per eligible analyzed t
     },
   ]);
 });
+
+function requireFingerprint(
+  fingerprint: string | undefined,
+  message: string,
+): string {
+  if (fingerprint === undefined) {
+    throw new Error(message);
+  }
+
+  return fingerprint;
+}

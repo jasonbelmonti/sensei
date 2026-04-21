@@ -4,6 +4,8 @@ import type {
   WorkflowSearchSourceTurnFeature,
   WriteReadyWorkflowSearchRow,
 } from "./workflow-search-row";
+import { buildExactPromptFingerprint } from "./exact-prompt-fingerprint";
+import { buildNearPromptFingerprint } from "./near-prompt-fingerprint";
 import {
   buildWorkflowSearchText,
   normalizeWorkflowSearchPromptText,
@@ -22,6 +24,8 @@ export function buildWorkflowSearchRow(
   }
 
   const normalizedPromptText = normalizeWorkflowSearchPromptText(promptText);
+  const exactFingerprint = buildExactPromptFingerprint(promptText);
+  const nearFingerprint = buildNearPromptFingerprint(promptText);
   const tags = sanitizeWorkflowSearchTerms(orderedTurn.session.tags);
   const workflowIntentLabels = getWorkflowIntentLabels(sourceTurnFeature.detail);
 
@@ -33,6 +37,8 @@ export function buildWorkflowSearchRow(
     promptText,
     normalizedPromptText:
       normalizedPromptText.length > 0 ? normalizedPromptText : undefined,
+    exactFingerprint,
+    nearFingerprint,
     threadName: sanitizeWorkflowSearchTerm(orderedTurn.session.threadName),
     projectPath: sanitizeWorkflowSearchTerm(
       orderedTurn.session.workingDirectory,
