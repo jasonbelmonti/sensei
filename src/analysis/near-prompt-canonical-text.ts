@@ -12,7 +12,7 @@ const SPACE_SEPARATED_TICKET_IDENTIFIER_PATTERN =
 	/\b([a-z]{2,10})\s+(\d{2,8})\b/giu;
 const NUMERIC_LITERAL_PATTERN = /\b\d+\b/gu;
 const ROOTED_FILESYSTEM_PATH_PREFIX_PATTERN =
-	/^\/(?:Users|home|tmp|var|etc|opt|private|Volumes|Applications|Library)(?:\/|$)/;
+	/^\/(?:Users|workspace|home|tmp|var|etc|opt|private|Volumes|Applications|Library)(?:\/|$)/;
 const WINDOWS_FILESYSTEM_PATH_PREFIX_PATTERN = /^(?:[a-z]:[\\/]|\\\\)/i;
 const DOT_RELATIVE_PATH_PREFIX_PATTERN = /^(?:~\/|\.\.?[\\/])/;
 const FILE_EXTENSION_PATTERN = /\.[a-z0-9]{1,8}$/i;

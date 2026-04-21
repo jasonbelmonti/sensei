@@ -10,6 +10,7 @@ test("near prompt fingerprint hashes conservative placeholder-normalized prompt 
 	);
 	const equivalentPromptTexts = [
 		"Plan the BEL-819 retrieval follow-up in /Users/alice/code/sensei/.worktrees/bel-819 before 2026-04-21",
+		"Plan the BEL-819 retrieval follow-up in /workspace/sensei/.worktrees/bel-819 before 2026-04-21",
 		"  PLAN the BEL 820 retrieval -- follow up in ./sensei/.worktrees/bel-820 before 2027/05/09  ",
 		"Plan the BEL_821 retrieval follow up in C:\\work\\sensei\\bel-821 before 2028-06-11",
 	];
@@ -149,6 +150,24 @@ test("near prompt fingerprint normalizes equivalent Windows absolute paths acros
 	expect(backslashPathFingerprint).toBeDefined();
 	expect(slashPathFingerprint).toBeDefined();
 	expect(backslashPathFingerprint).toBe(slashPathFingerprint);
+});
+
+test("near prompt fingerprint normalizes workspace absolute paths as filesystem paths", () => {
+	const usersWorkspaceFingerprint = buildNearPromptFingerprint(
+		"Inspect /Users/alice/code/sensei/README.md before follow up",
+	);
+	const containerWorkspaceFingerprint = buildNearPromptFingerprint(
+		"Inspect /workspace/sensei/README.md before follow up",
+	);
+
+	expect(usersWorkspaceFingerprint).toBeDefined();
+	expect(containerWorkspaceFingerprint).toBeDefined();
+	expect(usersWorkspaceFingerprint).toBe(containerWorkspaceFingerprint);
+	expect(
+		buildNearCanonicalPromptText(
+			"Inspect /workspace/sensei/README.md before follow up",
+		),
+	).toBe("inspect senseipathplaceholder before follow up");
 });
 
 test("near prompt fingerprint returns undefined for normalization-empty prompt text", () => {
