@@ -1,31 +1,27 @@
 import type { Database } from "bun:sqlite";
 
 import type {
+	SearchedWorkflowSearchDocumentRecord,
+	SearchWorkflowSearchDocumentsInput,
 	StoredWorkflowSearchDocumentRecord,
 	StoreWorkflowSearchDocumentInput,
 } from "../workflow-search-schema";
+import {
+	buildWorkflowSearchMatchQuery,
+	resolveWorkflowSearchLimit,
+} from "./workflow-search-query";
+import {
+	createWorkflowSearchProjection,
+	mapSearchedWorkflowSearchRow,
+	mapWorkflowSearchRow,
+	type SearchedWorkflowSearchRow,
+	type WorkflowSearchRow,
+} from "./workflow-search-records";
 import { nowIsoString, serializeJson } from "./shared";
 
 export type WorkflowSearchRepository = ReturnType<
 	typeof createWorkflowSearchRepository
 >;
-
-type WorkflowSearchRow = {
-	provider: string;
-	sessionId: string;
-	turnId: string;
-	featureVersion: number;
-	promptText: string;
-	normalizedPromptText: string | null;
-	threadName: string | null;
-	projectPath: string | null;
-	tagsJson: string;
-	workflowIntentLabelsJson: string;
-	exactFingerprint: string | null;
-	nearFingerprint: string | null;
-	searchText: string;
-	updatedAt: string;
-};
 
 type CreateWorkflowSearchRepositoryOptions = {
 	available?: boolean;
@@ -39,22 +35,9 @@ export function createWorkflowSearchRepository(
 		return createUnavailableWorkflowSearchRepository();
 	}
 
-	const workflowSearchProjection = `
-    provider,
-    session_id as sessionId,
-    turn_id as turnId,
-    feature_version as featureVersion,
-    prompt_text as promptText,
-    normalized_prompt_text as normalizedPromptText,
-    thread_name as threadName,
-    project_path as projectPath,
-    tags_json as tagsJson,
-    workflow_intent_labels_json as workflowIntentLabelsJson,
-    exact_fingerprint as exactFingerprint,
-    near_fingerprint as nearFingerprint,
-    search_text as searchText,
-    updated_at as updatedAt
-  `;
+	const workflowSearchProjection = createWorkflowSearchProjection();
+	const qualifiedWorkflowSearchProjection =
+		createWorkflowSearchProjection("turn_search_documents");
 	const selectAllStatement = database.query(`
     SELECT
       ${workflowSearchProjection}
@@ -64,6 +47,23 @@ export function createWorkflowSearchRepository(
       provider,
       session_id,
       turn_id
+  `);
+	const searchStatement = database.query(`
+    SELECT
+      ${qualifiedWorkflowSearchProjection},
+      bm25(turn_search_documents_fts) as ftsScore
+    FROM turn_search_documents_fts
+    INNER JOIN turn_search_documents
+      ON turn_search_documents.rowid = turn_search_documents_fts.rowid
+    WHERE
+      turn_search_documents.feature_version = ?
+      AND turn_search_documents_fts MATCH ?
+    ORDER BY
+      ftsScore,
+      turn_search_documents.provider,
+      turn_search_documents.session_id,
+      turn_search_documents.turn_id
+    LIMIT ?
   `);
 	const upsertWorkflowSearchStatement = database.query(`
     INSERT INTO turn_search_documents (
@@ -125,6 +125,21 @@ export function createWorkflowSearchRepository(
 				mapWorkflowSearchRow,
 			);
 		},
+		search(
+			input: SearchWorkflowSearchDocumentsInput,
+		): SearchedWorkflowSearchDocumentRecord[] {
+			const matchQuery = buildWorkflowSearchMatchQuery(input.queryText);
+
+			if (matchQuery === undefined) {
+				return [];
+			}
+
+			return (searchStatement.all(
+				input.featureVersion,
+				matchQuery,
+				resolveWorkflowSearchLimit(input.limit),
+			) as SearchedWorkflowSearchRow[]).map(mapSearchedWorkflowSearchRow);
+		},
 		replaceFeatureVersion(
 			featureVersion: number,
 			inputs: readonly StoreWorkflowSearchDocumentInput[],
@@ -151,6 +166,11 @@ function createUnavailableWorkflowSearchRepository() {
 		listAll(): StoredWorkflowSearchDocumentRecord[] {
 			return [];
 		},
+		search(
+			_input: SearchWorkflowSearchDocumentsInput,
+		): SearchedWorkflowSearchDocumentRecord[] {
+			return [];
+		},
 		replaceFeatureVersion(
 			_featureVersion: number,
 			inputs: readonly StoreWorkflowSearchDocumentInput[],
@@ -175,27 +195,6 @@ function createUnavailableWorkflowSearchRepository() {
 
 			throw unavailableWorkflowSearchError();
 		},
-	};
-}
-
-function mapWorkflowSearchRow(
-	row: WorkflowSearchRow,
-): StoredWorkflowSearchDocumentRecord {
-	return {
-		provider: row.provider as StoredWorkflowSearchDocumentRecord["provider"],
-		sessionId: row.sessionId,
-		turnId: row.turnId,
-		featureVersion: row.featureVersion,
-		promptText: row.promptText,
-		normalizedPromptText: row.normalizedPromptText ?? undefined,
-		threadName: row.threadName ?? undefined,
-		projectPath: row.projectPath ?? undefined,
-		tags: parseStringArray(row.tagsJson),
-		workflowIntentLabels: parseStringArray(row.workflowIntentLabelsJson),
-		exactFingerprint: row.exactFingerprint ?? undefined,
-		nearFingerprint: row.nearFingerprint ?? undefined,
-		searchText: row.searchText,
-		updatedAt: row.updatedAt,
 	};
 }
 
@@ -231,16 +230,6 @@ function workflowSearchStatementParams(
 		input.searchText,
 		input.updatedAt ?? nowIsoString(),
 	] as const;
-}
-
-function parseStringArray(value: string): string[] {
-	const parsed = JSON.parse(value);
-
-	if (Array.isArray(parsed) === false) {
-		return [];
-	}
-
-	return parsed.filter((entry): entry is string => typeof entry === "string");
 }
 
 function unavailableWorkflowSearchError(): Error {
