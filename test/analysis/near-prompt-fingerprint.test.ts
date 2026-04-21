@@ -64,6 +64,12 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	const rootedFileLikeRouteTwoFingerprint = buildNearPromptFingerprint(
 		"Fetch /v1/spec.json for provider A",
 	);
+	const unrootedFileLikeRouteOneFingerprint = buildNearPromptFingerprint(
+		"Fetch api/v1/openapi.json for provider A",
+	);
+	const unrootedFileLikeRouteTwoFingerprint = buildNearPromptFingerprint(
+		"Fetch api/v1/spec.json for provider A",
+	);
 
 	expect(apiVersionOneFingerprint).toBeDefined();
 	expect(apiVersionTwoFingerprint).toBeDefined();
@@ -75,12 +81,17 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	expect(dotRouteTwoFingerprint).toBeDefined();
 	expect(rootedFileLikeRouteOneFingerprint).toBeDefined();
 	expect(rootedFileLikeRouteTwoFingerprint).toBeDefined();
+	expect(unrootedFileLikeRouteOneFingerprint).toBeDefined();
+	expect(unrootedFileLikeRouteTwoFingerprint).toBeDefined();
 	expect(apiVersionOneFingerprint).not.toBe(apiVersionTwoFingerprint);
 	expect(rootedRouteOneFingerprint).not.toBe(rootedRouteTwoFingerprint);
 	expect(usersRouteOneFingerprint).not.toBe(usersRouteTwoFingerprint);
 	expect(dotRouteOneFingerprint).not.toBe(dotRouteTwoFingerprint);
 	expect(rootedFileLikeRouteOneFingerprint).not.toBe(
 		rootedFileLikeRouteTwoFingerprint,
+	);
+	expect(unrootedFileLikeRouteOneFingerprint).not.toBe(
+		unrootedFileLikeRouteTwoFingerprint,
 	);
 	expect(
 		buildNearCanonicalPromptText(
@@ -96,6 +107,12 @@ test("near prompt fingerprint does not collapse non-filesystem slash tokens or r
 	expect(
 		buildNearCanonicalPromptText("Fetch /v1/spec.json for provider A"),
 	).toBe("fetch v1 spec json for provider a");
+	expect(
+		buildNearCanonicalPromptText("Fetch api/v1/openapi.json for provider A"),
+	).toBe("fetch api v1 openapi json for provider a");
+	expect(
+		buildNearCanonicalPromptText("Fetch api/v1/spec.json for provider A"),
+	).toBe("fetch api v1 spec json for provider a");
 });
 
 test("near prompt fingerprint only normalizes conservative ticket identifiers", () => {
@@ -166,6 +183,24 @@ test("near prompt fingerprint normalizes workspace absolute paths as filesystem 
 	expect(
 		buildNearCanonicalPromptText(
 			"Inspect /workspace/sensei/README.md before follow up",
+		),
+	).toBe("inspect senseipathplaceholder before follow up");
+});
+
+test("near prompt fingerprint still normalizes unrooted repo-relative filesystem paths", () => {
+	const sourcePathFingerprint = buildNearPromptFingerprint(
+		"Inspect src/analysis/index.ts before follow up",
+	);
+	const testPathFingerprint = buildNearPromptFingerprint(
+		"Inspect src/storage/index.ts before follow up",
+	);
+
+	expect(sourcePathFingerprint).toBeDefined();
+	expect(testPathFingerprint).toBeDefined();
+	expect(sourcePathFingerprint).toBe(testPathFingerprint);
+	expect(
+		buildNearCanonicalPromptText(
+			"Inspect src/analysis/index.ts before follow up",
 		),
 	).toBe("inspect senseipathplaceholder before follow up");
 });

@@ -16,6 +16,8 @@ const ROOTED_FILESYSTEM_PATH_PREFIX_PATTERN =
 const WINDOWS_FILESYSTEM_PATH_PREFIX_PATTERN = /^(?:[a-z]:[\\/]|\\\\)/i;
 const DOT_RELATIVE_PATH_PREFIX_PATTERN = /^(?:~\/|\.\.?[\\/])/;
 const FILE_EXTENSION_PATTERN = /\.[a-z0-9]{1,8}$/i;
+const UNROOTED_FILESYSTEM_PATH_PREFIX_PATTERN =
+	/^(?:src|test|tests|app|apps|lib|bin|docs|scripts|packages|public|assets|components|config|configs|\.codex|\.github|\.worktrees)$/i;
 const ALLOWED_SPACE_SEPARATED_TICKET_PREFIX_PATTERN = /^(?:bel)$/i;
 const DISALLOWED_SPACE_SEPARATED_TICKET_PREFIX_PATTERN =
 	/^(?:api|cli|csv|css|html|http|https|iso|json|rfc|sdk|sql|xml|yaml|yml)$/i;
@@ -102,6 +104,10 @@ function isFilesystemPathLikeString(value: string): boolean {
 		return true;
 	}
 
+	if (isUnrootedFilesystemPathPrefix(segments[0]) === false) {
+		return false;
+	}
+
 	return FILE_EXTENSION_PATTERN.test(segments.at(-1) ?? "");
 }
 
@@ -115,4 +121,11 @@ function isTicketPrefix(prefix: string): boolean {
 
 function isHiddenPathSegment(segment: string): boolean {
 	return segment.startsWith(".") && segment !== "." && segment !== "..";
+}
+
+function isUnrootedFilesystemPathPrefix(segment: string | undefined): boolean {
+	return (
+		segment !== undefined &&
+		UNROOTED_FILESYSTEM_PATH_PREFIX_PATTERN.test(segment)
+	);
 }
