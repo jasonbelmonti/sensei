@@ -5,7 +5,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { openSenseiStorage, STORAGE_MIGRATIONS } from "../../src/storage";
+import {
+	openSenseiStorage,
+	STORAGE_MIGRATIONS,
+	TURN_FEATURE_STORAGE_MIGRATION,
+	WORKFLOW_STORAGE_MIGRATION,
+} from "../../src/storage";
 import { createStorageTestHarness } from "./helpers";
 import {
 	createWorkflowFamiliesInput,
@@ -277,6 +282,19 @@ test("writable opens upgrade legacy databases without replaying canonical storag
 	]);
 });
 
+test("writable opens do not backfill workflow storage migration history when FTS triggers are missing", () => {
+	const databasePath =
+		createWorkflowStorageDatabasePathWithoutMigrationHistoryAndTriggers(
+			"sensei-storage-writable-workflow-missing-triggers-",
+		);
+
+	expect(() =>
+		openSenseiStorage({
+			databasePath,
+		}),
+	).toThrow(/turn_search_documents/i);
+});
+
 function createLegacyCanonicalDatabasePath(prefix: string): string {
 	const rootDir = mkdtempSync(join(tmpdir(), prefix));
 	const databasePath = join(rootDir, "sensei.sqlite");
@@ -286,6 +304,34 @@ function createLegacyCanonicalDatabasePath(prefix: string): string {
 
 	try {
 		for (const statement of STORAGE_MIGRATIONS[0].statements) {
+			legacyDatabase.exec(statement);
+		}
+	} finally {
+		legacyDatabase.close();
+	}
+
+	return databasePath;
+}
+
+function createWorkflowStorageDatabasePathWithoutMigrationHistoryAndTriggers(
+	prefix: string,
+): string {
+	const rootDir = mkdtempSync(join(tmpdir(), prefix));
+	const databasePath = join(rootDir, "sensei.sqlite");
+	cleanups.push(() => rmSync(rootDir, { recursive: true, force: true }));
+
+	const legacyDatabase = new Database(databasePath);
+
+	try {
+		for (const statement of STORAGE_MIGRATIONS[0].statements) {
+			legacyDatabase.exec(statement);
+		}
+
+		for (const statement of TURN_FEATURE_STORAGE_MIGRATION.statements) {
+			legacyDatabase.exec(statement);
+		}
+
+		for (const statement of workflowStorageStatementsWithoutTriggers()) {
 			legacyDatabase.exec(statement);
 		}
 	} finally {
@@ -332,4 +378,10 @@ function listTables(
 			`,
 		)
 		.all(...tableNames);
+}
+
+function workflowStorageStatementsWithoutTriggers(): readonly string[] {
+	return WORKFLOW_STORAGE_MIGRATION.statements.filter(
+		(statement) => !statement.includes("CREATE TRIGGER"),
+	);
 }

@@ -32,6 +32,7 @@ const LEGACY_MIGRATION_FOOTPRINTS = {
 			"ingest_warnings_detected_at_idx",
 			"ingest_warnings_provider_file_idx",
 		],
+		triggers: [],
 	},
 	"0002_turn_features": {
 		tables: ["turn_features"],
@@ -39,6 +40,7 @@ const LEGACY_MIGRATION_FOOTPRINTS = {
 			"turn_features_session_version_turn_sequence_idx",
 			"turn_features_provider_version_status_idx",
 		],
+		triggers: [],
 	},
 	"0003_workflow_storage": {
 		tables: [
@@ -54,12 +56,18 @@ const LEGACY_MIGRATION_FOOTPRINTS = {
 			"workflow_families_family_id_idx",
 			"workflow_family_members_turn_key_idx",
 		],
+		triggers: [
+			"turn_search_documents_ai",
+			"turn_search_documents_ad",
+			"turn_search_documents_au",
+		],
 	},
 } as const satisfies Record<
 	(typeof ALL_STORAGE_MIGRATIONS)[number]["id"],
 	{
 		tables: readonly string[];
 		indexes: readonly string[];
+		triggers: readonly string[];
 	}
 >;
 
@@ -150,6 +158,7 @@ function hasSchemaFootprint(
 	footprint: {
 		tables: readonly string[];
 		indexes: readonly string[];
+		triggers: readonly string[];
 	},
 ): boolean {
 	return (
@@ -158,13 +167,16 @@ function hasSchemaFootprint(
 		) &&
 		footprint.indexes.every((indexName) =>
 			hasSchemaObject(database, "index", indexName),
+		) &&
+		footprint.triggers.every((triggerName) =>
+			hasSchemaObject(database, "trigger", triggerName),
 		)
 	);
 }
 
 function hasSchemaObject(
 	database: Database,
-	type: "table" | "index",
+	type: "table" | "index" | "trigger",
 	name: string,
 ): boolean {
 	const row = database
