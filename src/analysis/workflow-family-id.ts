@@ -17,9 +17,17 @@ function buildCanonicalWorkflowFamilyKey(
 	const nearFingerprint = cluster.seedGroup.nearFingerprint;
 	const canonicalContext =
 		cluster.sharedProjectPaths[0] ?? cluster.sharedThreadNames[0];
+	const workflowIntentSignature = buildWorkflowIntentSignature(cluster);
 
 	if (nearFingerprint !== undefined && canonicalContext !== undefined) {
-		return `near\u0000${nearFingerprint}\u0000context\u0000${canonicalContext}`;
+		return [
+			"near",
+			nearFingerprint,
+			"context",
+			canonicalContext,
+			"intent",
+			workflowIntentSignature,
+		].join("\u0000");
 	}
 
 	if (nearFingerprint !== undefined) {
@@ -27,4 +35,12 @@ function buildCanonicalWorkflowFamilyKey(
 	}
 
 	return cluster.seedGroup.key;
+}
+
+function buildWorkflowIntentSignature(cluster: WorkflowFamilyCluster): string {
+	if (cluster.sharedWorkflowIntentLabels.length === 0) {
+		return "none";
+	}
+
+	return cluster.sharedWorkflowIntentLabels.join("\u0000");
 }

@@ -337,6 +337,36 @@ test("workflow family clustering gives distinct family identifiers to near-only 
 	expect(result.families[0]?.familyId).not.toBe(result.families[1]?.familyId);
 });
 
+test("workflow family clustering gives distinct family identifiers to same-context clusters that do not merge because intent diverges", () => {
+	const firstRow = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText: "123 /Users/alice/code/sensei/.worktrees/bel-819",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const secondRow = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText: "456 /workspace/sensei/.worktrees/bel-820",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["explain"],
+		updatedAt: "2026-04-21T20:03:00.000Z",
+	});
+
+	expect(firstRow.nearFingerprint).toBe(secondRow.nearFingerprint);
+
+	const result = clusterWorkflowFamilies([firstRow, secondRow]);
+
+	expect(result.families).toHaveLength(2);
+	expect(result.families[0]?.familyId).not.toBe(result.families[1]?.familyId);
+});
+
 test("workflow family clustering does not claim an exact-fingerprint reason for fingerprintless singleton families", () => {
 	const result = clusterWorkflowFamilies([
 		{
