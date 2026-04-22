@@ -150,6 +150,56 @@ test("workflow family clustering keeps the same family identifier when a lower-k
 	);
 });
 
+test("workflow family clustering keeps the same family identifier when a merged family later gains a weaker row with no project path", () => {
+	const initialRows = [
+		createWorkflowSearchRow({
+			sessionId: "session-a",
+			turnId: "turn-001",
+			promptText: "123 /Users/alice/code/sensei/.worktrees/bel-819",
+			projectPath: "/repo/sensei",
+			threadName: "BEL-809 execution",
+			tags: ["analysis"],
+			workflowIntentLabels: ["implement"],
+			updatedAt: "2026-04-21T20:00:00.000Z",
+		}),
+		createWorkflowSearchRow({
+			sessionId: "session-b",
+			turnId: "turn-002",
+			promptText: "456 /workspace/sensei/.worktrees/bel-820",
+			projectPath: "/repo/sensei",
+			threadName: "BEL-809 execution",
+			tags: ["analysis"],
+			workflowIntentLabels: ["implement"],
+			updatedAt: "2026-04-21T20:03:00.000Z",
+		}),
+	];
+	const weakerBackfillRow = createWorkflowSearchRow({
+		sessionId: "session-c",
+		turnId: "turn-003",
+		promptText: "789 /workspace/sensei/.worktrees/bel-821",
+		projectPath: undefined,
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-20T20:00:00.000Z",
+	});
+
+	expect(initialRows[0]?.nearFingerprint).toBe(initialRows[1]?.nearFingerprint);
+	expect(initialRows[0]?.nearFingerprint).toBe(
+		weakerBackfillRow.nearFingerprint,
+	);
+
+	const initialResult = clusterWorkflowFamilies(initialRows);
+	const backfilledResult = clusterWorkflowFamilies([
+		...initialRows,
+		weakerBackfillRow,
+	]);
+
+	expect(initialResult.families[0]?.familyId).toBe(
+		backfilledResult.families[0]?.familyId,
+	);
+});
+
 test("workflow family clustering merges related prompt variants when near fingerprint, intent, and project context align", () => {
 	const result = clusterWorkflowFamilies([
 		createWorkflowSearchRow({
