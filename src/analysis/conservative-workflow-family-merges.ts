@@ -90,6 +90,14 @@ function buildWorkflowFamilyMergeDecision(
 		candidateGroup.threadNames,
 	);
 
+	if (
+		sharedProjectPaths.length === 0 &&
+		clusterHasProjectPath(cluster) &&
+		candidateGroup.projectPaths.length > 0
+	) {
+		return undefined;
+	}
+
 	if (sharedProjectPaths.length === 0 && sharedThreadNames.length === 0) {
 		return undefined;
 	}
@@ -135,6 +143,12 @@ function mergeWorkflowFamilyCluster(
 	cluster.sharedThreadNames = intersectSortedStrings(
 		cluster.sharedThreadNames,
 		candidateGroup.threadNames,
+	);
+}
+
+function clusterHasProjectPath(cluster: WorkflowFamilyCluster): boolean {
+	return cluster.exactGroups.some(
+		(exactGroup) => exactGroup.projectPaths.length > 0,
 	);
 }
 

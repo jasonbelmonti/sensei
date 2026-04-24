@@ -15,12 +15,17 @@ function buildCanonicalWorkflowFamilyKey(
 	cluster: WorkflowFamilyCluster,
 ): string {
 	const nearFingerprint = cluster.seedGroup.nearFingerprint;
+
+	if (nearFingerprint === undefined) {
+		return cluster.seedGroup.key;
+	}
+
 	const canonicalContextSignature = buildCanonicalContextSignature(cluster);
 	const workflowIntentSignature = buildWorkflowIntentSignature(cluster);
 
 	if (
-		nearFingerprint !== undefined &&
-		canonicalContextSignature !== undefined
+		canonicalContextSignature !== undefined &&
+		workflowIntentSignature !== undefined
 	) {
 		return [
 			"near",
@@ -32,50 +37,47 @@ function buildCanonicalWorkflowFamilyKey(
 		].join("\u0000");
 	}
 
-	if (nearFingerprint !== undefined) {
-		return `near\u0000${nearFingerprint}\u0000group\u0000${cluster.seedGroup.key}`;
-	}
-
-	return cluster.seedGroup.key;
+	return `near\u0000${nearFingerprint}\u0000group\u0000${cluster.seedGroup.key}`;
 }
 
 function buildCanonicalContextSignature(
 	cluster: WorkflowFamilyCluster,
 ): string | undefined {
-	const projectPaths = collectCanonicalContextValues(
+	const projectPath = firstCanonicalClusterValue(
 		cluster,
 		(exactGroup) => exactGroup.projectPaths,
 	);
-	const threadNames = collectCanonicalContextValues(
+
+	if (projectPath !== undefined) {
+		return `project\u0000${projectPath}`;
+	}
+
+	const threadName = firstCanonicalClusterValue(
 		cluster,
 		(exactGroup) => exactGroup.threadNames,
 	);
 
-	if (projectPaths.length === 0 && threadNames.length === 0) {
-		return undefined;
+	if (threadName !== undefined) {
+		return `thread\u0000${threadName}`;
 	}
 
-	return [
-		"projects",
-		projectPaths.length > 0 ? projectPaths.join("\u0000") : "none",
-		"threads",
-		threadNames.length > 0 ? threadNames.join("\u0000") : "none",
-	].join("\u0000");
+	return undefined;
 }
 
-function collectCanonicalContextValues(
+function firstCanonicalClusterValue(
 	cluster: WorkflowFamilyCluster,
 	getValues: (
 		exactGroup: WorkflowFamilyCluster["exactGroups"][number],
 	) => readonly string[],
-): string[] {
-	return [...new Set(cluster.exactGroups.flatMap(getValues))].sort();
+): string | undefined {
+	return [...new Set(cluster.exactGroups.flatMap(getValues))].sort()[0];
 }
 
-function buildWorkflowIntentSignature(cluster: WorkflowFamilyCluster): string {
-	if (cluster.sharedWorkflowIntentLabels.length === 0) {
-		return "none";
-	}
-
-	return cluster.sharedWorkflowIntentLabels.join("\u0000");
+function buildWorkflowIntentSignature(
+	cluster: WorkflowFamilyCluster,
+): string | undefined {
+	return firstCanonicalClusterValue(
+		cluster,
+		(exactGroup) => exactGroup.workflowIntentLabels,
+	);
 }

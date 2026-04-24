@@ -200,6 +200,77 @@ test("workflow family clustering keeps the same family identifier when a merged 
 	);
 });
 
+test("workflow family clustering keeps the same family identifier when a valid merge adds a thread name", () => {
+	const existingRow = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText:
+			"Implement BEL-809 workflow family clustering in /repo/sensei before 2026-04-21.",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const addedThreadRow = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText:
+			"Implement BEL-810 workflow family clustering in /repo/sensei before 2026-05-01.",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-810 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:03:00.000Z",
+	});
+
+	expect(existingRow.nearFingerprint).toBe(addedThreadRow.nearFingerprint);
+
+	const initialResult = clusterWorkflowFamilies([existingRow]);
+	const mergedResult = clusterWorkflowFamilies([existingRow, addedThreadRow]);
+
+	expect(mergedResult.families).toHaveLength(1);
+	expect(initialResult.families[0]?.familyId).toBe(
+		mergedResult.families[0]?.familyId,
+	);
+});
+
+test("workflow family clustering keeps the same family identifier when shared intent narrows", () => {
+	const existingRow = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText: "123 /Users/alice/code/sensei/.worktrees/bel-819",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement", "review"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const narrowerIntentRow = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText: "456 /workspace/sensei/.worktrees/bel-820",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["review"],
+		updatedAt: "2026-04-21T20:03:00.000Z",
+	});
+
+	expect(existingRow.nearFingerprint).toBe(narrowerIntentRow.nearFingerprint);
+
+	const initialResult = clusterWorkflowFamilies([existingRow]);
+	const mergedResult = clusterWorkflowFamilies([existingRow, narrowerIntentRow]);
+	const familyEvidence = mergedResult.families[0]
+		?.evidence as WorkflowFamilyRecordEvidence;
+
+	expect(mergedResult.families).toHaveLength(1);
+	expect(familyEvidence.sharedWorkflowIntentLabels).toEqual(["review"]);
+	expect(initialResult.families[0]?.familyId).toBe(
+		mergedResult.families[0]?.familyId,
+	);
+});
+
 test("workflow family clustering merges related prompt variants when near fingerprint, intent, and project context align", () => {
 	const result = clusterWorkflowFamilies([
 		createWorkflowSearchRow({
@@ -357,6 +428,36 @@ test("workflow family clustering keeps tag-only overlap below the merge threshol
 	expect(result.members).toHaveLength(2);
 });
 
+test("workflow family clustering does not merge thread-only overlap across different project paths", () => {
+	const firstRow = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText: "123 /Users/alice/code/sensei/.worktrees/bel-819",
+		projectPath: "/repo/alpha",
+		threadName: "Shared execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const secondRow = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText: "456 /workspace/sensei/.worktrees/bel-820",
+		projectPath: "/repo/beta",
+		threadName: "Shared execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:03:00.000Z",
+	});
+
+	expect(firstRow.nearFingerprint).toBe(secondRow.nearFingerprint);
+
+	const result = clusterWorkflowFamilies([firstRow, secondRow]);
+
+	expect(result.families).toHaveLength(2);
+	expect(result.families[0]?.familyId).not.toBe(result.families[1]?.familyId);
+});
+
 test("workflow family clustering gives distinct family identifiers to near-only clusters that do not merge", () => {
 	const firstRow = createWorkflowSearchRow({
 		sessionId: "session-a",
@@ -406,6 +507,36 @@ test("workflow family clustering gives distinct family identifiers to same-conte
 		threadName: "BEL-809 execution",
 		tags: ["analysis"],
 		workflowIntentLabels: ["explain"],
+		updatedAt: "2026-04-21T20:03:00.000Z",
+	});
+
+	expect(firstRow.nearFingerprint).toBe(secondRow.nearFingerprint);
+
+	const result = clusterWorkflowFamilies([firstRow, secondRow]);
+
+	expect(result.families).toHaveLength(2);
+	expect(result.families[0]?.familyId).not.toBe(result.families[1]?.familyId);
+});
+
+test("workflow family clustering gives distinct family identifiers to empty-intent same-context clusters", () => {
+	const firstRow = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText: "123 /Users/alice/code/sensei/.worktrees/bel-819",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: [],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const secondRow = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText: "456 /workspace/sensei/.worktrees/bel-820",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: [],
 		updatedAt: "2026-04-21T20:03:00.000Z",
 	});
 
