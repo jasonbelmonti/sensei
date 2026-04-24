@@ -77,7 +77,13 @@ function buildWorkflowFamilyMergeDecision(
 		candidateGroup.workflowIntentLabels,
 	);
 
-	if (sharedWorkflowIntentLabels.length === 0) {
+	if (
+		sharedWorkflowIntentLabels.length === 0 ||
+		preservesCanonicalSharedSignal(
+			cluster.sharedWorkflowIntentLabels,
+			candidateGroup.workflowIntentLabels,
+		) === false
+	) {
 		return undefined;
 	}
 
@@ -89,6 +95,12 @@ function buildWorkflowFamilyMergeDecision(
 		cluster.sharedThreadNames,
 		candidateGroup.threadNames,
 	);
+
+	if (
+		preservesCanonicalSharedContextSignal(cluster, candidateGroup) === false
+	) {
+		return undefined;
+	}
 
 	if (
 		sharedProjectPaths.length === 0 &&
@@ -143,6 +155,39 @@ function mergeWorkflowFamilyCluster(
 	cluster.sharedThreadNames = intersectSortedStrings(
 		cluster.sharedThreadNames,
 		candidateGroup.threadNames,
+	);
+}
+
+function preservesCanonicalSharedContextSignal(
+	cluster: WorkflowFamilyCluster,
+	candidateGroup: ExactWorkflowFamilyGroup,
+): boolean {
+	if (cluster.sharedProjectPaths.length > 0) {
+		return preservesCanonicalSharedSignal(
+			cluster.sharedProjectPaths,
+			candidateGroup.projectPaths,
+		);
+	}
+
+	if (cluster.sharedThreadNames.length > 0) {
+		return preservesCanonicalSharedSignal(
+			cluster.sharedThreadNames,
+			candidateGroup.threadNames,
+		);
+	}
+
+	return true;
+}
+
+function preservesCanonicalSharedSignal(
+	currentSharedValues: readonly string[],
+	candidateValues: readonly string[],
+): boolean {
+	const [canonicalSharedValue] = currentSharedValues;
+
+	return (
+		canonicalSharedValue === undefined ||
+		candidateValues.includes(canonicalSharedValue)
 	);
 }
 

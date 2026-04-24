@@ -150,7 +150,7 @@ test("workflow family clustering keeps the same family identifier when a lower-k
 	);
 });
 
-test("workflow family clustering keeps the same family identifier when a merged family later gains a weaker row with no project path", () => {
+test("workflow family clustering does not merge a weaker row that would drop the shared project path", () => {
 	const initialRows = [
 		createWorkflowSearchRow({
 			sessionId: "session-a",
@@ -195,8 +195,9 @@ test("workflow family clustering keeps the same family identifier when a merged 
 		weakerBackfillRow,
 	]);
 
-	expect(initialResult.families[0]?.familyId).toBe(
-		backfilledResult.families[0]?.familyId,
+	expect(backfilledResult.families).toHaveLength(2);
+	expect(backfilledResult.families.map((family) => family.familyId)).toContain(
+		initialResult.families[0]?.familyId,
 	);
 });
 
@@ -235,7 +236,7 @@ test("workflow family clustering keeps the same family identifier when a valid m
 	);
 });
 
-test("workflow family clustering keeps the same family identifier when shared intent narrows", () => {
+test("workflow family clustering does not merge a row that would drop the canonical shared intent", () => {
 	const existingRow = createWorkflowSearchRow({
 		sessionId: "session-a",
 		turnId: "turn-001",
@@ -260,15 +261,58 @@ test("workflow family clustering keeps the same family identifier when shared in
 	expect(existingRow.nearFingerprint).toBe(narrowerIntentRow.nearFingerprint);
 
 	const initialResult = clusterWorkflowFamilies([existingRow]);
-	const mergedResult = clusterWorkflowFamilies([existingRow, narrowerIntentRow]);
-	const familyEvidence = mergedResult.families[0]
-		?.evidence as WorkflowFamilyRecordEvidence;
+	const result = clusterWorkflowFamilies([existingRow, narrowerIntentRow]);
 
-	expect(mergedResult.families).toHaveLength(1);
-	expect(familyEvidence.sharedWorkflowIntentLabels).toEqual(["review"]);
-	expect(initialResult.families[0]?.familyId).toBe(
-		mergedResult.families[0]?.familyId,
+	expect(result.families).toHaveLength(2);
+	expect(result.families.map((family) => family.familyId)).toContain(
+		initialResult.families[0]?.familyId,
 	);
+});
+
+test("workflow family clustering keeps partially overlapping intent families distinct", () => {
+	const multiIntentRow = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText: "123 /Users/alice/code/sensei/.worktrees/bel-819",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement", "review"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const reviewOnlyRow = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText: "456 /workspace/sensei/.worktrees/bel-820",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["review"],
+		updatedAt: "2026-04-21T20:03:00.000Z",
+	});
+	const implementOnlyRow = createWorkflowSearchRow({
+		sessionId: "session-c",
+		turnId: "turn-003",
+		promptText: "789 /workspace/sensei/.worktrees/bel-821",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:06:00.000Z",
+	});
+
+	expect(multiIntentRow.nearFingerprint).toBe(reviewOnlyRow.nearFingerprint);
+	expect(multiIntentRow.nearFingerprint).toBe(implementOnlyRow.nearFingerprint);
+
+	const result = clusterWorkflowFamilies([
+		multiIntentRow,
+		reviewOnlyRow,
+		implementOnlyRow,
+	]);
+	const familyIds = result.families.map((family) => family.familyId);
+
+	expect(result.families).toHaveLength(2);
+	expect(new Set(familyIds).size).toBe(familyIds.length);
 });
 
 test("workflow family clustering merges related prompt variants when near fingerprint, intent, and project context align", () => {

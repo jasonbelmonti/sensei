@@ -43,19 +43,13 @@ function buildCanonicalWorkflowFamilyKey(
 function buildCanonicalContextSignature(
 	cluster: WorkflowFamilyCluster,
 ): string | undefined {
-	const projectPath = firstCanonicalClusterValue(
-		cluster,
-		(exactGroup) => exactGroup.projectPaths,
-	);
+	const projectPath = firstCanonicalString(cluster.sharedProjectPaths);
 
 	if (projectPath !== undefined) {
 		return `project\u0000${projectPath}`;
 	}
 
-	const threadName = firstCanonicalClusterValue(
-		cluster,
-		(exactGroup) => exactGroup.threadNames,
-	);
+	const threadName = firstCanonicalString(cluster.sharedThreadNames);
 
 	if (threadName !== undefined) {
 		return `thread\u0000${threadName}`;
@@ -64,20 +58,12 @@ function buildCanonicalContextSignature(
 	return undefined;
 }
 
-function firstCanonicalClusterValue(
-	cluster: WorkflowFamilyCluster,
-	getValues: (
-		exactGroup: WorkflowFamilyCluster["exactGroups"][number],
-	) => readonly string[],
-): string | undefined {
-	return [...new Set(cluster.exactGroups.flatMap(getValues))].sort()[0];
+function firstCanonicalString(values: readonly string[]): string | undefined {
+	return values[0];
 }
 
 function buildWorkflowIntentSignature(
 	cluster: WorkflowFamilyCluster,
 ): string | undefined {
-	return firstCanonicalClusterValue(
-		cluster,
-		(exactGroup) => exactGroup.workflowIntentLabels,
-	);
+	return firstCanonicalString(cluster.sharedWorkflowIntentLabels);
 }
