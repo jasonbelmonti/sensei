@@ -150,6 +150,68 @@ test("workflow family clustering keeps the same family identifier when a lower-k
 	);
 });
 
+test("workflow family clustering does not let a lower-key partial intent backfill reassign existing members", () => {
+	const lowerKeyBackfill = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText: "123 /Users/alice/code/sensei/.worktrees/bel-819",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["setup"],
+		updatedAt: "2026-04-20T20:00:00.000Z",
+	});
+	const multiIntentRow = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText: "456 /workspace/sensei/.worktrees/bel-820",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["review", "setup"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const reviewOnlyRow = createWorkflowSearchRow({
+		sessionId: "session-c",
+		turnId: "turn-003",
+		promptText: "789 /workspace/sensei/.worktrees/bel-821",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["review"],
+		updatedAt: "2026-04-21T20:03:00.000Z",
+	});
+
+	expect(lowerKeyBackfill.nearFingerprint).toBe(multiIntentRow.nearFingerprint);
+	expect(lowerKeyBackfill.nearFingerprint).toBe(reviewOnlyRow.nearFingerprint);
+	expect(
+		(lowerKeyBackfill.exactFingerprint ?? "").localeCompare(
+			multiIntentRow.exactFingerprint ?? "",
+		),
+	).toBeLessThan(0);
+
+	const initialResult = clusterWorkflowFamilies([multiIntentRow, reviewOnlyRow]);
+	const initialFamilyId = getMemberFamilyId(initialResult, multiIntentRow);
+
+	expect(getMemberFamilyId(initialResult, reviewOnlyRow)).toBe(initialFamilyId);
+
+	const backfilledResult = clusterWorkflowFamilies([
+		multiIntentRow,
+		reviewOnlyRow,
+		lowerKeyBackfill,
+	]);
+
+	expect(getMemberFamilyId(backfilledResult, multiIntentRow)).toBe(
+		initialFamilyId,
+	);
+	expect(getMemberFamilyId(backfilledResult, reviewOnlyRow)).toBe(
+		initialFamilyId,
+	);
+	expect(getMemberFamilyId(backfilledResult, lowerKeyBackfill)).not.toBe(
+		initialFamilyId,
+	);
+});
+
 test("workflow family clustering does not merge a weaker row that would drop the shared project path", () => {
 	const initialRows = [
 		createWorkflowSearchRow({
@@ -716,4 +778,24 @@ function requireFingerprint(
 	}
 
 	return fingerprint;
+}
+
+function getMemberFamilyId(
+	result: ReturnType<typeof clusterWorkflowFamilies>,
+	row: WorkflowFamilySourceRow,
+): string {
+	const member = result.members.find(
+		(candidate) =>
+			candidate.provider === row.provider &&
+			candidate.sessionId === row.sessionId &&
+			candidate.turnId === row.turnId,
+	);
+
+	if (member === undefined) {
+		throw new Error(
+			`expected workflow family member for ${row.provider}/${row.sessionId}/${row.turnId}`,
+		);
+	}
+
+	return member.familyId;
 }

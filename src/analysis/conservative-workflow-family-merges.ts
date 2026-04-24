@@ -10,41 +10,102 @@ export function buildConservativeWorkflowFamilyClusters(
 	exactGroups: readonly ExactWorkflowFamilyGroup[],
 ): WorkflowFamilyCluster[] {
 	const clusters: WorkflowFamilyCluster[] = [];
-	const assignedGroupKeys = new Set<string>();
+	const mergeableGroupsBySignature = new Map<string, ExactWorkflowFamilyGroup[]>();
 
 	for (const exactGroup of exactGroups) {
-		if (assignedGroupKeys.has(exactGroup.key)) {
+		const mergeSignature = buildWorkflowFamilyMergeSignature(exactGroup);
+
+		if (mergeSignature === undefined) {
+			clusters.push(createWorkflowFamilyCluster(exactGroup));
 			continue;
 		}
 
-		const cluster = createWorkflowFamilyCluster(exactGroup);
-		assignedGroupKeys.add(exactGroup.key);
+		const mergeableGroups = mergeableGroupsBySignature.get(mergeSignature);
 
-		for (const candidateGroup of exactGroups) {
-			if (
-				assignedGroupKeys.has(candidateGroup.key) ||
-				candidateGroup.key === exactGroup.key
-			) {
-				continue;
-			}
-
-			const mergeDecision = buildWorkflowFamilyMergeDecision(
-				cluster,
-				candidateGroup,
-			);
-
-			if (mergeDecision === undefined) {
-				continue;
-			}
-
-			mergeWorkflowFamilyCluster(cluster, candidateGroup, mergeDecision);
-			assignedGroupKeys.add(candidateGroup.key);
+		if (mergeableGroups === undefined) {
+			mergeableGroupsBySignature.set(mergeSignature, [exactGroup]);
+			continue;
 		}
 
-		clusters.push(cluster);
+		mergeableGroups.push(exactGroup);
+	}
+
+	for (const mergeableGroups of mergeableGroupsBySignature.values()) {
+		clusters.push(buildWorkflowFamilyCluster(mergeableGroups));
 	}
 
 	return clusters;
+}
+
+function buildWorkflowFamilyMergeSignature(
+	exactGroup: ExactWorkflowFamilyGroup,
+): string | undefined {
+	if (exactGroup.nearFingerprint === undefined) {
+		return undefined;
+	}
+
+	const contextSignature = buildCanonicalContextSignature(exactGroup);
+	const workflowIntentLabel = exactGroup.workflowIntentLabels[0];
+
+	if (contextSignature === undefined || workflowIntentLabel === undefined) {
+		return undefined;
+	}
+
+	return [
+		"near",
+		exactGroup.nearFingerprint,
+		"context",
+		contextSignature,
+		"intent",
+		workflowIntentLabel,
+	].join("\u0000");
+}
+
+function buildCanonicalContextSignature(
+	exactGroup: ExactWorkflowFamilyGroup,
+): string | undefined {
+	const [projectPath] = exactGroup.projectPaths;
+
+	if (projectPath !== undefined) {
+		return `project\u0000${projectPath}`;
+	}
+
+	const [threadName] = exactGroup.threadNames;
+
+	if (threadName !== undefined) {
+		return `thread\u0000${threadName}`;
+	}
+
+	return undefined;
+}
+
+function buildWorkflowFamilyCluster(
+	exactGroups: readonly ExactWorkflowFamilyGroup[],
+): WorkflowFamilyCluster {
+	const [seedGroup, ...candidateGroups] = exactGroups;
+
+	if (seedGroup === undefined) {
+		throw new Error("workflow family cluster must include at least one group");
+	}
+
+	const cluster = createWorkflowFamilyCluster(seedGroup);
+
+	for (const candidateGroup of candidateGroups) {
+		const mergeDecision = buildWorkflowFamilyMergeDecision(
+			cluster,
+			candidateGroup,
+		);
+
+		if (mergeDecision === undefined) {
+			throw new Error(
+				`workflow family group ${candidateGroup.key} matched stable merge signature but failed conservative merge validation`,
+			);
+		}
+
+		mergeWorkflowFamilyCluster(cluster, candidateGroup, mergeDecision);
+	}
+
+	return cluster;
 }
 
 function createWorkflowFamilyCluster(
