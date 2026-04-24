@@ -201,6 +201,47 @@ test("workflow family clustering does not merge a weaker row that would drop the
 	);
 });
 
+test("workflow family clustering does not let a projectless backfill absorb a project-scoped family", () => {
+	const projectScopedRow = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText: "Implement BEL-809 workflow family clustering in /repo/sensei.",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const projectlessBackfillRow = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText: "Implement BEL-809 workflow family clustering in /repo/sensei.",
+		projectPath: undefined,
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-20T20:00:00.000Z",
+	});
+
+	expect(projectScopedRow.exactFingerprint).toBe(
+		projectlessBackfillRow.exactFingerprint,
+	);
+	expect(projectScopedRow.nearFingerprint).toBe(
+		projectlessBackfillRow.nearFingerprint,
+	);
+
+	const initialResult = clusterWorkflowFamilies([projectScopedRow]);
+	const backfilledResult = clusterWorkflowFamilies([
+		projectScopedRow,
+		projectlessBackfillRow,
+	]);
+
+	expect(backfilledResult.families).toHaveLength(2);
+	expect(backfilledResult.families.map((family) => family.familyId)).toContain(
+		initialResult.families[0]?.familyId,
+	);
+});
+
 test("workflow family clustering keeps the same family identifier when a valid merge adds a thread name", () => {
 	const existingRow = createWorkflowSearchRow({
 		sessionId: "session-a",

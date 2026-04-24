@@ -104,8 +104,7 @@ function buildWorkflowFamilyMergeDecision(
 
 	if (
 		sharedProjectPaths.length === 0 &&
-		clusterHasProjectPath(cluster) &&
-		candidateGroup.projectPaths.length > 0
+		(clusterHasProjectPath(cluster) || candidateGroup.projectPaths.length > 0)
 	) {
 		return undefined;
 	}
