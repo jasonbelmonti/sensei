@@ -48,27 +48,74 @@ function buildSingletonExactWorkflowFamilyKey(
 	cluster: WorkflowFamilyCluster,
 ): string {
 	const nearFingerprint = cluster.seedGroup.nearFingerprint;
-	const projectPath = cluster.seedGroup.projectPath;
+	const contextSignature = buildSingletonContextSignature(cluster);
 	const workflowIntentSignature = firstCanonicalString(
 		cluster.seedGroup.stableWorkflowIntentLabels,
 	);
 
 	if (
 		nearFingerprint !== undefined &&
-		projectPath !== undefined &&
+		contextSignature !== undefined &&
 		workflowIntentSignature !== undefined
 	) {
 		return [
 			"near",
 			nearFingerprint,
 			"context",
-			`project\u0000${projectPath}`,
+			contextSignature,
 			"intent",
 			workflowIntentSignature,
 		].join("\u0000");
 	}
 
 	return cluster.seedGroup.key;
+}
+
+function buildSingletonContextSignature(
+	cluster: WorkflowFamilyCluster,
+): string | undefined {
+	const projectPath = cluster.seedGroup.projectPath;
+
+	if (projectPath !== undefined) {
+		return `project\u0000${projectPath}`;
+	}
+
+	const threadName = getLatestSingletonThreadName(cluster);
+
+	if (threadName !== undefined) {
+		return `thread\u0000${threadName}`;
+	}
+
+	return undefined;
+}
+
+function getLatestSingletonThreadName(
+	cluster: WorkflowFamilyCluster,
+): string | undefined {
+	let latestThreadName: string | undefined;
+	let latestUpdatedAt = "";
+	let latestRowKey = "";
+
+	for (const row of cluster.seedGroup.rows) {
+		if (row.threadName === undefined) {
+			continue;
+		}
+
+		const updatedAt = row.updatedAt ?? "";
+		const rowKey = `${row.provider}\u0000${row.sessionId}\u0000${row.turnId}`;
+
+		if (
+			latestThreadName === undefined ||
+			updatedAt > latestUpdatedAt ||
+			(updatedAt === latestUpdatedAt && rowKey > latestRowKey)
+		) {
+			latestThreadName = row.threadName;
+			latestUpdatedAt = updatedAt;
+			latestRowKey = rowKey;
+		}
+	}
+
+	return latestThreadName;
 }
 
 function buildCanonicalContextSignature(

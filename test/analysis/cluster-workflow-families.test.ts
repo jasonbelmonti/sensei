@@ -439,6 +439,55 @@ test("workflow family clustering keeps the same family identifier when a valid m
 	);
 });
 
+test("workflow family clustering keeps thread-scoped singleton identifiers stable when a near match is backfilled", () => {
+	const existingRow = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText: "123 /Users/alice/code/sensei/.worktrees/bel-819",
+		projectPath: undefined,
+		threadName: "Shared execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const backfilledNearRow = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText: "456 /workspace/sensei/.worktrees/bel-820",
+		projectPath: undefined,
+		threadName: "Shared execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement"],
+		updatedAt: "2026-04-20T20:00:00.000Z",
+	});
+
+	expect(existingRow.nearFingerprint).toBe(backfilledNearRow.nearFingerprint);
+
+	const initialResult = clusterWorkflowFamilies([existingRow]);
+	const backfilledResult = clusterWorkflowFamilies([
+		existingRow,
+		backfilledNearRow,
+	]);
+	const initialFamilyId = getMemberFamilyId(initialResult, existingRow);
+
+	expect(backfilledResult.families).toHaveLength(1);
+	expect(getMemberFamilyId(backfilledResult, existingRow)).toBe(
+		initialFamilyId,
+	);
+	expect(getMemberFamilyId(backfilledResult, backfilledNearRow)).toBe(
+		initialFamilyId,
+	);
+	expect(
+		(backfilledResult.families[0]?.evidence as WorkflowFamilyRecordEvidence)
+			.mergeReasons,
+	).toEqual([
+		"exact-fingerprint",
+		"near-fingerprint",
+		"workflow-intent-overlap",
+		"thread-name-overlap",
+	]);
+});
+
 test("workflow family clustering does not merge a row that would drop the canonical shared intent", () => {
 	const existingRow = createWorkflowSearchRow({
 		sessionId: "session-a",
