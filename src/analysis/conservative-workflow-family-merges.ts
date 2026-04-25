@@ -45,7 +45,7 @@ function buildWorkflowFamilyMergeSignature(
 	}
 
 	const contextSignature = buildCanonicalContextSignature(exactGroup);
-	const workflowIntentLabel = exactGroup.workflowIntentLabels[0];
+	const workflowIntentLabel = exactGroup.stableWorkflowIntentLabels[0];
 
 	if (contextSignature === undefined || workflowIntentLabel === undefined) {
 		return undefined;
@@ -116,7 +116,7 @@ function createWorkflowFamilyCluster(
 		exactGroups: [seedGroup],
 		mergeDecisions: [],
 		sharedTags: [...seedGroup.tags],
-		sharedWorkflowIntentLabels: [...seedGroup.workflowIntentLabels],
+		sharedWorkflowIntentLabels: [...seedGroup.stableWorkflowIntentLabels],
 		sharedProjectPaths: [...seedGroup.projectPaths],
 		sharedThreadNames: [...seedGroup.threadNames],
 	};
@@ -135,14 +135,14 @@ function buildWorkflowFamilyMergeDecision(
 
 	const sharedWorkflowIntentLabels = intersectSortedStrings(
 		cluster.sharedWorkflowIntentLabels,
-		candidateGroup.workflowIntentLabels,
+		candidateGroup.stableWorkflowIntentLabels,
 	);
 
 	if (
 		sharedWorkflowIntentLabels.length === 0 ||
 		preservesCanonicalSharedSignal(
 			cluster.sharedWorkflowIntentLabels,
-			candidateGroup.workflowIntentLabels,
+			candidateGroup.stableWorkflowIntentLabels,
 		) === false
 	) {
 		return undefined;
@@ -206,7 +206,7 @@ function mergeWorkflowFamilyCluster(
 	);
 	cluster.sharedWorkflowIntentLabels = intersectSortedStrings(
 		cluster.sharedWorkflowIntentLabels,
-		candidateGroup.workflowIntentLabels,
+		candidateGroup.stableWorkflowIntentLabels,
 	);
 	cluster.sharedProjectPaths = intersectSortedStrings(
 		cluster.sharedProjectPaths,

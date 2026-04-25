@@ -30,6 +30,7 @@ export type ExactWorkflowFamilyGroup = {
 	anchor: WorkflowFamilySourceRow;
 	tags: string[];
 	workflowIntentLabels: string[];
+	stableWorkflowIntentLabels: string[];
 	threadNames: string[];
 	projectPaths: string[];
 };

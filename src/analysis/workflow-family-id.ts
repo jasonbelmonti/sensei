@@ -14,6 +14,10 @@ export function buildWorkflowFamilyId(cluster: WorkflowFamilyCluster): string {
 function buildCanonicalWorkflowFamilyKey(
 	cluster: WorkflowFamilyCluster,
 ): string {
+	if (cluster.exactGroups.length === 1) {
+		return buildSingletonExactWorkflowFamilyKey(cluster);
+	}
+
 	const nearFingerprint = cluster.seedGroup.nearFingerprint;
 
 	if (nearFingerprint === undefined) {
@@ -38,6 +42,33 @@ function buildCanonicalWorkflowFamilyKey(
 	}
 
 	return `near\u0000${nearFingerprint}\u0000group\u0000${cluster.seedGroup.key}`;
+}
+
+function buildSingletonExactWorkflowFamilyKey(
+	cluster: WorkflowFamilyCluster,
+): string {
+	const nearFingerprint = cluster.seedGroup.nearFingerprint;
+	const projectPath = cluster.seedGroup.projectPath;
+	const workflowIntentSignature = firstCanonicalString(
+		cluster.seedGroup.stableWorkflowIntentLabels,
+	);
+
+	if (
+		nearFingerprint !== undefined &&
+		projectPath !== undefined &&
+		workflowIntentSignature !== undefined
+	) {
+		return [
+			"near",
+			nearFingerprint,
+			"context",
+			`project\u0000${projectPath}`,
+			"intent",
+			workflowIntentSignature,
+		].join("\u0000");
+	}
+
+	return cluster.seedGroup.key;
 }
 
 function buildCanonicalContextSignature(

@@ -65,6 +65,7 @@ function buildExactWorkflowFamilyGroup(
 			sortedRows,
 			(row) => row.workflowIntentLabels,
 		),
+		stableWorkflowIntentLabels: collectStableWorkflowIntentLabels(sortedRows),
 		threadNames: collectDefinedStrings(sortedRows, (row) => row.threadName),
 		projectPaths: collectDefinedStrings(sortedRows, (row) => row.projectPath),
 	};
@@ -138,6 +139,36 @@ function collectDefinedStrings(
 	}
 
 	return uniqueSortedStrings(values);
+}
+
+function collectStableWorkflowIntentLabels(
+	rows: readonly WorkflowFamilySourceRow[],
+): string[] {
+	const [firstRow, ...remainingRows] = rows;
+
+	if (firstRow === undefined) {
+		return [];
+	}
+
+	let stableLabels = uniqueSortedStrings(firstRow.workflowIntentLabels);
+
+	for (const row of remainingRows) {
+		stableLabels = intersectSortedStrings(
+			stableLabels,
+			uniqueSortedStrings(row.workflowIntentLabels),
+		);
+	}
+
+	return stableLabels;
+}
+
+function intersectSortedStrings(
+	left: readonly string[],
+	right: readonly string[],
+): string[] {
+	const rightValues = new Set(right);
+
+	return left.filter((value) => rightValues.has(value));
 }
 
 function firstDefinedValue<

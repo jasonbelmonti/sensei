@@ -212,6 +212,106 @@ test("workflow family clustering does not let a lower-key partial intent backfil
 	);
 });
 
+test("workflow family clustering derives merge signatures from stable exact-group intent labels", () => {
+	const exactReviewRow = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText: "456 /workspace/sensei/.worktrees/bel-820",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["review"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const exactBackfillWithEarlierIntent = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002-backfill",
+		promptText: exactReviewRow.promptText,
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement", "review"],
+		updatedAt: "2026-04-20T20:00:00.000Z",
+	});
+	const reviewOnlyNearRow = createWorkflowSearchRow({
+		sessionId: "session-c",
+		turnId: "turn-003",
+		promptText: "789 /workspace/sensei/.worktrees/bel-821",
+		projectPath: "/repo/sensei",
+		threadName: "BEL-809 execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["review"],
+		updatedAt: "2026-04-21T20:03:00.000Z",
+	});
+
+	expect(exactBackfillWithEarlierIntent.exactFingerprint).toBe(
+		exactReviewRow.exactFingerprint,
+	);
+	expect(exactReviewRow.nearFingerprint).toBe(reviewOnlyNearRow.nearFingerprint);
+
+	const initialResult = clusterWorkflowFamilies([
+		exactReviewRow,
+		reviewOnlyNearRow,
+	]);
+	const initialFamilyId = getMemberFamilyId(initialResult, exactReviewRow);
+
+	expect(getMemberFamilyId(initialResult, reviewOnlyNearRow)).toBe(
+		initialFamilyId,
+	);
+
+	const backfilledResult = clusterWorkflowFamilies([
+		exactReviewRow,
+		reviewOnlyNearRow,
+		exactBackfillWithEarlierIntent,
+	]);
+
+	expect(getMemberFamilyId(backfilledResult, exactReviewRow)).toBe(
+		initialFamilyId,
+	);
+	expect(getMemberFamilyId(backfilledResult, reviewOnlyNearRow)).toBe(
+		initialFamilyId,
+	);
+	expect(
+		getMemberFamilyId(backfilledResult, exactBackfillWithEarlierIntent),
+	).toBe(initialFamilyId);
+});
+
+test("workflow family clustering keeps singleton exact family IDs stable when exact reruns add mutable metadata", () => {
+	const exactRow = createWorkflowSearchRow({
+		sessionId: "session-a",
+		turnId: "turn-001",
+		promptText: "456 /workspace/sensei/.worktrees/bel-820",
+		projectPath: undefined,
+		threadName: "Review execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["review"],
+		updatedAt: "2026-04-21T20:00:00.000Z",
+	});
+	const backfilledExactRerun = createWorkflowSearchRow({
+		sessionId: "session-b",
+		turnId: "turn-002",
+		promptText: exactRow.promptText,
+		projectPath: undefined,
+		threadName: "Earlier imported execution",
+		tags: ["analysis"],
+		workflowIntentLabels: ["implement", "review"],
+		updatedAt: "2026-04-20T20:00:00.000Z",
+	});
+
+	expect(backfilledExactRerun.exactFingerprint).toBe(exactRow.exactFingerprint);
+
+	const initialResult = clusterWorkflowFamilies([exactRow]);
+	const backfilledResult = clusterWorkflowFamilies([
+		exactRow,
+		backfilledExactRerun,
+	]);
+
+	expect(backfilledResult.families).toHaveLength(1);
+	expect(initialResult.families[0]?.familyId).toBe(
+		backfilledResult.families[0]?.familyId,
+	);
+});
+
 test("workflow family clustering does not merge a weaker row that would drop the shared project path", () => {
 	const initialRows = [
 		createWorkflowSearchRow({
