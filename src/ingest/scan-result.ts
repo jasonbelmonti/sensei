@@ -3,7 +3,7 @@ import type {
   IngestWarning,
   ObservedAgentEvent,
   ObservedSessionRecord,
-} from "@jasonbelmonti/claudex/ingest";
+} from "./contracts.js";
 
 export type SenseiPassiveScanObservedEvent = {
   kind: "event";

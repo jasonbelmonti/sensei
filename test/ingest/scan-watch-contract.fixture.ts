@@ -1,7 +1,7 @@
 import type {
   SessionIngestService,
   SessionIngestServiceOptions,
-} from "@jasonbelmonti/claudex/ingest";
+} from "../../src/ingest/contracts.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

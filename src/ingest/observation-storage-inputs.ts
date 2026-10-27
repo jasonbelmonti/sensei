@@ -3,7 +3,7 @@ import type {
   ObservedEventSourceKind,
   ObservedSessionIdentity,
   ObservedSessionRecord,
-} from "@jasonbelmonti/claudex/ingest";
+} from "./contracts.js";
 
 import type {
   StoreCursorInput,

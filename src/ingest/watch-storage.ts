@@ -4,7 +4,7 @@ import type {
   ObservedAgentEvent,
   ObservedSessionRecord,
   SessionIngestServiceOptions,
-} from "@jasonbelmonti/claudex/ingest";
+} from "./contracts.js";
 
 import type { SenseiStorage } from "../storage/index.js";
 import {

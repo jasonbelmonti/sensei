@@ -1,0 +1,3 @@
+{"type":"user","session_id":"legacy-claude","cwd":"/fixture/project","timestamp":"2026-10-01T00:00:00.000Z","message":{"role":"user","content":"Inspect the synthetic Claude request."}}
+{"type":"assistant","session_id":"legacy-claude","uuid":"assistant-1","message":{"content":[{"type":"text","text":"Inspected the request."}]}}
+{"type":"result","subtype":"success","session_id":"legacy-claude","result":"Inspected the request.","stop_reason":"end_turn","usage":{"input_tokens":12,"output_tokens":7}}

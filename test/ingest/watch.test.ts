@@ -6,7 +6,7 @@ import type {
   ObservedSessionRecord,
   SessionIngestService,
   SessionIngestServiceOptions,
-} from "@jasonbelmonti/claudex/ingest";
+} from "../../src/ingest/contracts.js";
 
 import { createSenseiConfig } from "../../src/config/index.js";
 import { createSenseiIngestWatch } from "../../src/ingest/index.js";

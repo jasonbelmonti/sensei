@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "vitest";
-import type { IngestCursor } from "@jasonbelmonti/claudex/ingest";
+import type { IngestCursor } from "../../src/ingest/contracts.js";
 
 import {
   countRows,

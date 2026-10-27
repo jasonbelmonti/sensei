@@ -6,7 +6,7 @@ import { expect, test } from "vitest";
 import { openSenseiStorage } from "../../src/storage/index.js";
 import { runPackageCliCommand, smokeTestRootDir } from "./helpers.js";
 
-test("compiled CLI preserves Claude sessions and legacy Codex turns through Claudex on replay", () => {
+test("compiled CLI preserves Claude sessions and legacy Codex turns through owned ingestion on replay", () => {
 	const root = mkdtempSync(join(tmpdir(), "sensei-ingest-cli-"));
 	try {
 		const env = {
@@ -39,7 +39,7 @@ test("compiled CLI preserves Claude sessions and legacy Codex turns through Clau
 			});
 			try {
 				// The legacy Claude normalizer has no turn IDs; session persistence is
-				// its existing contract here. Full turn ingestion belongs to its replacement.
+				// its existing contract here. Full turn ingestion remains a separate fidelity phase.
 				expect(
 					storage.conversations.getSession("claude", "claude-node-smoke"),
 				).toMatchObject({

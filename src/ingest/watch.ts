@@ -2,8 +2,8 @@ import type {
   IngestProviderRegistry,
   SessionIngestService,
   SessionIngestServiceOptions,
-} from "@jasonbelmonti/claudex/ingest";
-import { createSessionIngestService } from "@jasonbelmonti/claudex/ingest";
+} from "./contracts.js";
+import { createSessionIngestService } from "./service.js";
 
 import type { SenseiRuntimeConfig } from "../config/index.js";
 import {

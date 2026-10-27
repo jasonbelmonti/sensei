@@ -38,7 +38,7 @@ test("package scripts and documentation describe the bootstrap surface", async (
     typecheck: "tsc --noEmit",
     check: "npm run lint && npm run typecheck && npm test",
   });
-  expect(readme).toContain("@jasonbelmonti/claudex/ingest");
+  expect(readme).toContain("Sensei-owned readers");
   expect(readme).toContain("local-first mentoring system");
   expect(readme).toContain("npm run sensei -- --help");
   expect(readme).toContain("ingest");

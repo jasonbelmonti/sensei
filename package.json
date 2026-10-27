@@ -16,14 +16,13 @@
     "check": "npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {
-    "@jasonbelmonti/claudex": "4.0.6",
     "better-sqlite3": "13.0.3"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.10",
-    "typescript": "5.9.3",
-    "@types/node": "24.19.2",
     "@types/better-sqlite3": "9.6.0",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
     "vitest": "5.0.5"
   },
   "engines": {

@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "vitest";
-import type { DiscoveryEvent, ObservedSessionRecord } from "@jasonbelmonti/claudex/ingest";
+import type { DiscoveryEvent, ObservedSessionRecord } from "../../src/ingest/contracts.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

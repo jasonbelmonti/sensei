@@ -1,0 +1,89 @@
+[
+  {
+    "provider": "claude",
+    "rootPath": "<fixture>/claude",
+    "filePath": "<fixture>/claude/snapshot.json",
+    "byteOffset": 636,
+    "line": 1,
+    "fingerprint": "16777234:274530222",
+    "continuityToken": "1cc1b9149e55caef2ce7879bc42f6cdf29a1c9961a1209cf689118e2395ac501",
+    "updatedAt": "2026-10-27T21:50:28.290Z",
+    "metadata": {
+      "modifiedAtMs": 1793137777738.8877
+    }
+  },
+  {
+    "provider": "claude",
+    "rootPath": "<fixture>/claude",
+    "filePath": "<fixture>/claude/task.json",
+    "byteOffset": 719,
+    "line": 1,
+    "fingerprint": "16777234:274530223",
+    "continuityToken": "76455e8d72e44274aa8e971c83c135a48d466c600370d17188a0d0c675b2c539",
+    "updatedAt": "2026-10-27T21:50:28.303Z",
+    "metadata": {
+      "modifiedAtMs": 1793137777739.0132
+    }
+  },
+  {
+    "provider": "claude",
+    "rootPath": "<fixture>/claude",
+    "filePath": "<fixture>/claude/transcript.jsonl",
+    "byteOffset": 500,
+    "line": 3,
+    "metadata": {
+      "claudePendingAssistantTexts": {
+        "legacy-claude": {
+          "workingDirectory": "/fixture/project"
+        }
+      },
+      "modifiedAtMs": 1793137777738.6782
+    },
+    "fingerprint": "16777234:274530221",
+    "continuityToken": "652f65aca39b0edfabb55351c6c2e438ede981f447d5e32f1520c37a35540722",
+    "updatedAt": "2026-10-27T21:50:28.313Z"
+  },
+  {
+    "provider": "codex",
+    "rootPath": "<fixture>/codex",
+    "filePath": "<fixture>/codex/provisional.jsonl",
+    "byteOffset": 77,
+    "line": 1,
+    "metadata": {
+      "modifiedAtMs": 1793137777738.2483
+    },
+    "fingerprint": "16777234:274530220",
+    "continuityToken": "8f5dd259349bbf7c5bda722d16f1a43db1d6ae5e05ffbad90943e13969e50f92",
+    "updatedAt": "2026-10-27T21:50:28.323Z"
+  },
+  {
+    "provider": "codex",
+    "rootPath": "<fixture>/codex",
+    "filePath": "<fixture>/codex/session_index.jsonl",
+    "byteOffset": 182,
+    "line": 3,
+    "metadata": {
+      "modifiedAtMs": 1793137777737.887
+    },
+    "fingerprint": "16777234:274530219",
+    "continuityToken": "b616b9149ba904faf992021a5c4f4d66eb30cf573ce2b122303be9e75bb0328e",
+    "updatedAt": "2026-10-27T21:50:28.331Z"
+  },
+  {
+    "provider": "codex",
+    "rootPath": "<fixture>/codex",
+    "filePath": "<fixture>/codex/transcript.jsonl",
+    "byteOffset": 2376,
+    "line": 16,
+    "metadata": {
+      "codexTranscriptNormalizationState": {
+        "sessionId": "legacy-codex",
+        "pendingToolCalls": {}
+      },
+      "modifiedAtMs": 1793137777737.1333
+    },
+    "fingerprint": "16777234:274530218",
+    "continuityToken": "69d49ce3f8c4817e44bbea5016ba335f3997513d7ba737580db6095c5742bf4e",
+    "updatedAt": "2026-10-27T21:50:28.365Z"
+  }
+]

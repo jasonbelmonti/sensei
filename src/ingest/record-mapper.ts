@@ -1,7 +1,7 @@
 import type {
   IngestWarning,
   ObservedSessionRecord,
-} from "@jasonbelmonti/claudex/ingest";
+} from "./contracts.js";
 
 import type { StoreWarningInput } from "../storage/index.js";
 import { mapObservedAgentEventToStorageWrites } from "./event-record-mapper.js";

@@ -1,0 +1,34 @@
+{
+  "type": "snapshot",
+  "records": [
+    {
+      "type": "user",
+      "session_id": "snapshot-claude",
+      "message": {
+        "content": "Inspect this snapshot."
+      }
+    },
+    {
+      "type": "assistant",
+      "session_id": "snapshot-claude",
+      "uuid": "snapshot-answer",
+      "message": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Snapshot inspected."
+          }
+        ]
+      }
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "session_id": "snapshot-claude",
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 2
+      }
+    }
+  ]
+}

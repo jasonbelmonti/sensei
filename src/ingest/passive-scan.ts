@@ -1,21 +1,24 @@
-import {
-  createSessionIngestService,
-  type DiscoveryEvent,
-  type DiscoveryRootConfig,
-  type IngestProviderRegistry,
-  type IngestWarning,
-  type SessionIngestService,
-  type SessionIngestServiceOptions,
-} from "@jasonbelmonti/claudex/ingest";
-
 import type { SenseiRuntimeConfig } from "../config/index.js";
+import type {
+  DiscoveryEvent,
+  DiscoveryRootConfig,
+  IngestCursor,
+  IngestProviderRegistry,
+  IngestWarning,
+  SessionIngestService,
+  SessionIngestServiceOptions,
+} from "./contracts.js";
 import {
   createSenseiPassiveIngestRegistries,
   createSenseiPassiveScanRoots,
   createSenseiPassiveScanRootsForConfig,
   type SenseiPassiveScanRoot,
 } from "./provider-roots.js";
-import type { SenseiPassiveScanRecord, SenseiPassiveScanResult } from "./scan-result.js";
+import type {
+  SenseiPassiveScanRecord,
+  SenseiPassiveScanResult,
+} from "./scan-result.js";
+import { createSessionIngestService } from "./service.js";
 
 type SessionIngestServiceFactory = (
   options: SessionIngestServiceOptions,
@@ -50,10 +53,14 @@ export function createSenseiPassiveScanAdapter(
     roots,
     async scanNow() {
       const result = createMutableSenseiPassiveScanResult();
+      const finalCursors: IngestCursor[] = [];
 
       const service = createService({
         roots,
         registries: createRegistries(),
+        onCursor(cursor) {
+          finalCursors.push(cursor);
+        },
         onObservedEvent(observedEvent) {
           result.records.push({
             kind: "event",
@@ -75,6 +82,24 @@ export function createSenseiPassiveScanAdapter(
       });
 
       await service.scanNow();
+
+      // Publish the verified file checkpoint on the last buffered observation.
+      // Storage commits this alongside the complete scan in its existing transaction.
+      for (const cursor of finalCursors) {
+        const record = result.records.findLast((entry) => {
+          const observation =
+            entry.kind === "event"
+              ? entry.observedEvent
+              : entry.observedSession;
+          return (
+            observation.source.provider === cursor.provider &&
+            observation.source.rootPath === cursor.rootPath &&
+            observation.source.filePath === cursor.filePath
+          );
+        });
+        if (record?.kind === "event") record.observedEvent.cursor = cursor;
+        else if (record) record.observedSession.cursor = cursor;
+      }
 
       return result;
     },

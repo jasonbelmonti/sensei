@@ -6,7 +6,7 @@ import type {
   ObservedSessionRecord,
   SessionIngestService,
   SessionIngestServiceOptions,
-} from "@jasonbelmonti/claudex/ingest";
+} from "../../src/ingest/contracts.js";
 import { join } from "node:path";
 
 import type { SenseiPassiveScanResult } from "../../src/ingest/index.js";

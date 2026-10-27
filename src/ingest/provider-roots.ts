@@ -1,8 +1,6 @@
-import type { DiscoveryRootConfig, IngestProviderRegistry } from "@jasonbelmonti/claudex/ingest";
-import {
-  createClaudeIngestRegistries,
-  createCodexIngestRegistries,
-} from "@jasonbelmonti/claudex/ingest";
+import type { DiscoveryRootConfig, IngestProviderRegistry } from "./contracts.js";
+import { createClaudeIngestRegistries } from "./claude/registry.js";
+import { createCodexIngestRegistries } from "./codex/registry.js";
 
 import type { SenseiProviderRoots, SenseiRuntimeConfig } from "../config/index.js";
 

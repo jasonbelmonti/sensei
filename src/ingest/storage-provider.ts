@@ -1,11 +1,11 @@
-import type { ObservedEventSource } from "@jasonbelmonti/claudex/ingest";
+import type { ObservedEventSource } from "./contracts.js";
 
 import type {
 	StorageEventSource,
 	StorageProviderId,
 } from "../storage/index.js";
 
-/** Claudex supports more providers than Sensei's existing storage contract. */
+/** Reject invalid runtime input before any storage or cursor mutation. */
 export function toStorageProvider(
 	provider: ObservedEventSource["provider"],
 ): StorageProviderId {

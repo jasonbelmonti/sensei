@@ -6,7 +6,7 @@
 
 The v0 system is intentionally split into small, explicit layers:
 
-1. Ingest local Claude and Codex artifacts through `@jasonbelmonti/claudex/ingest`.
+1. Ingest local Claude and Codex artifacts through Sensei-owned readers.
 2. Persist a canonical local history under `~/.sensei`.
 3. Extract deterministic prompt and workflow features.
 4. Group repeated work into stable workflow families.
@@ -21,13 +21,33 @@ The repository is organized around these top-level areas:
 - `src/cli`: operator-facing command entrypoints
 - `src/config`: runtime paths and configuration seams
 - `src/drafting`: draft skill/script/automation generation
-- `src/ingest`: `claudex`-backed observation and canonical mapping
+- `src/ingest`: local readers, file continuity, scan/watch scheduling and canonical mapping
 - `src/reporting`: report rendering over stored insights
 - `src/storage`: local persistence and migrations
 
-## Relationship to `claudex`
+## Owned ingestion
 
-`sensei` should consume `@jasonbelmonti/claudex/ingest` as the canonical normalization layer for Claude and Codex artifacts. The goal is to build mentoring and workflow analysis on top of normalized turns, not to duplicate transcript parsing logic here.
+Sensei owns passive ingestion and requires no provider SDK, authentication or
+model/network call to scan local files. The supported compatibility inputs are
+Claude JSONL transcripts and JSON snapshots/tasks, plus Codex JSONL transcripts
+and session indexes (`session_index.jsonl` or `session-index.jsonl`). Selected
+decoding logic was adapted under the MIT license; see [attribution](THIRD_PARTY_NOTICES.md).
+
+The readers preserve the existing normalization contract. Claude turn IDs and
+current Codex rich `item_completed` fidelity remain separate work; this release
+does not qualify complete evidence retrieval from those formats.
+
+Both `ingest scan` and `ingest watch` use the owned service. Unverified legacy
+cursors, changed reader versions and rewritten/rotated sources produce visible
+reset warnings and replay through idempotent storage. Incomplete final JSONL
+records stay pending until completed. Newline-terminated malformed records
+produce warnings; later records remain readable. Watch ticks serialize, failed
+writes do not acknowledge the failed observation, and shutdown waits for active
+processing. A `watch-failed` warning requires restarting the watcher.
+
+SQLite schemas and CLI configuration are unchanged. Use an explicit isolated
+`SENSEI_HOME` when evaluating this reboot; no default database conversion is part
+of this release. Source-specific warnings are retained in `ingest_warnings`.
 
 ## Runtime and development
 

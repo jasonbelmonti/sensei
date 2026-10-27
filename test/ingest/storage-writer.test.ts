@@ -3,7 +3,7 @@ import type {
   IngestWarning,
   ObservedAgentEvent,
   ObservedSessionRecord,
-} from "@jasonbelmonti/claudex/ingest";
+} from "../../src/ingest/contracts.js";
 
 import type { SenseiPassiveScanResult } from "../../src/ingest/index.js";
 import { writePassiveScanResultToStorage } from "../../src/ingest/index.js";

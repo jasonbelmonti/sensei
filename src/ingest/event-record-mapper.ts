@@ -1,7 +1,7 @@
 import type {
   ObservedAgentEvent,
   ObservedSessionIdentity,
-} from "@jasonbelmonti/claudex/ingest";
+} from "./contracts.js";
 
 import type {
   StoreCursorInput,
