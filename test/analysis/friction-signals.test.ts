@@ -1,7 +1,7 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
-import { buildFrictionSignals } from "../../src/analysis";
-import { createOrderedTurnInput } from "./ordered-analysis-turn-fixture";
+import { buildFrictionSignals } from "../../src/analysis/index.js";
+import { createOrderedTurnInput } from "./ordered-analysis-turn-fixture.js";
 
 test("friction analyzer emits retry context from consecutive prior failure turns", () => {
   const signals = buildFrictionSignals(

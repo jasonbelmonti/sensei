@@ -1,8 +1,8 @@
-import type { Database } from "bun:sqlite";
+import type { Database } from "./sqlite-driver.js";
 
-import { STORAGE_MIGRATIONS } from "./schema";
-import { TURN_FEATURE_STORAGE_MIGRATION } from "./turn-feature-schema";
-import { WORKFLOW_STORAGE_MIGRATION } from "./workflow-storage-schema";
+import { STORAGE_MIGRATIONS } from "./schema.js";
+import { TURN_FEATURE_STORAGE_MIGRATION } from "./turn-feature-schema.js";
+import { WORKFLOW_STORAGE_MIGRATION } from "./workflow-storage-schema.js";
 
 export type StorageMigrationRecord = {
 	id: string;

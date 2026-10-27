@@ -1,6 +1,6 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
-import { TURN_FEATURE_STORAGE_CONTRACT } from "../../src/storage";
+import { TURN_FEATURE_STORAGE_CONTRACT } from "../../src/storage/index.js";
 
 test("turn feature storage contract uses typed core columns plus json detail and evidence", () => {
   expect(TURN_FEATURE_STORAGE_CONTRACT).toEqual({

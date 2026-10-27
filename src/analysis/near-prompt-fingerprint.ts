@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { buildNearCanonicalPromptText } from "./near-prompt-canonical-text";
+import { buildNearCanonicalPromptText } from "./near-prompt-canonical-text.js";
 
 export function buildNearPromptFingerprint(
 	promptText: string,

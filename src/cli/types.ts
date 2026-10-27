@@ -1,4 +1,4 @@
-import type { SenseiEnvironment, SenseiRuntimeConfig } from "../config";
+import type { SenseiEnvironment, SenseiRuntimeConfig } from "../config/index.js";
 
 export const senseiCommandNames = [
   "ingest",

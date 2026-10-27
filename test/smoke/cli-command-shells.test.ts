@@ -1,13 +1,13 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 import {
 	createIngestCommandHandler,
 	createAnalyzeCommandHandler,
 	runDraftCommand,
 	runReportCommand,
-} from "../../src/cli/commands";
-import { createSenseiCliApplication } from "../../src/cli";
-import type { SenseiCliCommandExecutionContext } from "../../src/cli/types";
+} from "../../src/cli/commands/index.js";
+import { createSenseiCliApplication } from "../../src/cli/index.js";
+import type { SenseiCliCommandExecutionContext } from "../../src/cli/types.js";
 
 const commandHandlers = [
 	["report", runReportCommand],

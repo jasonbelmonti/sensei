@@ -1,6 +1,6 @@
-import type { StoreSessionInput } from "../storage";
-import { mapPassiveScanRecordToStorageWrites } from "./record-mapper";
-import type { SenseiPassiveScanRecord } from "./scan-result";
+import type { StoreSessionInput } from "../storage/index.js";
+import { mapPassiveScanRecordToStorageWrites } from "./record-mapper.js";
+import type { SenseiPassiveScanRecord } from "./scan-result.js";
 
 type SessionWriteSelections = {
   explicitSessionWrites: ReadonlyMap<string, StoreSessionInput>;

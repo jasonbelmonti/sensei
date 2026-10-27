@@ -1,7 +1,7 @@
-import type { OrderedAnalysisTurnInput } from "../storage";
-import { buildFrictionSignals } from "./analyzers/friction-signals";
-import { buildPromptSemanticSignals } from "./analyzers/prompt-semantic-signals";
-import type { TurnFeatureRollupSignals } from "./turn-feature-row";
+import type { OrderedAnalysisTurnInput } from "../storage/index.js";
+import { buildFrictionSignals } from "./analyzers/friction-signals.js";
+import { buildPromptSemanticSignals } from "./analyzers/prompt-semantic-signals.js";
+import type { TurnFeatureRollupSignals } from "./turn-feature-row.js";
 
 type BuildTurnFeatureSignalsOptions = {
   priorTurns?: readonly OrderedAnalysisTurnInput[];

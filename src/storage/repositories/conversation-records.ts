@@ -7,7 +7,7 @@ import type {
   StoredTurnRecord,
   StoreTurnUsageInput,
   StoredTurnUsageRecord,
-} from "../schema";
+} from "../schema.js";
 import {
   nowIsoString,
   parseJson,
@@ -15,7 +15,7 @@ import {
   parseJsonRecord,
   serializeJson,
   toOptionalLocation,
-} from "./shared";
+} from "./shared.js";
 
 export type SessionRow = {
   provider: string;

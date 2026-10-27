@@ -4,7 +4,7 @@ import {
   createCodexIngestRegistries,
 } from "@jasonbelmonti/claudex/ingest";
 
-import type { SenseiProviderRoots, SenseiRuntimeConfig } from "../config";
+import type { SenseiProviderRoots, SenseiRuntimeConfig } from "../config/index.js";
 
 export type SenseiPassiveScanRoot = Pick<
   DiscoveryRootConfig,

@@ -22,4 +22,4 @@ Use this skill as the repo-local mentoring surface for `sensei`. In v0, the skil
 ## Invocation
 
 - Invoke with `$sensei` when the task should use the repo-local mentoring surface.
-- Use `bun run sensei -- --help` to inspect the current CLI shell while the command groups remain placeholder wiring.
+- With Node 24.22.1, run `npm ci` and `npm run build`, then use `npm run sensei -- --help` to inspect the current CLI shell while the command groups remain placeholder wiring.

@@ -1,0 +1,45 @@
+name: Node baseline
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Prepare decoder
+        run: |
+          brew list zstd >/dev/null 2>&1 || brew install zstd
+          mkdir -p "$RUNNER_TEMP/sensei-tools"
+          ln -s "$(command -v zstd)" "$RUNNER_TEMP/sensei-tools/zstd"
+      - name: Qualify with Node and system tools only
+        shell: bash
+        run: |
+          NODE_BIN="$(dirname "$(command -v node)")"
+          export PATH="$NODE_BIN:$RUNNER_TEMP/sensei-tools:/usr/bin:/bin:/usr/sbin:/sbin"
+          if command -v bun; then
+            echo "Qualification requires Bun to be unavailable" >&2
+            exit 1
+          fi
+          test "$(node --version)" = "v24.22.1"
+          test "$(npm --version)" = "11.19.1"
+          node -p 'JSON.stringify({node: process.version, platform: process.platform, arch: process.arch})'
+          zstd --version
+          export SENSEI_HOME="$RUNNER_TEMP/sensei-home"
+          export SENSEI_CLAUDE_ROOT="$RUNNER_TEMP/empty-claude"
+          export SENSEI_CODEX_ROOT="$RUNNER_TEMP/empty-codex"
+          npm ci
+          npm run check
+          npm run sensei -- --help

@@ -1,16 +1,16 @@
-import type { Database } from "bun:sqlite";
+import type { Database } from "../sqlite-driver.js";
 
 import type {
   StoreCursorInput,
   StoreWarningInput,
-} from "../schema";
+} from "../schema.js";
 import {
   mapCursorRow,
   mapWarningRow,
   type CursorRow,
   type WarningRow,
-} from "./ingest-state-records";
-import { nowIsoString, serializeJson } from "./shared";
+} from "./ingest-state-records.js";
+import { nowIsoString, serializeJson } from "./shared.js";
 
 export type IngestStateRepository = ReturnType<typeof createIngestStateRepository>;
 

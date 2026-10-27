@@ -1,10 +1,10 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "vitest";
 import type { IngestCursor } from "@jasonbelmonti/claudex/ingest";
 
 import {
   countRows,
   createScanWatchContractHarness,
-} from "./scan-watch-contract.fixture";
+} from "./scan-watch-contract.fixture.js";
 import {
   createBaselineScanResult,
   createWarningOnlyScanResult,
@@ -14,7 +14,7 @@ import {
   fixtureSessionId,
   fixtureThreadName,
   fixtureTranscriptPath,
-} from "./scan-watch-contract-scenarios";
+} from "./scan-watch-contract-scenarios.js";
 
 const cleanups: Array<() => void> = [];
 

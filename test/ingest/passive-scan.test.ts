@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 import type {
   DiscoveryEvent,
   IngestProviderRegistry,
@@ -9,18 +9,19 @@ import type {
   SessionIngestServiceOptions,
 } from "@jasonbelmonti/claudex/ingest";
 
-import { createSenseiConfig } from "../../src/config";
+import { createSenseiConfig } from "../../src/config/index.js";
 import {
   createSenseiPassiveIngestRegistries,
   createSenseiPassiveScanAdapter,
   createSenseiPassiveScanAdapterForConfig,
   createSenseiPassiveScanRoots,
-} from "../../src/ingest";
+} from "../../src/ingest/index.js";
 
 test("passive scan roots and registries are derived from runtime config", () => {
   const config = createSenseiConfig({
     repoRoot: "/repo/sensei",
     homeDir: "/Users/test",
+    env: {},
   });
   const expectedRoots = createExpectedRoots();
   const registries = createSenseiPassiveIngestRegistries();

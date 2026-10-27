@@ -1,4 +1,4 @@
-import type { SenseiCliCommandDefinition } from "./types";
+import type { SenseiCliCommandDefinition } from "./types.js";
 
 export const senseiCommandGroups = [
   {

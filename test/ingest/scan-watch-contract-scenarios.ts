@@ -9,7 +9,7 @@ import type {
 } from "@jasonbelmonti/claudex/ingest";
 import { join } from "node:path";
 
-import type { SenseiPassiveScanResult } from "../../src/ingest";
+import type { SenseiPassiveScanResult } from "../../src/ingest/index.js";
 
 type FixtureDiscoveryPhase = "initial_scan" | "watch";
 

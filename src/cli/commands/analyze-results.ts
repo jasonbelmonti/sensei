@@ -1,11 +1,11 @@
-import type { SenseiAnalyzeCommandSummary } from "../../analysis";
-import { TURN_FEATURE_SKIP_REASONS } from "../../analysis";
+import type { SenseiAnalyzeCommandSummary } from "../../analysis/index.js";
+import { TURN_FEATURE_SKIP_REASONS } from "../../analysis/index.js";
 import {
 	createCommandResult,
 	stderrLine,
 	stdoutLine,
-} from "../command-results";
-import type { SenseiCliCommandResult } from "../types";
+} from "../command-results.js";
+import type { SenseiCliCommandResult } from "../types.js";
 
 const analyzeUsageLine = "Usage: sensei analyze";
 const analyzeHelpHintLine =

@@ -1,8 +1,8 @@
-import type { TurnFeatureAnalyzerSnapshot } from "../turn-feature-row";
+import type { TurnFeatureAnalyzerSnapshot } from "../turn-feature-row.js";
 import {
   countPatternMatches,
   normalizePromptForAnalysis,
-} from "./prompt-normalization";
+} from "./prompt-normalization.js";
 
 export type LexicalCueRule = {
   label: string;

@@ -9,13 +9,14 @@ import type {
   StorageTurnKey,
   StoreTurnInput,
   StoreTurnUsageInput,
-} from "../storage";
+} from "../storage/index.js";
 import {
   createObservedSessionStorageInput,
   deriveObservationReasonFromSourceKind,
   mapObservedCursorToStorageInput,
-} from "./observation-storage-inputs";
-import type { PassiveScanRecordStorageWrites } from "./record-storage-writes";
+} from "./observation-storage-inputs.js";
+import type { PassiveScanRecordStorageWrites } from "./record-storage-writes.js";
+import { toStorageProvider } from "./storage-provider.js";
 
 type PassiveEvent = ObservedAgentEvent["event"];
 type PassiveTurnStartedEvent = Extract<PassiveEvent, { type: "turn.started" }>;
@@ -299,7 +300,7 @@ function createTurnKey(
   }
 
   return {
-    provider: observedSession.provider,
+    provider: toStorageProvider(observedSession.provider),
     sessionId: observedSession.sessionId,
     turnId,
   };

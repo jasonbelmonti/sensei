@@ -1,18 +1,18 @@
-import type { SenseiRuntimeConfig } from "../config";
+import type { SenseiRuntimeConfig } from "../config/index.js";
 import {
 	openSenseiStorage,
 	type OpenSenseiStorageOptions,
 	type SenseiStorage,
-} from "../storage";
+} from "../storage/index.js";
 import {
 	CURRENT_TURN_FEATURE_VERSION,
 	type TurnFeatureVersion,
-} from "./feature-version";
+} from "./feature-version.js";
 import {
 	extractTurnFeatures,
 	TURN_FEATURE_SKIP_REASONS,
 	type TurnFeatureSkipReason,
-} from "./feature-extraction";
+} from "./feature-extraction.js";
 
 type SenseiAnalyzeConfig = Pick<SenseiRuntimeConfig, "paths">;
 type SenseiAnalyzeStorage = Pick<

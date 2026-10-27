@@ -1,4 +1,4 @@
-import { normalizeWorkflowSearchPromptText } from "./workflow-search-text";
+import { normalizeWorkflowSearchPromptText } from "./workflow-search-text.js";
 
 const PATH_PLACEHOLDER = "senseipathplaceholder";
 const TICKET_PLACEHOLDER = "senseiticketplaceholder";

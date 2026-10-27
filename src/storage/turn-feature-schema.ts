@@ -1,9 +1,9 @@
-import type { StorageTurnKey, StorageTurnStatus } from "./schema";
+import type { StorageTurnKey, StorageTurnStatus } from "./schema.js";
 import {
 	STORAGE_PROVIDER_IDS,
 	STORAGE_TURN_STATUSES,
 	type StorageMigrationDefinition,
-} from "./schema";
+} from "./schema.js";
 
 export type StorageTurnFeatureKey = StorageTurnKey & {
 	featureVersion: number;

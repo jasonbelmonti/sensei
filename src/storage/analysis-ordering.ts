@@ -3,7 +3,7 @@ import type {
 	StoredToolEventRecord,
 	StoredTurnRecord,
 	StoredTurnUsageRecord,
-} from "./schema";
+} from "./schema.js";
 
 const SQLITE_BINARY_TEXT_ENCODER = new TextEncoder();
 

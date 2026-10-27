@@ -1,9 +1,10 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { getRepositoryAreas } from "../../src/index";
+import { getRepositoryAreas } from "../../src/index.js";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -24,20 +25,22 @@ test("repository scaffold exposes the planned top-level source areas", () => {
 });
 
 test("package scripts and documentation describe the bootstrap surface", async () => {
-  const packageJson = await Bun.file(join(rootDir, "package.json")).json();
-  const readme = await Bun.file(join(rootDir, "README.md")).text();
+  const packageJson = JSON.parse(await readFile(join(rootDir, "package.json"), "utf8"));
+  const readme = await readFile(join(rootDir, "README.md"), "utf8");
 
   expect(packageJson.name).toBe("sensei");
   expect(packageJson.scripts).toMatchObject({
     lint: "biome lint .",
-    sensei: "bun ./src/cli/index.ts",
-    test: "bun test",
+    sensei: "node ./dist/cli/main.js",
+    build: "tsc -p tsconfig.build.json",
+    pretest: "npm run build",
+    test: "vitest run",
     typecheck: "tsc --noEmit",
-    check: "bun run lint && bun run typecheck && bun run test",
+    check: "npm run lint && npm run typecheck && npm test",
   });
   expect(readme).toContain("@jasonbelmonti/claudex/ingest");
   expect(readme).toContain("local-first mentoring system");
-  expect(readme).toContain("bun run sensei -- --help");
+  expect(readme).toContain("npm run sensei -- --help");
   expect(readme).toContain("ingest");
   expect(readme).toContain("analyze");
   expect(readme).toContain("report");

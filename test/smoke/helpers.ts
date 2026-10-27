@@ -14,7 +14,7 @@ export function runPackageCliCommand(
 		env?: Record<string, string | undefined>;
 	} = {},
 ) {
-	return spawnSync(process.execPath, ["run", "sensei", "--", ...args], {
+	return spawnSync(process.execPath, [resolve(smokeTestRootDir, "dist/cli/main.js"), ...args], {
 		cwd: options.cwd ?? smokeTestRootDir,
 		encoding: "utf8",
 		env: {

@@ -1,16 +1,16 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "vitest";
 import type { DiscoveryEvent, ObservedSessionRecord } from "@jasonbelmonti/claudex/ingest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { createSenseiConfig } from "../../src/config";
+import { createSenseiConfig } from "../../src/config/index.js";
 import {
   createSenseiPassiveScanRoots,
   runSenseiIngestScanCommand,
   type SenseiPassiveScanResult,
-} from "../../src/ingest";
-import { openSenseiStorage, type SenseiStorage } from "../../src/storage";
+} from "../../src/ingest/index.js";
+import { openSenseiStorage, type SenseiStorage } from "../../src/storage/index.js";
 
 const cleanups: Array<() => void> = [];
 const fixtureThreadName = "BEL-718 fixture session";

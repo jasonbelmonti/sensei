@@ -9,7 +9,8 @@ import type {
   StoreCursorInput,
   StoreSessionInput,
   StorageSessionObservationReason,
-} from "../storage";
+} from "../storage/index.js";
+import { toStorageProvider, toStorageSource } from "./storage-provider.js";
 
 type ObservedCursor =
   | ObservedAgentEvent["cursor"]
@@ -29,12 +30,12 @@ export function createObservedSessionStorageInput(
   params: SessionWriteParams,
 ): StoreSessionInput {
   return {
-    provider: params.observedSession.provider,
+    provider: toStorageProvider(params.observedSession.provider),
     sessionId: params.observedSession.sessionId,
     identityState: params.observedSession.state,
     workingDirectory: params.observedSession.workingDirectory,
     metadata: params.observedSession.metadata,
-    source: params.source,
+    source: toStorageSource(params.source),
     completeness: params.completeness,
     observationReason: params.observationReason,
     observedAt: params.observedAt,
@@ -49,7 +50,7 @@ export function mapObservedCursorToStorageInput(
   }
 
   return {
-    provider: cursor.provider,
+    provider: toStorageProvider(cursor.provider),
     rootPath: cursor.rootPath,
     filePath: cursor.filePath,
     byteOffset: cursor.byteOffset,

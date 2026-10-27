@@ -1,4 +1,4 @@
-import type { OrderedAnalysisTurnInput } from "../../src/storage";
+import type { OrderedAnalysisTurnInput } from "../../src/storage/index.js";
 
 type OrderedTurnInputUsageOverrides = {
   inputTokens: number;

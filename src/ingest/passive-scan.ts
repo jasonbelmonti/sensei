@@ -8,14 +8,14 @@ import {
   type SessionIngestServiceOptions,
 } from "@jasonbelmonti/claudex/ingest";
 
-import type { SenseiRuntimeConfig } from "../config";
+import type { SenseiRuntimeConfig } from "../config/index.js";
 import {
   createSenseiPassiveIngestRegistries,
   createSenseiPassiveScanRoots,
   createSenseiPassiveScanRootsForConfig,
   type SenseiPassiveScanRoot,
-} from "./provider-roots";
-import type { SenseiPassiveScanRecord, SenseiPassiveScanResult } from "./scan-result";
+} from "./provider-roots.js";
+import type { SenseiPassiveScanRecord, SenseiPassiveScanResult } from "./scan-result.js";
 
 type SessionIngestServiceFactory = (
   options: SessionIngestServiceOptions,

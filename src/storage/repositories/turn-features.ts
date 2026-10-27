@@ -1,10 +1,10 @@
-import type { Database } from "bun:sqlite";
+import type { Database } from "../sqlite-driver.js";
 
 import type {
 	StoreTurnFeatureInput,
 	StoredTurnFeatureRecord,
-} from "../turn-feature-schema";
-import { parseJson, serializeJson } from "./shared";
+} from "../turn-feature-schema.js";
+import { parseJson, serializeJson } from "./shared.js";
 
 export type TurnFeatureRepository = ReturnType<
 	typeof createTurnFeatureRepository

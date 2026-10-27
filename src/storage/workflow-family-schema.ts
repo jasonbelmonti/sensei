@@ -1,5 +1,5 @@
-import type { JsonRecord, StorageTurnKey } from "./schema";
-import { STORAGE_PROVIDER_IDS } from "./schema";
+import type { JsonRecord, StorageTurnKey } from "./schema.js";
+import { STORAGE_PROVIDER_IDS } from "./schema.js";
 
 export type WorkflowFamilyKey = {
 	featureVersion: number;

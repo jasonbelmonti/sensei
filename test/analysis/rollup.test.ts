@@ -1,12 +1,12 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 import {
   buildTurnFeatureRollupRow,
   buildTurnFeatureRow,
   CURRENT_TURN_FEATURE_VERSION,
   TURN_FEATURE_SCORE_RANGE,
-} from "../../src/analysis";
-import { createOrderedTurnInput } from "./ordered-analysis-turn-fixture";
+} from "../../src/analysis/index.js";
+import { createOrderedTurnInput } from "./ordered-analysis-turn-fixture.js";
 
 const FIXED_ANALYZED_AT = "2026-04-18T19:45:00.000Z";
 

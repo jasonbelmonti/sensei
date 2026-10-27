@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "vitest";
 import type {
   IngestCursor,
   IngestWarning,
@@ -8,10 +8,10 @@ import type {
   SessionIngestServiceOptions,
 } from "@jasonbelmonti/claudex/ingest";
 
-import { createSenseiConfig } from "../../src/config";
-import { createSenseiIngestWatch } from "../../src/ingest";
-import { openSenseiStorage, type SenseiStorage } from "../../src/storage";
-import { createStorageTestHarness } from "../storage/helpers";
+import { createSenseiConfig } from "../../src/config/index.js";
+import { createSenseiIngestWatch } from "../../src/ingest/index.js";
+import { openSenseiStorage, type SenseiStorage } from "../../src/storage/index.js";
+import { createStorageTestHarness } from "../storage/helpers.js";
 
 const cleanups: Array<() => void> = [];
 

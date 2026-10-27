@@ -1,6 +1,6 @@
-import type { StoreWorkflowSearchDocumentInput } from "../storage";
+import type { StoreWorkflowSearchDocumentInput } from "../storage/index.js";
 
-import type { WriteReadyTurnFeatureRow } from "./turn-feature-row";
+import type { WriteReadyTurnFeatureRow } from "./turn-feature-row.js";
 
 export type WriteReadyWorkflowSearchRow = StoreWorkflowSearchDocumentInput;
 

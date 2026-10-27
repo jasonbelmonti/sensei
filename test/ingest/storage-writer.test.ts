@@ -1,14 +1,14 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "vitest";
 import type {
   IngestWarning,
   ObservedAgentEvent,
   ObservedSessionRecord,
 } from "@jasonbelmonti/claudex/ingest";
 
-import type { SenseiPassiveScanResult } from "../../src/ingest";
-import { writePassiveScanResultToStorage } from "../../src/ingest";
-import type { SenseiStorage } from "../../src/storage";
-import { createStorageTestHarness } from "../storage/helpers";
+import type { SenseiPassiveScanResult } from "../../src/ingest/index.js";
+import { writePassiveScanResultToStorage } from "../../src/ingest/index.js";
+import type { SenseiStorage } from "../../src/storage/index.js";
+import { createStorageTestHarness } from "../storage/helpers.js";
 
 const cleanups: Array<() => void> = [];
 

@@ -3,22 +3,38 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "bun@1.3.0",
+  "packageManager": "npm@11.19.1",
   "description": "Local-first mentoring and workflow analysis over normalized Claude and Codex history.",
-  "module": "./src/index.ts",
+  "module": "./dist/index.js",
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "lint": "biome lint .",
-    "sensei": "bun ./src/cli/index.ts",
-    "test": "bun test",
+    "sensei": "node ./dist/cli/main.js",
+    "pretest": "npm run build",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "check": "bun run lint && bun run typecheck && bun run test"
+    "check": "npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {
-    "@jasonbelmonti/claudex": "^1.0.3"
+    "@jasonbelmonti/claudex": "4.0.6",
+    "better-sqlite3": "13.0.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.0.5",
-    "@types/bun": "latest",
-    "typescript": "^5.8.2"
+    "@biomejs/biome": "2.4.10",
+    "typescript": "5.9.3",
+    "@types/node": "24.19.2",
+    "@types/better-sqlite3": "9.6.0",
+    "vitest": "5.0.5"
+  },
+  "engines": {
+    "node": ">=24.22.1 <25"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   }
 }

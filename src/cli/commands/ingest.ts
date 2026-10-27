@@ -1,6 +1,6 @@
-import type { SenseiIngestScanCommandSummary } from "../../ingest/scan-command";
-import type { SenseiIngestWatchCommandSummary } from "../../ingest/watch-command";
-import { writeCliResult } from "../command-results";
+import type { SenseiIngestScanCommandSummary } from "../../ingest/scan-command.js";
+import type { SenseiIngestWatchCommandSummary } from "../../ingest/watch-command.js";
+import { writeCliResult } from "../command-results.js";
 import {
 	createIngestHelpResult,
 	createIngestUsageErrorResult,
@@ -9,11 +9,11 @@ import {
 	createWatchFailureResult,
 	createWatchRunningResult,
 	createWatchStoppedResult,
-} from "./ingest-results";
+} from "./ingest-results.js";
 import type {
 	SenseiCliCommandExecutionContext,
 	SenseiCliCommandHandler,
-} from "../types";
+} from "../types.js";
 
 type RunSenseiIngestScan = (
 	config: SenseiCliCommandExecutionContext["cli"]["config"],
@@ -110,7 +110,7 @@ async function defaultRunSenseiIngestScanCommand(
 	config: SenseiCliCommandExecutionContext["cli"]["config"],
 ): Promise<SenseiIngestScanCommandSummary> {
 	const { runSenseiIngestScanCommand } = await import(
-		"../../ingest/scan-command"
+		"../../ingest/scan-command.js"
 	);
 
 	return runSenseiIngestScanCommand(config);
@@ -125,7 +125,7 @@ async function defaultRunSenseiIngestWatchCommand(
 	},
 ): Promise<SenseiIngestWatchCommandSummary> {
 	const { runSenseiIngestWatchCommand } = await import(
-		"../../ingest/watch-command"
+		"../../ingest/watch-command.js"
 	);
 
 	return runSenseiIngestWatchCommand(config, options);

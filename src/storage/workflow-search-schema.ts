@@ -1,5 +1,5 @@
-import type { StorageTurnKey } from "./schema";
-import { STORAGE_PROVIDER_IDS } from "./schema";
+import type { StorageTurnKey } from "./schema.js";
+import { STORAGE_PROVIDER_IDS } from "./schema.js";
 
 export type WorkflowSearchDocumentKey = StorageTurnKey & {
 	featureVersion: number;

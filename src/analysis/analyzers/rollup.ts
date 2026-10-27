@@ -1,6 +1,6 @@
-import type { OrderedAnalysisTurnInput } from "../../storage";
-import { resolveAnalyzedAt } from "../analyzed-at";
-import { resolveTurnFeatureVersion } from "../feature-version";
+import type { OrderedAnalysisTurnInput } from "../../storage/index.js";
+import { resolveAnalyzedAt } from "../analyzed-at.js";
+import { resolveTurnFeatureVersion } from "../feature-version.js";
 import {
   TURN_FEATURE_SCORE_RANGE,
   type TurnFeatureAnalyzerSnapshot,
@@ -9,7 +9,7 @@ import {
   type TurnFeatureEvidence,
   type TurnFeatureRollupSignals,
   type WriteReadyTurnFeatureRow,
-} from "../turn-feature-row";
+} from "../turn-feature-row.js";
 
 const DEFAULT_TRACE_RULE_IDS = ["rollup:base-fields"] as const;
 
@@ -195,4 +195,4 @@ export type {
   TurnFeatureEvidence,
   TurnFeatureRollupSignals,
   WriteReadyTurnFeatureRow,
-} from "../turn-feature-row";
+} from "../turn-feature-row.js";

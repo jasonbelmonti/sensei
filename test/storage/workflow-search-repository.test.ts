@@ -1,13 +1,13 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "vitest";
 
 import {
 	deriveWorkflowSearchRows,
 	extractTurnFeatures,
 	CURRENT_TURN_FEATURE_VERSION,
-} from "../../src/analysis";
-import type { SenseiStorage, StoreWorkflowSearchDocumentInput } from "../../src/storage";
-import { seedAnalyzeFixture } from "./analyze-fixture";
-import { createStorageTestHarness } from "./helpers";
+} from "../../src/analysis/index.js";
+import type { SenseiStorage, StoreWorkflowSearchDocumentInput } from "../../src/storage/index.js";
+import { seedAnalyzeFixture } from "./analyze-fixture.js";
+import { createStorageTestHarness } from "./helpers.js";
 
 const cleanups: Array<() => void> = [];
 
@@ -240,6 +240,31 @@ test("workflow search queries stay scoped to the requested feature version", () 
 			sessionId: "session-version-2",
 		}),
 	]);
+});
+
+test("workflow search ranks a stronger FTS match ahead of the ID tie breaker", () => {
+	const harness = createStorageTestHarness("sensei-workflow-search-ranking");
+	cleanups.push(harness.cleanup);
+	for (const [sessionId, searchText] of [
+		["session-a", "needle filler filler filler filler filler filler filler"],
+		["session-z", "needle"],
+	]) {
+		seedSearchDocumentFixture(harness.storage, {
+			sessionId,
+			turnId: "turn-1",
+			featureVersion: 1,
+			promptText: "Search ranking fixture.",
+			tags: [],
+			workflowIntentLabels: [],
+			searchText,
+			updatedAt: "2026-10-01T00:00:00.000Z",
+		});
+	}
+	const results = harness.storage.workflowSearch.search({
+		featureVersion: 1, queryText: "needle",
+	});
+	expect(results.map((result) => result.sessionId)).toEqual(["session-z", "session-a"]);
+	expect(results[0].ftsScore).toBeLessThan(results[1].ftsScore);
 });
 
 test("workflow search queries return stable ordering and honor result limits", () => {

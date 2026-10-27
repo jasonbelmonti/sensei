@@ -1,9 +1,9 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 import {
   createSenseiConfig,
   resolveSenseiRuntimePaths,
-} from "../../src/index";
+} from "../../src/index.js";
 
 const repoRoot = "/repo/sensei";
 const homeDir = "/Users/sensei";

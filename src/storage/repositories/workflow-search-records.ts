@@ -1,7 +1,7 @@
 import type {
 	SearchedWorkflowSearchDocumentRecord,
 	StoredWorkflowSearchDocumentRecord,
-} from "../workflow-search-schema";
+} from "../workflow-search-schema.js";
 
 export type WorkflowSearchRow = {
 	provider: string;

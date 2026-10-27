@@ -1,4 +1,4 @@
-import type { WriteReadyWorkflowSearchRow } from "./workflow-search-row";
+import type { WriteReadyWorkflowSearchRow } from "./workflow-search-row.js";
 
 export type WorkflowSimilarityEvidenceInput = Pick<
   WriteReadyWorkflowSearchRow,

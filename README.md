@@ -29,6 +29,24 @@ The repository is organized around these top-level areas:
 
 `sensei` should consume `@jasonbelmonti/claudex/ingest` as the canonical normalization layer for Claude and Codex artifacts. The goal is to build mentoring and workflow analysis on top of normalized turns, not to duplicate transcript parsing logic here.
 
+## Runtime and development
+
+Use Node.js **24.22.1** and its bundled npm **11.19.1**. The repository pins
+the runtime in `.node-version` and dependencies in `package-lock.json`.
+SQLite uses the native `better-sqlite3` binding; installation needs its
+platform binary or a working native build toolchain. The qualification
+environment also includes the standard `zstd` command (1.5.7).
+
+```bash
+npm ci
+npm run check
+npm run sensei -- --help
+```
+
+`npm run check` runs lint, typecheck, the build and tests. `npm test` also
+builds first. After editing source, run `npm run build` before using the CLI:
+`npm run sensei -- ...` executes compiled JavaScript from `dist/`.
+
 ## Runtime path defaults
 
 The current runtime/config layer assumes a local-first layout:
@@ -52,10 +70,10 @@ This repository now contains the ingest and storage foundation for canonical loc
 
 ## CLI bootstrap surface
 
-The current package-level bootstrap path is:
+After `npm ci` and `npm run build`, the package-level bootstrap path is:
 
 ```bash
-bun run sensei -- --help
+npm run sensei -- --help
 ```
 
 The registered command groups are:
@@ -67,8 +85,8 @@ The registered command groups are:
 
 The ingest command group is live today:
 
-- `bun run sensei -- ingest scan` backfills canonical sessions, turns, usage, tool events, cursors, and warnings into the local store
-- `bun run sensei -- ingest watch` starts the long-running watch seam and persists appended provider history into the same store
+- `npm run sensei -- ingest scan` backfills canonical sessions, turns, usage, tool events, cursors, and warnings into the local store
+- `npm run sensei -- ingest watch` starts the long-running watch seam and persists appended provider history into the same store
 
 The `analyze`, `report`, and `draft` command groups still use placeholder shells in the current slice. Each dispatches through the CLI wiring, then exits non-zero with:
 
@@ -77,15 +95,14 @@ The `analyze`, `report`, and `draft` command groups still use placeholder shells
 
 Current bootstrap behavior:
 
-- `bun run sensei -- --help` succeeds and renders the registered command groups
-- `bun run sensei -- <command>` dispatches to the matching shell module
+- `npm run sensei -- --help` succeeds and renders the registered command groups
+- `npm run sensei -- <command>` dispatches to the matching shell module
 - unknown commands exit with code `1`
 
 ## Verification
 
 ```bash
-bun install
-bun run test
-bun run typecheck
-bun run sensei -- --help
+npm ci
+npm run check
+npm run sensei -- --help
 ```

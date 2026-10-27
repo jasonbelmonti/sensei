@@ -1,17 +1,17 @@
 import {
 	runSenseiAnalyzeCommand,
 	type SenseiAnalyzeCommandSummary,
-} from "../../analysis";
+} from "../../analysis/index.js";
 import {
 	createAnalyzeFailureResult,
 	createAnalyzeHelpResult,
 	createAnalyzeSuccessResult,
 	createAnalyzeUsageErrorResult,
-} from "./analyze-results";
+} from "./analyze-results.js";
 import type {
 	SenseiCliCommandExecutionContext,
 	SenseiCliCommandHandler,
-} from "../types";
+} from "../types.js";
 
 type RunSenseiAnalyze = (
 	config: SenseiCliCommandExecutionContext["cli"]["config"],
