@@ -1,4 +1,4 @@
-import type { SenseiStorage } from "../../src/storage";
+import type { SenseiStorage } from "../../src/storage/index.js";
 
 declare const storage: SenseiStorage;
 

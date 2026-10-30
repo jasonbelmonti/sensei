@@ -1,5 +1,5 @@
-import type { OrderedAnalysisTurnInput, StorageTurnStatus } from "../storage";
-import type { TurnFeatureVersion } from "./feature-version";
+import type { OrderedAnalysisTurnInput, StorageTurnStatus } from "../storage/index.js";
+import type { TurnFeatureVersion } from "./feature-version.js";
 
 export const TURN_FEATURE_SCORE_RANGE = {
   min: 0,

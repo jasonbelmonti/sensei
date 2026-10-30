@@ -1,13 +1,13 @@
 import type {
   SenseiIngestScanCommandSummary,
   SenseiIngestWatchCommandSummary,
-} from "../../ingest";
+} from "../../ingest/index.js";
 import {
   createCommandResult,
   stderrLine,
   stdoutLine,
-} from "../command-results";
-import type { SenseiCliCommandResult } from "../types";
+} from "../command-results.js";
+import type { SenseiCliCommandResult } from "../types.js";
 
 const ingestUsageLine = "Usage: sensei ingest <scan|watch>";
 const ingestHelpHintLine =

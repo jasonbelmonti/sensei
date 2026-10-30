@@ -1,8 +1,8 @@
-import { createCommandResult, stderrLine } from "../command-results";
+import { createCommandResult, stderrLine } from "../command-results.js";
 import type {
   SenseiCliCommandExecutionContext,
   SenseiCliCommandHandler,
-} from "../types";
+} from "../types.js";
 
 export function createUnimplementedCommandShell(): SenseiCliCommandHandler {
   return (context: SenseiCliCommandExecutionContext) =>

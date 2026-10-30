@@ -4,7 +4,7 @@ import type {
   StoreToolEventInput,
   StoreTurnInput,
   StoreTurnUsageInput,
-} from "../storage";
+} from "../storage/index.js";
 
 export type PassiveScanRecordStorageWrites = {
   session?: StoreSessionInput;

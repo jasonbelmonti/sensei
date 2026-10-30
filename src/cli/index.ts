@@ -1,25 +1,23 @@
-#!/usr/bin/env bun
-
 import { resolve } from "node:path";
 
-import { createSenseiConfig } from "../config";
-import { senseiCommandGroups } from "./command-groups";
+import { createSenseiConfig } from "../config/index.js";
+import { senseiCommandGroups } from "./command-groups.js";
 import {
   createCommandResult,
   stderrLine,
   stdoutLine,
   writeCliResult,
-} from "./command-results";
-import { senseiCliCommandHandlers } from "./commands";
+} from "./command-results.js";
+import { senseiCliCommandHandlers } from "./commands/index.js";
 import type {
   CreateSenseiCliApplicationOptions,
   SenseiCliApplication,
   SenseiCliCommandResult,
   SenseiCliWriter,
-} from "./types";
-import { senseiCommandNames } from "./types";
+} from "./types.js";
+import { senseiCommandNames } from "./types.js";
 
-export { senseiCommandGroups } from "./command-groups";
+export { senseiCommandGroups } from "./command-groups.js";
 
 export function createSenseiCliApplication(
   options: CreateSenseiCliApplicationOptions = {},
@@ -116,9 +114,4 @@ function createStreamWriter(stream: NodeJS.WriteStream): SenseiCliWriter {
   return (line) => {
     stream.write(`${line}\n`);
   };
-}
-
-if (import.meta.main) {
-  const exitCode = await runSenseiCli(Bun.argv.slice(2));
-  process.exitCode = exitCode;
 }

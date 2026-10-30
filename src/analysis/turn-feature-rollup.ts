@@ -1,7 +1,7 @@
-import type { OrderedAnalysisTurnInput } from "../storage";
-import { buildTurnFeatureRow } from "./analyzers/rollup";
-import { buildTurnFeatureSignals } from "./turn-feature-signals";
-import type { WriteReadyTurnFeatureRow } from "./turn-feature-row";
+import type { OrderedAnalysisTurnInput } from "../storage/index.js";
+import { buildTurnFeatureRow } from "./analyzers/rollup.js";
+import { buildTurnFeatureSignals } from "./turn-feature-signals.js";
+import type { WriteReadyTurnFeatureRow } from "./turn-feature-row.js";
 
 export type BuildTurnFeatureRollupRowOptions = Pick<
   WriteReadyTurnFeatureRow,

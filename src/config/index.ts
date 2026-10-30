@@ -4,8 +4,8 @@ import type {
   ResolveSenseiRuntimePathsOptions,
   SenseiEnvironment,
   SenseiRuntimePaths,
-} from "./runtime-paths";
-import { resolveSenseiRuntimePaths } from "./runtime-paths";
+} from "./runtime-paths.js";
+import { resolveSenseiRuntimePaths } from "./runtime-paths.js";
 
 export type SenseiEmbeddingConfig = {
   enabled: boolean;
@@ -89,5 +89,5 @@ export type {
   SenseiGeneratedPaths,
   SenseiProviderRoots,
   SenseiRuntimePaths,
-} from "./runtime-paths";
-export { resolveSenseiRuntimePaths } from "./runtime-paths";
+} from "./runtime-paths.js";
+export { resolveSenseiRuntimePaths } from "./runtime-paths.js";

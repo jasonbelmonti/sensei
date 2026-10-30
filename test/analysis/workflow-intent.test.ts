@@ -1,10 +1,10 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 import {
   analyzeCorrectionMarkers,
   analyzeTextStructure,
   analyzeWorkflowIntent,
-} from "../../src/analysis";
+} from "../../src/analysis/index.js";
 
 const EMPTY_WORKFLOW_COUNTS = {
   implement: 0,

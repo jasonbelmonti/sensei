@@ -1,0 +1,2 @@
+{"type":"session.start","data":{"sessionId":"copilot-framing-session","version":1,"producer":"copilot-agent","copilotVersion":"0.0.0","startTime":"2026-10-01T00:00:00.000Z"},"id":"event-1","timestamp":"2026-10-01T00:00:00.000Z","parentId":null}
+{"type":"user.message","data":{"content":"Inspect café 🔍","transformedContent":"Synthetic transformed prompt; never use as visible request.","messageId":"message-1","interactionId":"interaction-1","turnId":"turn-1"},"id":"event-2","timestamp":"2026-10-01T00:00:01.000Z","parentId":"event-1"}

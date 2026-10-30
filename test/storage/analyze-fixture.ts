@@ -1,4 +1,4 @@
-import type { SenseiStorage } from "../../src/storage";
+import type { SenseiStorage, StorageEventSource } from "../../src/storage/index.js";
 
 const FIXTURE_PROVIDER = "codex";
 const FIXTURE_ROOT_PATH = "/Users/test/.codex";
@@ -237,9 +237,9 @@ function createSessionSource(
 	discoveryPhase: "initial_scan" | "watch",
 	kind: "session-index" | "transcript",
 	filePath: string,
-) {
+): StorageEventSource {
 	return {
-		provider: FIXTURE_PROVIDER as const,
+		provider: FIXTURE_PROVIDER,
 		kind,
 		discoveryPhase,
 		rootPath: FIXTURE_ROOT_PATH,

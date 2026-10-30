@@ -1,7 +1,7 @@
-import type { TurnFeatureAnalyzerSnapshot, TurnFeatureRollupSignals } from "../turn-feature-row";
-import { analyzeCorrectionMarkers } from "./correction-markers";
-import { analyzeTextStructure } from "./text-structure";
-import { analyzeWorkflowIntent } from "./workflow-intent";
+import type { TurnFeatureAnalyzerSnapshot, TurnFeatureRollupSignals } from "../turn-feature-row.js";
+import { analyzeCorrectionMarkers } from "./correction-markers.js";
+import { analyzeTextStructure } from "./text-structure.js";
+import { analyzeWorkflowIntent } from "./workflow-intent.js";
 
 const ANALYZER_LABEL_PREFIXES = {
   textStructure: "text-structure",

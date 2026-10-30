@@ -1,8 +1,8 @@
-import type { TurnFeatureAnalyzerSnapshot } from "../turn-feature-row";
+import type { TurnFeatureAnalyzerSnapshot } from "../turn-feature-row.js";
 import {
   isQuestionLikeLine,
   normalizePromptForAnalysis,
-} from "./prompt-normalization";
+} from "./prompt-normalization.js";
 
 export function analyzeTextStructure(prompt: string): TurnFeatureAnalyzerSnapshot {
   const normalizedPrompt = normalizePromptForAnalysis(prompt);

@@ -1,9 +1,9 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "vitest";
 
-import { openSenseiStorage } from "../../src/storage";
-import { createConversationRepository } from "../../src/storage/repositories/conversations";
-import { createIngestStateRepository } from "../../src/storage/repositories/ingest-state";
-import { createStorageTestHarness } from "./helpers";
+import { openSenseiStorage } from "../../src/storage/index.js";
+import { createConversationRepository } from "../../src/storage/repositories/conversations.js";
+import { createIngestStateRepository } from "../../src/storage/repositories/ingest-state.js";
+import { createStorageTestHarness } from "./helpers.js";
 
 const cleanups: Array<() => void> = [];
 

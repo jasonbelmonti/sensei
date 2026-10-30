@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -6,9 +6,9 @@ import { resolve } from "node:path";
 import {
 	createSenseiCliApplication,
 	senseiCommandGroups,
-} from "../../src/cli/index";
-import { openSenseiStorage } from "../../src/storage";
-import { runPackageCliCommand } from "./helpers";
+} from "../../src/cli/index.js";
+import { openSenseiStorage } from "../../src/storage/index.js";
+import { runPackageCliCommand } from "./helpers.js";
 
 test("cli help renders the registered command groups with injected config", async () => {
 	const stdout: string[] = [];

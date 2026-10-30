@@ -1,11 +1,11 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { openSenseiStorage } from "../../src/storage";
-import { seedAnalyzeFixture } from "../storage/analyze-fixture";
-import { runPackageCliCommand } from "./helpers";
+import { openSenseiStorage } from "../../src/storage/index.js";
+import { seedAnalyzeFixture } from "../storage/analyze-fixture.js";
+import { runPackageCliCommand } from "./helpers.js";
 
 test("package-level CLI script runs analyze end to end without duplicate current-version rows on rerun", () => {
 	const fixtureRoot = mkdtempSync(resolve(tmpdir(), "sensei-cli-analyze-"));

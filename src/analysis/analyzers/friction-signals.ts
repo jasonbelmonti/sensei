@@ -1,9 +1,9 @@
-import type { OrderedAnalysisTurnInput } from "../../storage";
+import type { OrderedAnalysisTurnInput } from "../../storage/index.js";
 import {
   TURN_FEATURE_SCORE_RANGE,
   type TurnFeatureAnalyzerSnapshot,
   type TurnFeatureRollupSignals,
-} from "../turn-feature-row";
+} from "../turn-feature-row.js";
 
 const FRICTION_SIGNAL_PREFIX = "friction-signals";
 

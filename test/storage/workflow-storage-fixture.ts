@@ -1,8 +1,8 @@
+import type { ReplaceWorkflowFamiliesInput } from "../../src/storage/repositories/workflow-families.js";
 import type {
-	ReplaceWorkflowFamiliesInput,
 	SenseiStorage,
 	StoreWorkflowSearchDocumentInput,
-} from "../../src/storage";
+} from "../../src/storage/index.js";
 
 const WORKFLOW_STORAGE_PROVIDER = "codex";
 const WORKFLOW_STORAGE_SESSION_ID = "workflow-session";

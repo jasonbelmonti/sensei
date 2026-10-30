@@ -1,0 +1,15 @@
+{"timestamp":"2026-10-01T00:00:00.000Z","type":"session_meta","payload":{"id":"legacy-codex","cwd":"/fixture/project"}}
+{"timestamp":"2026-10-01T00:00:01.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"turn-ok"}}
+{"timestamp":"2026-10-01T00:00:02.000Z","type":"event_msg","payload":{"type":"user_message","message":"Check the saved search results."}}
+{"timestamp":"2026-10-01T00:00:03.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Check the saved search results."}]}}
+{"timestamp":"2026-10-01T00:00:04.000Z","type":"response_item","payload":{"type":"function_call","call_id":"tool-ok","name":"exec_command","arguments":"{\"cmd\":\"pwd\"}"}}
+{"timestamp":"2026-10-01T00:00:05.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"tool-ok","output":"{\"exit_code\":0,\"output\":\"/fixture/project\"}"}}
+{"timestamp":"2026-10-01T00:00:06.000Z","type":"response_item","payload":{"type":"custom_tool_call","call_id":"tool-error","name":"apply_patch","input":"synthetic patch"}}
+{"timestamp":"2026-10-01T00:00:07.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"tool-error","output":"{\"error\":\"synthetic failure\"}"}}
+{"timestamp":"2026-10-01T00:00:08.000Z","type":"event_msg","payload":{"type":"agent_message","message":"Search results checked.","phase":"final"}}
+{"timestamp":"2026-10-01T00:00:09.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Search results checked."}]}}
+{"timestamp":"2026-10-01T00:00:10.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":21,"output_tokens":8,"cached_input_tokens":3,"total_tokens":29},"model_context_window":1000}}}
+{"timestamp":"2026-10-01T00:00:11.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"turn-ok","last_agent_message":"Search results checked."}}
+{"timestamp":"2026-10-01T00:00:12.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"turn-failed"}}
+{"timestamp":"2026-10-01T00:00:13.000Z","type":"event_msg","payload":{"type":"user_message","message":"Stop this synthetic request."}}
+{"timestamp":"2026-10-01T00:00:14.000Z","type":"event_msg","payload":{"type":"turn_aborted","turn_id":"turn-failed","reason":"interrupted"}}

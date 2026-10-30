@@ -1,14 +1,14 @@
-import { Database } from "bun:sqlite";
+import { Database } from "./sqlite-driver.js";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { migrateSenseiDatabase } from "./migrations";
-import { createAnalysisTurnRepository } from "./repositories/analysis-turns";
-import { createConversationRepository } from "./repositories/conversations";
-import { createIngestStateRepository } from "./repositories/ingest-state";
-import { createTurnFeatureRepository } from "./repositories/turn-features";
-import { createWorkflowFamiliesRepository } from "./repositories/workflow-families";
-import { createWorkflowSearchRepository } from "./repositories/workflow-search";
+import { migrateSenseiDatabase } from "./migrations.js";
+import { createAnalysisTurnRepository } from "./repositories/analysis-turns.js";
+import { createConversationRepository } from "./repositories/conversations.js";
+import { createIngestStateRepository } from "./repositories/ingest-state.js";
+import { createTurnFeatureRepository } from "./repositories/turn-features.js";
+import { createWorkflowFamiliesRepository } from "./repositories/workflow-families.js";
+import { createWorkflowSearchRepository } from "./repositories/workflow-search.js";
 
 export type OpenSenseiStorageOptions = {
 	databasePath: string;

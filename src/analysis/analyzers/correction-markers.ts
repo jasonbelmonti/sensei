@@ -1,5 +1,5 @@
-import type { TurnFeatureAnalyzerSnapshot } from "../turn-feature-row";
-import { analyzeLexicalCueRules } from "./lexical-cue-analysis";
+import type { TurnFeatureAnalyzerSnapshot } from "../turn-feature-row.js";
+import { analyzeLexicalCueRules } from "./lexical-cue-analysis.js";
 
 const CORRECTION_MARKER_RULES = [
   {

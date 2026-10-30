@@ -1,0 +1,32 @@
+{
+  "type": "task",
+  "events": [
+    {
+      "type": "system",
+      "subtype": "task_started",
+      "session_id": "task-claude",
+      "task_id": "task-1",
+      "tool_use_id": "subtask-1",
+      "description": "Synthetic child",
+      "prompt": "Inspect locally",
+      "task_type": "task"
+    },
+    {
+      "type": "system",
+      "subtype": "task_notification",
+      "session_id": "task-claude",
+      "task_id": "task-1",
+      "tool_use_id": "subtask-1",
+      "status": "completed",
+      "summary": "Synthetic child completed"
+    },
+    {
+      "type": "assistant",
+      "session_id": "task-claude",
+      "uuid": "task-answer",
+      "message": {
+        "content": "Task inspected."
+      }
+    }
+  ]
+}

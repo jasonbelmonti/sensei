@@ -4,14 +4,15 @@ import type {
   ObservedAgentEvent,
   ObservedSessionRecord,
   SessionIngestServiceOptions,
-} from "@jasonbelmonti/claudex/ingest";
+} from "./contracts.js";
 
-import type { SenseiStorage } from "../storage";
+import type { SenseiStorage } from "../storage/index.js";
 import {
   mapPassiveScanRecordToStorageWrites,
   mapPassiveScanWarningToStorageInput,
-} from "./record-mapper";
-import { selectAuthoritativeExplicitSessionWrite } from "./session-write-selection";
+} from "./record-mapper.js";
+import { selectAuthoritativeExplicitSessionWrite } from "./session-write-selection.js";
+import { toStorageProvider } from "./storage-provider.js";
 
 export type SenseiIngestWatchStorage = Pick<
   SenseiStorage,
@@ -51,18 +52,18 @@ function createSenseiStorageCursorStore(
     async get(key) {
       return (
         storage.ingestState.getCursor(
-          key.provider,
+          toStorageProvider(key.provider),
           key.rootPath,
           key.filePath,
         ) ?? null
       );
     },
     async set(cursor) {
-      storage.ingestState.setCursor(cursor);
+      storage.ingestState.setCursor({ ...cursor, provider: toStorageProvider(cursor.provider) });
     },
     async delete(key) {
       storage.ingestState.deleteCursor(
-        key.provider,
+        toStorageProvider(key.provider),
         key.rootPath,
         key.filePath,
       );

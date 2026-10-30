@@ -3,7 +3,7 @@ import type {
   SenseiCliContext,
   SenseiCliOutputChannel,
   SenseiCliOutputLine,
-} from "./types";
+} from "./types.js";
 
 export function writeCliResult(
   context: SenseiCliContext,

@@ -1,12 +1,12 @@
 import type {
   StoredCursorRecord,
   StoredWarningRecord,
-} from "../schema";
+} from "../schema.js";
 import {
   parseJson,
   parseJsonRecord,
   toOptionalLocation,
-} from "./shared";
+} from "./shared.js";
 
 export type CursorRow = {
   provider: string;

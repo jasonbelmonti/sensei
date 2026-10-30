@@ -1,10 +1,10 @@
-import type { SenseiRuntimeConfig } from "../config";
+import type { SenseiRuntimeConfig } from "../config/index.js";
 import {
   openSenseiStorage,
   type OpenSenseiStorageOptions,
   type SenseiStorage,
-} from "../storage";
-import { createSenseiIngestWatch, type SenseiIngestWatch } from "./watch";
+} from "../storage/index.js";
+import { createSenseiIngestWatch, type SenseiIngestWatch } from "./watch.js";
 
 type SenseiIngestWatchCommandConfig = Pick<SenseiRuntimeConfig, "paths" | "ingest">;
 type OpenSenseiIngestWatchStorage = (

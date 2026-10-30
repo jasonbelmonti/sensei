@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { expect, test } from "bun:test";
+import { Database } from "../../src/storage/sqlite-driver.js";
+import { expect, test } from "vitest";
 
 import {
   ANALYSIS_TOOL_EVENT_ORDER_BY_SQL,
@@ -8,7 +8,7 @@ import {
   ANALYSIS_TURN_ORDER_BY_SQL_TERMS,
   sortAnalysisToolEvents,
   sortAnalysisTurns,
-} from "../../src/storage";
+} from "../../src/storage/index.js";
 
 type TestAnalysisTurn = {
   turnId: string;

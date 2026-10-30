@@ -1,17 +1,17 @@
-import type { Database } from "bun:sqlite";
+import type { Database } from "../sqlite-driver.js";
 
 import type {
 	StoredWorkflowFamilyMemberRecord,
 	StoredWorkflowFamilyRecord,
 	StoreWorkflowFamilyInput,
 	StoreWorkflowFamilyMemberInput,
-} from "../workflow-family-schema";
+} from "../workflow-family-schema.js";
 import {
 	nowIsoString,
 	parseJson,
 	parseJsonRecord,
 	serializeJson,
-} from "./shared";
+} from "./shared.js";
 
 export type WorkflowFamiliesRepository = ReturnType<
 	typeof createWorkflowFamiliesRepository

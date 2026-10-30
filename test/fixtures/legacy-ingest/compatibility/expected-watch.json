@@ -1,0 +1,268 @@
+{
+  "sessions": [
+    {
+      "provider": "claude",
+      "session_id": "legacy-claude",
+      "identity_state": "canonical",
+      "working_directory": "/fixture/project",
+      "session_metadata_json": null,
+      "source_provider": "claude",
+      "source_kind": "transcript",
+      "discovery_phase": "initial_scan",
+      "source_root_path": "<fixture>/claude",
+      "source_file_path": "<fixture>/claude/transcript.jsonl",
+      "source_line": 1,
+      "source_byte_offset": 185,
+      "source_metadata_json": null,
+      "completeness": "complete",
+      "observation_reason": "transcript",
+      "observed_at": "2026-10-01T00:00:00.000Z",
+      "updated_at": "<generated-time>"
+    },
+    {
+      "provider": "claude",
+      "session_id": "snapshot-claude",
+      "identity_state": "canonical",
+      "working_directory": null,
+      "session_metadata_json": null,
+      "source_provider": "claude",
+      "source_kind": "snapshot",
+      "discovery_phase": "initial_scan",
+      "source_root_path": "<fixture>/claude",
+      "source_file_path": "<fixture>/claude/snapshot.json",
+      "source_line": 1,
+      "source_byte_offset": 636,
+      "source_metadata_json": null,
+      "completeness": "complete",
+      "observation_reason": "snapshot",
+      "observed_at": "<generated-time>",
+      "updated_at": "<generated-time>"
+    },
+    {
+      "provider": "claude",
+      "session_id": "task-claude",
+      "identity_state": "canonical",
+      "working_directory": null,
+      "session_metadata_json": null,
+      "source_provider": "claude",
+      "source_kind": "snapshot",
+      "discovery_phase": "initial_scan",
+      "source_root_path": "<fixture>/claude",
+      "source_file_path": "<fixture>/claude/task.json",
+      "source_line": 1,
+      "source_byte_offset": 719,
+      "source_metadata_json": null,
+      "completeness": "complete",
+      "observation_reason": "snapshot",
+      "observed_at": "<generated-time>",
+      "updated_at": "<generated-time>"
+    },
+    {
+      "provider": "codex",
+      "session_id": "file:<fixture>/codex/provisional.jsonl",
+      "identity_state": "provisional",
+      "working_directory": null,
+      "session_metadata_json": null,
+      "source_provider": "codex",
+      "source_kind": "transcript",
+      "discovery_phase": "initial_scan",
+      "source_root_path": "<fixture>/codex",
+      "source_file_path": "<fixture>/codex/provisional.jsonl",
+      "source_line": 1,
+      "source_byte_offset": 77,
+      "source_metadata_json": null,
+      "completeness": "partial",
+      "observation_reason": "transcript",
+      "observed_at": "<generated-time>",
+      "updated_at": "<generated-time>"
+    },
+    {
+      "provider": "codex",
+      "session_id": "index-only",
+      "identity_state": "provisional",
+      "working_directory": null,
+      "session_metadata_json": {
+        "threadName": "Index-only task",
+        "updatedAt": "2026-10-01T00:00:21.000Z"
+      },
+      "source_provider": "codex",
+      "source_kind": "session-index",
+      "discovery_phase": "initial_scan",
+      "source_root_path": "<fixture>/codex",
+      "source_file_path": "<fixture>/codex/session_index.jsonl",
+      "source_line": 3,
+      "source_byte_offset": 182,
+      "source_metadata_json": null,
+      "completeness": "best-effort",
+      "observation_reason": "index",
+      "observed_at": "<generated-time>",
+      "updated_at": "<generated-time>"
+    },
+    {
+      "provider": "codex",
+      "session_id": "legacy-codex",
+      "identity_state": "canonical",
+      "working_directory": null,
+      "session_metadata_json": {
+        "threadName": "Index title",
+        "updatedAt": "2026-10-01T00:00:20.000Z"
+      },
+      "source_provider": "codex",
+      "source_kind": "transcript",
+      "discovery_phase": "initial_scan",
+      "source_root_path": "<fixture>/codex",
+      "source_file_path": "<fixture>/codex/transcript.jsonl",
+      "source_line": 1,
+      "source_byte_offset": 120,
+      "source_metadata_json": null,
+      "completeness": "complete",
+      "observation_reason": "transcript",
+      "observed_at": "2026-10-01T00:00:00.000Z",
+      "updated_at": "<generated-time>"
+    }
+  ],
+  "turns": [
+    {
+      "provider": "codex",
+      "session_id": "legacy-codex",
+      "turn_id": "turn-failed",
+      "status": "failed",
+      "input_prompt": "Stop this synthetic request.",
+      "input_attachments_json": null,
+      "input_metadata_json": null,
+      "output_text": null,
+      "output_structured_output_json": null,
+      "stop_reason": null,
+      "error_code": "aborted",
+      "error_message": "Codex turn aborted: interrupted.",
+      "error_details_json": null,
+      "raw_event_json": {
+        "timestamp": "2026-10-01T00:00:14.000Z",
+        "type": "event_msg",
+        "payload": {
+          "type": "turn_aborted",
+          "turn_id": "turn-failed",
+          "reason": "interrupted"
+        }
+      },
+      "extensions_json": null,
+      "started_at": "2026-10-01T00:00:13.000Z",
+      "completed_at": null,
+      "failed_at": "2026-10-01T00:00:14.000Z",
+      "updated_at": "<generated-time>"
+    },
+    {
+      "provider": "codex",
+      "session_id": "legacy-codex",
+      "turn_id": "turn-ok",
+      "status": "completed",
+      "input_prompt": "Check the saved search results.",
+      "input_attachments_json": null,
+      "input_metadata_json": null,
+      "output_text": "Search results checked.",
+      "output_structured_output_json": null,
+      "stop_reason": "completed",
+      "error_code": null,
+      "error_message": null,
+      "error_details_json": null,
+      "raw_event_json": {
+        "usage": {
+          "input_tokens": 21,
+          "output_tokens": 8,
+          "cached_input_tokens": 3,
+          "total_tokens": 29,
+          "model_context_window": 1000
+        }
+      },
+      "extensions_json": null,
+      "started_at": "2026-10-01T00:00:02.000Z",
+      "completed_at": "2026-10-01T00:00:11.000Z",
+      "failed_at": null,
+      "updated_at": "<generated-time>"
+    }
+  ],
+  "turn_usage": [
+    {
+      "provider": "codex",
+      "session_id": "legacy-codex",
+      "turn_id": "turn-ok",
+      "input_tokens": 21,
+      "output_tokens": 8,
+      "cached_input_tokens": 3,
+      "cost_usd": null,
+      "provider_usage_json": {
+        "totalTokens": 29,
+        "modelContextWindow": 1000
+      },
+      "updated_at": "<generated-time>"
+    }
+  ],
+  "tool_events": [
+    {
+      "provider": "codex",
+      "session_id": "legacy-codex",
+      "turn_id": "turn-ok",
+      "tool_call_id": "tool-error",
+      "status": "completed",
+      "tool_name": "apply_patch",
+      "tool_kind": "custom",
+      "input_json": "synthetic patch",
+      "output_json": {
+        "error": "synthetic failure"
+      },
+      "status_text": null,
+      "outcome": "error",
+      "error_message": "synthetic failure",
+      "started_at": "2026-10-01T00:00:06.000Z",
+      "completed_at": "2026-10-01T00:00:07.000Z",
+      "updated_at": "<generated-time>"
+    },
+    {
+      "provider": "codex",
+      "session_id": "legacy-codex",
+      "turn_id": "turn-ok",
+      "tool_call_id": "tool-ok",
+      "status": "completed",
+      "tool_name": "command_execution",
+      "tool_kind": "command",
+      "input_json": {
+        "cmd": "pwd"
+      },
+      "output_json": {
+        "exit_code": 0,
+        "output": "/fixture/project"
+      },
+      "status_text": null,
+      "outcome": "success",
+      "error_message": null,
+      "started_at": "2026-10-01T00:00:04.000Z",
+      "completed_at": "2026-10-01T00:00:05.000Z",
+      "updated_at": "<generated-time>"
+    }
+  ],
+  "ingest_warnings": [
+    {
+      "id": 1,
+      "code": "unsupported-record",
+      "message": "Unsupported Codex transcript record type: future-record.",
+      "provider": "codex",
+      "file_path": "<fixture>/codex/provisional.jsonl",
+      "source_provider": "codex",
+      "source_kind": "transcript",
+      "source_discovery_phase": "initial_scan",
+      "source_root_path": "<fixture>/codex",
+      "source_file_path": "<fixture>/codex/provisional.jsonl",
+      "source_line": null,
+      "source_byte_offset": null,
+      "source_metadata_json": null,
+      "cause_json": null,
+      "raw_json": {
+        "type": "future-record",
+        "payload": {
+          "visible": "unsupported synthetic input"
+        }
+      },
+      "detected_at": "<generated-time>"
+    }
+  ]
+}

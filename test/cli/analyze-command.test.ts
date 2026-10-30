@@ -1,8 +1,8 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
-import { createSenseiCliApplication } from "../../src/cli";
-import { createAnalyzeCommandHandler } from "../../src/cli/commands/analyze";
-import type { SenseiCliCommandExecutionContext } from "../../src/cli/types";
+import { createSenseiCliApplication } from "../../src/cli/index.js";
+import { createAnalyzeCommandHandler } from "../../src/cli/commands/analyze.js";
+import type { SenseiCliCommandExecutionContext } from "../../src/cli/types.js";
 
 function createExecutionContext(): SenseiCliCommandExecutionContext {
 	return {

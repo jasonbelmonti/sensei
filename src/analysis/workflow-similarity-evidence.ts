@@ -1,14 +1,14 @@
-import { buildNearCanonicalPromptText } from "./near-prompt-canonical-text";
+import { buildNearCanonicalPromptText } from "./near-prompt-canonical-text.js";
 import {
   sanitizeWorkflowSearchTerm,
   sanitizeWorkflowSearchTerms,
-} from "./workflow-search-text";
+} from "./workflow-search-text.js";
 import type {
   WorkflowSimilarityContextSignal,
   WorkflowSimilarityEvidence,
   WorkflowSimilarityEvidenceInput,
   WorkflowSimilarityFingerprintMatch,
-} from "./workflow-similarity-evidence-contract";
+} from "./workflow-similarity-evidence-contract.js";
 
 const PROMPT_EVIDENCE_PLACEHOLDERS = new Set([
   "senseipathplaceholder",

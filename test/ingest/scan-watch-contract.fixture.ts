@@ -1,20 +1,20 @@
 import type {
   SessionIngestService,
   SessionIngestServiceOptions,
-} from "@jasonbelmonti/claudex/ingest";
+} from "../../src/ingest/contracts.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { createSenseiConfig } from "../../src/config";
+import { createSenseiConfig } from "../../src/config/index.js";
 import {
   createSenseiIngestWatch,
   createSenseiPassiveScanRoots,
   runSenseiIngestScanCommand,
   type SenseiPassiveScanResult,
-} from "../../src/ingest";
-import { openSenseiStorage, type SenseiStorage } from "../../src/storage";
-import { fixtureCodexRoot } from "./scan-watch-contract-scenarios";
+} from "../../src/ingest/index.js";
+import { openSenseiStorage, type SenseiStorage } from "../../src/storage/index.js";
+import { fixtureCodexRoot } from "./scan-watch-contract-scenarios.js";
 
 export function createScanWatchContractHarness(prefix: string) {
   const runtimeRoot = mkdtempSync(join(tmpdir(), `${prefix}-`));

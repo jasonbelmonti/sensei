@@ -1,6 +1,6 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
-import { normalizeWorkflowSearchPromptText } from "../../src/analysis";
+import { normalizeWorkflowSearchPromptText } from "../../src/analysis/index.js";
 
 test("workflow search prompt normalization is locale-insensitive", () => {
   const originalToLocaleLowerCase = String.prototype.toLocaleLowerCase;

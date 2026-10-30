@@ -1,14 +1,20 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "allowImportingTsExtensions": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "verbatimModuleSyntax": true,
     "strict": true,
     "noEmit": true,
-    "types": ["bun-types"],
-    "lib": ["ESNext"]
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ESNext"
+    ]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts"
+  ]
 }

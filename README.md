@@ -1,12 +1,12 @@
 # sensei
 
-`sensei` is a local-first mentoring system for analyzing how work gets done with Claude and Codex, surfacing recurring patterns, and proposing higher-leverage workflows.
+`sensei` is a local history-analysis prototype. The reboot targets related completed tasks and supporting evidence from Codex and Copilot.
 
 ## v0 direction
 
-The v0 system is intentionally split into small, explicit layers:
+The existing v0 prototype has these layers; task retrieval is the reboot target:
 
-1. Ingest local Claude and Codex artifacts through `@jasonbelmonti/claudex/ingest`.
+1. Ingest local Claude and Codex artifacts through Sensei-owned readers.
 2. Persist a canonical local history under `~/.sensei`.
 3. Extract deterministic prompt and workflow features.
 4. Group repeated work into stable workflow families.
@@ -21,13 +21,59 @@ The repository is organized around these top-level areas:
 - `src/cli`: operator-facing command entrypoints
 - `src/config`: runtime paths and configuration seams
 - `src/drafting`: draft skill/script/automation generation
-- `src/ingest`: `claudex`-backed observation and canonical mapping
+- `src/ingest`: local readers, file continuity, scan/watch scheduling and canonical mapping
 - `src/reporting`: report rendering over stored insights
 - `src/storage`: local persistence and migrations
 
-## Relationship to `claudex`
+## Owned ingestion
 
-`sensei` should consume `@jasonbelmonti/claudex/ingest` as the canonical normalization layer for Claude and Codex artifacts. The goal is to build mentoring and workflow analysis on top of normalized turns, not to duplicate transcript parsing logic here.
+Sensei owns passive ingestion and requires no provider SDK, authentication or
+model/network call to scan local files. The required compatibility inputs are
+Codex JSONL transcripts and session indexes (`session_index.jsonl` or
+`session-index.jsonl`). Legacy Claude readers remain in the tree; Claude repair
+and qualification are outside the reboot scope. Selected
+decoding logic was adapted under the MIT license; see [attribution](THIRD_PARTY_NOTICES.md).
+
+The Codex readers preserve the existing normalization contract. Current Codex
+rich `item_completed` fidelity and a Copilot provider reader are the next
+ingestion phase. Copilot event fixtures currently check only shared JSONL file
+framing; Sensei cannot yet ingest Copilot history or claim complete evidence
+retrieval from current-format logs.
+
+Both `ingest scan` and `ingest watch` use the owned service. Unverified legacy
+cursors, changed reader versions and rewritten/rotated sources produce visible
+reset warnings and replay through idempotent storage. Incomplete final JSONL
+records stay pending until completed. Newline-terminated malformed records
+produce warnings; later records remain readable. Watch ticks serialize, failed
+writes do not acknowledge the failed observation, and shutdown waits for active
+processing. A `watch-failed` warning requires restarting the watcher.
+
+Codex transcript reader version 2 retries final session delivery before
+acknowledging the last line, including after a failed callback and restart.
+Version-1 transcript cursors replay once with a `cursor-reset` warning, including
+unchanged files at EOF. Existing stored records are upserted without duplication.
+
+SQLite schemas and CLI configuration are unchanged. Use an explicit isolated
+`SENSEI_HOME` when evaluating this reboot; no default database conversion is part
+of this release. Source-specific warnings are retained in `ingest_warnings`.
+
+## Runtime and development
+
+Use Node.js **24.22.1** and its bundled npm **11.19.1**. The repository pins
+the runtime in `.node-version` and dependencies in `package-lock.json`.
+SQLite uses the native `better-sqlite3` binding; installation needs its
+platform binary or a working native build toolchain. The qualification
+environment also includes the standard `zstd` command (1.5.7).
+
+```bash
+npm ci
+npm run check
+npm run sensei -- --help
+```
+
+`npm run check` runs lint, typecheck, the build and tests. `npm test` also
+builds first. After editing source, run `npm run build` before using the CLI:
+`npm run sensei -- ...` executes compiled JavaScript from `dist/`.
 
 ## Runtime path defaults
 
@@ -52,10 +98,10 @@ This repository now contains the ingest and storage foundation for canonical loc
 
 ## CLI bootstrap surface
 
-The current package-level bootstrap path is:
+After `npm ci` and `npm run build`, the package-level bootstrap path is:
 
 ```bash
-bun run sensei -- --help
+npm run sensei -- --help
 ```
 
 The registered command groups are:
@@ -67,8 +113,8 @@ The registered command groups are:
 
 The ingest command group is live today:
 
-- `bun run sensei -- ingest scan` backfills canonical sessions, turns, usage, tool events, cursors, and warnings into the local store
-- `bun run sensei -- ingest watch` starts the long-running watch seam and persists appended provider history into the same store
+- `npm run sensei -- ingest scan` backfills canonical sessions, turns, usage, tool events, cursors, and warnings into the local store
+- `npm run sensei -- ingest watch` starts the long-running watch seam and persists appended provider history into the same store
 
 The `analyze`, `report`, and `draft` command groups still use placeholder shells in the current slice. Each dispatches through the CLI wiring, then exits non-zero with:
 
@@ -77,15 +123,14 @@ The `analyze`, `report`, and `draft` command groups still use placeholder shells
 
 Current bootstrap behavior:
 
-- `bun run sensei -- --help` succeeds and renders the registered command groups
-- `bun run sensei -- <command>` dispatches to the matching shell module
+- `npm run sensei -- --help` succeeds and renders the registered command groups
+- `npm run sensei -- <command>` dispatches to the matching shell module
 - unknown commands exit with code `1`
 
 ## Verification
 
 ```bash
-bun install
-bun run test
-bun run typecheck
-bun run sensei -- --help
+npm ci
+npm run check
+npm run sensei -- --help
 ```

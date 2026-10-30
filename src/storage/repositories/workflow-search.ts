@@ -1,23 +1,23 @@
-import type { Database } from "bun:sqlite";
+import type { Database } from "../sqlite-driver.js";
 
 import type {
 	SearchedWorkflowSearchDocumentRecord,
 	SearchWorkflowSearchDocumentsInput,
 	StoredWorkflowSearchDocumentRecord,
 	StoreWorkflowSearchDocumentInput,
-} from "../workflow-search-schema";
+} from "../workflow-search-schema.js";
 import {
 	buildWorkflowSearchMatchQuery,
 	resolveWorkflowSearchLimit,
-} from "./workflow-search-query";
+} from "./workflow-search-query.js";
 import {
 	createWorkflowSearchProjection,
 	mapSearchedWorkflowSearchRow,
 	mapWorkflowSearchRow,
 	type SearchedWorkflowSearchRow,
 	type WorkflowSearchRow,
-} from "./workflow-search-records";
-import { nowIsoString, serializeJson } from "./shared";
+} from "./workflow-search-records.js";
+import { nowIsoString, serializeJson } from "./shared.js";
 
 export type WorkflowSearchRepository = ReturnType<
 	typeof createWorkflowSearchRepository

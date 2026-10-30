@@ -2,19 +2,19 @@ import type {
   IngestProviderRegistry,
   SessionIngestService,
   SessionIngestServiceOptions,
-} from "@jasonbelmonti/claudex/ingest";
-import { createSessionIngestService } from "@jasonbelmonti/claudex/ingest";
+} from "./contracts.js";
+import { createSessionIngestService } from "./service.js";
 
-import type { SenseiRuntimeConfig } from "../config";
+import type { SenseiRuntimeConfig } from "../config/index.js";
 import {
   createSenseiPassiveIngestRegistries,
   createSenseiPassiveWatchRootsForConfig,
   type SenseiPassiveScanRoot,
-} from "./provider-roots";
+} from "./provider-roots.js";
 import {
   createSenseiWatchStorageBindings,
   type SenseiIngestWatchStorage,
-} from "./watch-storage";
+} from "./watch-storage.js";
 
 type CreateSenseiIngestWatchService = (
   options: SessionIngestServiceOptions,

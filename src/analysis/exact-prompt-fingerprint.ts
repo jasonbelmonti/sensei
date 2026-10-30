@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { normalizeWorkflowSearchPromptText } from "./workflow-search-text";
+import { normalizeWorkflowSearchPromptText } from "./workflow-search-text.js";
 
 export function buildExactPromptFingerprint(
   promptText: string,

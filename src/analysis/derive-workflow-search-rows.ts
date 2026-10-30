@@ -1,10 +1,10 @@
-import type { OrderedAnalysisTurnInput } from "../storage";
+import type { OrderedAnalysisTurnInput } from "../storage/index.js";
 
-import { buildWorkflowSearchRow } from "./build-workflow-search-row";
+import { buildWorkflowSearchRow } from "./build-workflow-search-row.js";
 import type {
   WorkflowSearchSourceTurnFeature,
   WriteReadyWorkflowSearchRow,
-} from "./workflow-search-row";
+} from "./workflow-search-row.js";
 
 export function deriveWorkflowSearchRows(
   orderedTurns: readonly OrderedAnalysisTurnInput[],

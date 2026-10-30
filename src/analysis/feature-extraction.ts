@@ -1,12 +1,12 @@
-import type { OrderedAnalysisTurnInput } from "../storage";
-import { resolveAnalyzedAt } from "./analyzed-at";
+import type { OrderedAnalysisTurnInput } from "../storage/index.js";
+import { resolveAnalyzedAt } from "./analyzed-at.js";
 import {
   CURRENT_TURN_FEATURE_VERSION,
   resolveTurnFeatureVersion,
   type TurnFeatureVersion,
-} from "./feature-version";
-import { buildTurnFeatureRollupRow } from "./turn-feature-rollup";
-import type { WriteReadyTurnFeatureRow } from "./turn-feature-row";
+} from "./feature-version.js";
+import { buildTurnFeatureRollupRow } from "./turn-feature-rollup.js";
+import type { WriteReadyTurnFeatureRow } from "./turn-feature-row.js";
 
 export const TURN_FEATURE_SKIP_REASONS = [
   "missing-prompt-input",
@@ -161,4 +161,4 @@ function getOrCreateMapValue<TKey, TValue>(
 
   return value;
 }
-export type { WriteReadyTurnFeatureRow } from "./turn-feature-row";
+export type { WriteReadyTurnFeatureRow } from "./turn-feature-row.js";

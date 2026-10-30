@@ -1,18 +1,19 @@
 import type {
   IngestWarning,
   ObservedSessionRecord,
-} from "@jasonbelmonti/claudex/ingest";
+} from "./contracts.js";
 
-import type { StoreWarningInput } from "../storage";
-import { mapObservedAgentEventToStorageWrites } from "./event-record-mapper";
+import type { StoreWarningInput } from "../storage/index.js";
+import { mapObservedAgentEventToStorageWrites } from "./event-record-mapper.js";
 import {
   createObservedSessionStorageInput,
   mapObservedCursorToStorageInput,
-} from "./observation-storage-inputs";
-import type { PassiveScanRecordStorageWrites } from "./record-storage-writes";
-import type { SenseiPassiveScanRecord } from "./scan-result";
+} from "./observation-storage-inputs.js";
+import type { PassiveScanRecordStorageWrites } from "./record-storage-writes.js";
+import type { SenseiPassiveScanRecord } from "./scan-result.js";
+import { toStorageProvider, toStorageSource } from "./storage-provider.js";
 
-export type { PassiveScanRecordStorageWrites } from "./record-storage-writes";
+export type { PassiveScanRecordStorageWrites } from "./record-storage-writes.js";
 
 export function mapPassiveScanRecordToStorageWrites(
   record: SenseiPassiveScanRecord,
@@ -30,9 +31,9 @@ export function mapPassiveScanWarningToStorageInput(
   return {
     code: warning.code,
     message: warning.message,
-    provider: warning.provider,
+    provider: warning.provider === undefined ? undefined : toStorageProvider(warning.provider),
     filePath: warning.filePath,
-    source: warning.source,
+    source: warning.source === undefined ? undefined : toStorageSource(warning.source),
     cause: warning.cause,
     raw: warning.raw,
   };

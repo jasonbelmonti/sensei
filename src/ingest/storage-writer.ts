@@ -1,13 +1,13 @@
-import type { SenseiStorage } from "../storage";
+import type { SenseiStorage } from "../storage/index.js";
 import {
   mapPassiveScanRecordToStorageWrites,
   mapPassiveScanWarningToStorageInput,
-} from "./record-mapper";
-import type { SenseiPassiveScanResult } from "./scan-result";
+} from "./record-mapper.js";
+import type { SenseiPassiveScanResult } from "./scan-result.js";
 import {
   collectSessionWriteSelections,
   resolveSessionWrite,
-} from "./session-write-selection";
+} from "./session-write-selection.js";
 
 export type PassiveScanWriteSummary = {
   processedRecords: number;

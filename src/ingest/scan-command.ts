@@ -1,18 +1,18 @@
-import type { SenseiRuntimeConfig } from "../config";
+import type { SenseiRuntimeConfig } from "../config/index.js";
 import {
   openSenseiStorage,
   type OpenSenseiStorageOptions,
   type SenseiStorage,
-} from "../storage";
+} from "../storage/index.js";
 import {
   createSenseiPassiveScanAdapterForConfig,
   type SenseiPassiveScanAdapter,
-} from "./passive-scan";
-import type { SenseiPassiveScanResult } from "./scan-result";
+} from "./passive-scan.js";
+import type { SenseiPassiveScanResult } from "./scan-result.js";
 import {
   writePassiveScanResultToStorage,
   type PassiveScanWriteSummary,
-} from "./storage-writer";
+} from "./storage-writer.js";
 
 type SenseiIngestScanConfig = Pick<SenseiRuntimeConfig, "paths">;
 type SenseiIngestScanStorage = Pick<SenseiStorage, "close" | "transaction">;

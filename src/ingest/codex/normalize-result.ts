@@ -1,0 +1,33 @@
+// Adapted from Claudex 4.0.6 (MIT); see THIRD_PARTY_NOTICES.md.
+import type {
+  CodexTranscriptNormalizationContext,
+  ParsedArtifact,
+} from "./normalize-types.js";
+
+export function emptyResult(
+  context: CodexTranscriptNormalizationContext,
+): ParsedArtifact {
+  return {
+    sessionId: context.sessionId ?? undefined,
+    events: [],
+    warnings: [],
+  };
+}
+
+export function unsupportedRecord(
+  message: string,
+  raw: unknown,
+  context: CodexTranscriptNormalizationContext,
+): ParsedArtifact {
+  return {
+    sessionId: context.sessionId ?? undefined,
+    events: [],
+    warnings: [
+      {
+        code: "unsupported-record",
+        message,
+        raw,
+      },
+    ],
+  };
+}

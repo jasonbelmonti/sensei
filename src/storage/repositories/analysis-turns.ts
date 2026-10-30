@@ -1,15 +1,15 @@
-import type { Database } from "bun:sqlite";
+import type { Database } from "../sqlite-driver.js";
 
 import {
 	createAnalysisToolEventOrderBySql,
 	createAnalysisTurnOrderBySql,
 	type OrderedAnalysisTurnInput,
-} from "../analysis-ordering";
-import type { StoredToolEventRecord } from "../schema";
+} from "../analysis-ordering.js";
+import type { StoredToolEventRecord } from "../schema.js";
 import {
 	mapOrderedTurnSessionContext,
 	type AnalysisTurnSessionContextRow,
-} from "./analysis-turn-session-context";
+} from "./analysis-turn-session-context.js";
 import {
 	mapToolEventRow,
 	mapTurnRow,
@@ -17,7 +17,7 @@ import {
 	type ToolEventRow,
 	type TurnRow,
 	type TurnUsageRow,
-} from "./conversation-records";
+} from "./conversation-records.js";
 
 export type AnalysisTurnRepository = ReturnType<
 	typeof createAnalysisTurnRepository

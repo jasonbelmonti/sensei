@@ -1,14 +1,14 @@
-import type { SenseiCliCommandHandler, SenseiCliCommandName } from "../types";
+import type { SenseiCliCommandHandler, SenseiCliCommandName } from "../types.js";
 
-export { createAnalyzeCommandHandler, runAnalyzeCommand } from "./analyze";
-export { runDraftCommand } from "./draft";
-export { createIngestCommandHandler, runIngestCommand } from "./ingest";
-export { runReportCommand } from "./report";
+export { createAnalyzeCommandHandler, runAnalyzeCommand } from "./analyze.js";
+export { runDraftCommand } from "./draft.js";
+export { createIngestCommandHandler, runIngestCommand } from "./ingest.js";
+export { runReportCommand } from "./report.js";
 
-import { runAnalyzeCommand } from "./analyze";
-import { runDraftCommand } from "./draft";
-import { runIngestCommand } from "./ingest";
-import { runReportCommand } from "./report";
+import { runAnalyzeCommand } from "./analyze.js";
+import { runDraftCommand } from "./draft.js";
+import { runIngestCommand } from "./ingest.js";
+import { runReportCommand } from "./report.js";
 
 export const senseiCliCommandHandlers = {
 	ingest: runIngestCommand,

@@ -1,17 +1,17 @@
-import type { OrderedAnalysisTurnInput } from "../storage";
+import type { OrderedAnalysisTurnInput } from "../storage/index.js";
 
 import type {
   WorkflowSearchSourceTurnFeature,
   WriteReadyWorkflowSearchRow,
-} from "./workflow-search-row";
-import { buildExactPromptFingerprint } from "./exact-prompt-fingerprint";
-import { buildNearPromptFingerprint } from "./near-prompt-fingerprint";
+} from "./workflow-search-row.js";
+import { buildExactPromptFingerprint } from "./exact-prompt-fingerprint.js";
+import { buildNearPromptFingerprint } from "./near-prompt-fingerprint.js";
 import {
   buildWorkflowSearchText,
   normalizeWorkflowSearchPromptText,
   sanitizeWorkflowSearchTerm,
   sanitizeWorkflowSearchTerms,
-} from "./workflow-search-text";
+} from "./workflow-search-text.js";
 
 export function buildWorkflowSearchRow(
   orderedTurn: OrderedAnalysisTurnInput,

@@ -1,11 +1,11 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 import {
   buildExactPromptFingerprint,
   buildNearPromptFingerprint,
   buildWorkflowSimilarityEvidence,
-} from "../../src/analysis";
-import type { WorkflowSimilarityEvidenceInput } from "../../src/analysis";
+} from "../../src/analysis/index.js";
+import type { WorkflowSimilarityEvidenceInput } from "../../src/analysis/index.js";
 
 test("workflow similarity evidence returns explicit fingerprint, prompt token, tag, intent, and context matches for exact-equivalent prompts", () => {
   const leftPromptText =

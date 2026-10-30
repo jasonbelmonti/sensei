@@ -1,8 +1,8 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 import { createHash } from "node:crypto";
 
-import { buildNearPromptFingerprint } from "../../src/analysis";
-import { buildNearCanonicalPromptText } from "../../src/analysis/near-prompt-canonical-text";
+import { buildNearPromptFingerprint } from "../../src/analysis/index.js";
+import { buildNearCanonicalPromptText } from "../../src/analysis/near-prompt-canonical-text.js";
 
 test("near prompt fingerprint hashes conservative placeholder-normalized prompt text", () => {
 	const expectedFingerprint = buildSha256HexDigest(

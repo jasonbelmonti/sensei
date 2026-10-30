@@ -1,22 +1,23 @@
-import { Database } from "bun:sqlite";
-import { afterEach, expect, test } from "bun:test";
+import { Database } from "../../src/storage/sqlite-driver.js";
+import { afterEach, expect, test } from "vitest";
+import { execFile } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
 import {
 	openSenseiStorage,
 	STORAGE_MIGRATIONS,
 	TURN_FEATURE_STORAGE_MIGRATION,
 	WORKFLOW_STORAGE_MIGRATION,
-} from "../../src/storage";
-import { createStorageTestHarness } from "./helpers";
+} from "../../src/storage/index.js";
+import { createStorageTestHarness } from "./helpers.js";
 import {
 	createWorkflowFamiliesInput,
 	createWorkflowSearchDocumentInput,
 	seedWorkflowStorageFixture,
-} from "./workflow-storage-fixture";
+} from "./workflow-storage-fixture.js";
 
 const cleanups: Array<() => void> = [];
 const WORKFLOW_STORAGE_TABLES = [
@@ -267,46 +268,27 @@ test("fresh bootstrap tolerates concurrent storage opens", async () => {
 	const databasePath = join(rootDir, "sensei.sqlite");
 	cleanups.push(() => rmSync(rootDir, { recursive: true, force: true }));
 
-	const storageModulePath = fileURLToPath(
-		new URL("../../src/storage/index.ts", import.meta.url),
-	);
+	const storageModulePath = new URL("../../dist/storage/index.js", import.meta.url).href;
 	const openScript = `
     import { openSenseiStorage } from ${JSON.stringify(storageModulePath)};
-    const databasePath = Bun.argv[Bun.argv.length - 1];
+    import { setTimeout } from "node:timers/promises";
+    const databasePath = process.argv.at(-1);
     const storage = openSenseiStorage({ databasePath });
-    await Bun.sleep(100);
+    await setTimeout(100);
     storage.close();
     console.log("ok");
   `;
 
-	const firstProcess = Bun.spawn(["bun", "-e", openScript, databasePath], {
-		stderr: "pipe",
-		stdout: "pipe",
-	});
-	const secondProcess = Bun.spawn(["bun", "-e", openScript, databasePath], {
-		stderr: "pipe",
-		stdout: "pipe",
-	});
-
-	const [firstExitCode, secondExitCode, firstError, secondError] =
-		await Promise.all([
-			firstProcess.exited,
-			secondProcess.exited,
-			new Response(firstProcess.stderr).text(),
-			new Response(secondProcess.stderr).text(),
-		]);
-
-	expect({
-		firstExitCode,
-		secondExitCode,
-		firstError,
-		secondError,
-	}).toEqual({
-		firstExitCode: 0,
-		secondExitCode: 0,
-		firstError: "",
-		secondError: "",
-	});
+	const open = () => promisify(execFile)(
+		process.execPath,
+		["--input-type=module", "--eval", openScript, databasePath],
+	);
+	// execFile rejects nonzero exits; both independent Node processes must finish.
+	const results = await Promise.all([open(), open()]);
+	expect(results).toEqual([
+		{ stdout: "ok\n", stderr: "" },
+		{ stdout: "ok\n", stderr: "" },
+	]);
 });
 
 test("readonly opens tolerate legacy databases without turn_features", () => {

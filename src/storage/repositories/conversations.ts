@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { Database } from "../sqlite-driver.js";
 
 import type {
   StoreSessionInput,
@@ -9,7 +9,7 @@ import type {
   StoredTurnRecord,
   StoreTurnUsageInput,
   StoredTurnUsageRecord,
-} from "../schema";
+} from "../schema.js";
 import {
   mergeAuthoritativeSessionRecord,
   mapSessionRow,
@@ -28,7 +28,7 @@ import {
   type TurnRow,
   turnUsageStatementParams,
   type TurnUsageRow,
-} from "./conversation-records";
+} from "./conversation-records.js";
 
 export type ConversationRepository = ReturnType<typeof createConversationRepository>;
 

@@ -1,13 +1,13 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "vitest";
 import { dirname, join } from "node:path";
 
 import {
 	CURRENT_TURN_FEATURE_VERSION,
 	runSenseiAnalyzeCommand,
-} from "../../src/analysis";
-import type { SenseiRuntimeConfig } from "../../src/config";
-import { seedAnalyzeFixture } from "../storage/analyze-fixture";
-import { createStorageTestHarness } from "../storage/helpers";
+} from "../../src/analysis/index.js";
+import type { SenseiRuntimeConfig } from "../../src/config/index.js";
+import { seedAnalyzeFixture } from "../storage/analyze-fixture.js";
+import { createStorageTestHarness } from "../storage/helpers.js";
 
 const cleanups: Array<() => void> = [];
 

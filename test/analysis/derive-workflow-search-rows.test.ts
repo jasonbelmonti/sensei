@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 import {
   buildExactPromptFingerprint,
@@ -6,8 +6,8 @@ import {
   CURRENT_TURN_FEATURE_VERSION,
   deriveWorkflowSearchRows,
   extractTurnFeatures,
-} from "../../src/analysis";
-import { createOrderedTurnInput } from "./ordered-analysis-turn-fixture";
+} from "../../src/analysis/index.js";
+import { createOrderedTurnInput } from "./ordered-analysis-turn-fixture.js";
 
 const FIXED_ANALYZED_AT = "2026-04-19T02:00:00.000Z";
 

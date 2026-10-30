@@ -14,7 +14,7 @@ export function getRepositoryAreas(): RepositoryArea[] {
   return [...repositoryAreas];
 }
 
-export * from "./analysis";
-export * from "./config";
-export * from "./ingest";
-export * from "./storage";
+export * from "./analysis/index.js";
+export * from "./config/index.js";
+export * from "./ingest/index.js";
+export * from "./storage/index.js";

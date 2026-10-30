@@ -1,5 +1,6 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,7 +8,7 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const skillDir = join(rootDir, "skills", "sensei");
 
 function readSkillFile(...relativePath: string[]) {
-  return Bun.file(join(skillDir, ...relativePath)).text();
+  return readFile(join(skillDir, ...relativePath), "utf8");
 }
 
 test("repo-local sensei skill shell is present in the bootstrap scaffold", () => {
@@ -24,7 +25,7 @@ test("repo-local sensei skill shell stays aligned to the lean v0 bootstrap", asy
   expect(skillMarkdown).toContain("repo-local mentoring surface");
   expect(skillMarkdown).toContain("intentionally lean");
   expect(skillMarkdown).toContain("$sensei");
-  expect(skillMarkdown).toContain("bun run sensei -- --help");
+  expect(skillMarkdown).toContain("npm run sensei -- --help");
   expect(skillMarkdown).toContain("Do not invent mentoring analysis");
 
   expect(openAiInterface).toContain("interface:");

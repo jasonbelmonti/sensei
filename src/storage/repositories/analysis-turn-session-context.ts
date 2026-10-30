@@ -1,5 +1,5 @@
-import type { OrderedAnalysisTurnSessionContext } from "../analysis-ordering";
-import { parseJsonRecord } from "./shared";
+import type { OrderedAnalysisTurnSessionContext } from "../analysis-ordering.js";
+import { parseJsonRecord } from "./shared.js";
 
 const SESSION_THREAD_NAME_FIELD = "threadName";
 const SESSION_TAGS_FIELD = "tags";

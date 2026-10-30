@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
-import { buildExactPromptFingerprint } from "../../src/analysis";
+import { buildExactPromptFingerprint } from "../../src/analysis/index.js";
 
 test("exact prompt fingerprint hashes normalized prompt text", () => {
   const expectedFingerprint = buildSha256HexDigest(

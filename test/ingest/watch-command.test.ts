@@ -1,7 +1,7 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
-import { createSenseiConfig } from "../../src/config";
-import { runSenseiIngestWatchCommand } from "../../src/ingest";
+import { createSenseiConfig } from "../../src/config/index.js";
+import { runSenseiIngestWatchCommand } from "../../src/ingest/index.js";
 
 test("watch command starts the watch seam, waits for shutdown, and closes storage", async () => {
   const config = createSenseiConfig({

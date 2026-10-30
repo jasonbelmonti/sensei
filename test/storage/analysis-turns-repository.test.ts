@@ -1,7 +1,7 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "vitest";
 
-import { seedAnalyzeFixture } from "./analyze-fixture";
-import { createStorageTestHarness } from "./helpers";
+import { seedAnalyzeFixture } from "./analyze-fixture.js";
+import { createStorageTestHarness } from "./helpers.js";
 
 const cleanups: Array<() => void> = [];
 

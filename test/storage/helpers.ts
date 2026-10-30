@@ -2,8 +2,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { SenseiStorage } from "../../src/storage";
-import { openSenseiStorage } from "../../src/storage";
+import type { SenseiStorage } from "../../src/storage/index.js";
+import { openSenseiStorage } from "../../src/storage/index.js";
 
 export function createStorageTestHarness(prefix: string): {
 	rootDir: string;
