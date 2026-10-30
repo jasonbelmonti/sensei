@@ -39,7 +39,7 @@ test("package scripts and documentation describe the bootstrap surface", async (
     check: "npm run lint && npm run typecheck && npm test",
   });
   expect(readme).toContain("Sensei-owned readers");
-  expect(readme).toContain("local-first mentoring system");
+  expect(readme).toContain("related completed tasks and supporting evidence");
   expect(readme).toContain("npm run sensei -- --help");
   expect(readme).toContain("ingest");
   expect(readme).toContain("analyze");

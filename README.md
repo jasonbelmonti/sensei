@@ -1,10 +1,10 @@
 # sensei
 
-`sensei` is a local-first mentoring system for analyzing how work gets done with Claude and Codex, surfacing recurring patterns, and proposing higher-leverage workflows.
+`sensei` is a local history-analysis prototype. The reboot targets related completed tasks and supporting evidence from Codex and Copilot.
 
 ## v0 direction
 
-The v0 system is intentionally split into small, explicit layers:
+The existing v0 prototype has these layers; task retrieval is the reboot target:
 
 1. Ingest local Claude and Codex artifacts through Sensei-owned readers.
 2. Persist a canonical local history under `~/.sensei`.
@@ -28,14 +28,17 @@ The repository is organized around these top-level areas:
 ## Owned ingestion
 
 Sensei owns passive ingestion and requires no provider SDK, authentication or
-model/network call to scan local files. The supported compatibility inputs are
-Claude JSONL transcripts and JSON snapshots/tasks, plus Codex JSONL transcripts
-and session indexes (`session_index.jsonl` or `session-index.jsonl`). Selected
+model/network call to scan local files. The required compatibility inputs are
+Codex JSONL transcripts and session indexes (`session_index.jsonl` or
+`session-index.jsonl`). Legacy Claude readers remain in the tree; Claude repair
+and qualification are outside the reboot scope. Selected
 decoding logic was adapted under the MIT license; see [attribution](THIRD_PARTY_NOTICES.md).
 
-The readers preserve the existing normalization contract. Claude turn IDs and
-current Codex rich `item_completed` fidelity remain separate work; this release
-does not qualify complete evidence retrieval from those formats.
+The Codex readers preserve the existing normalization contract. Current Codex
+rich `item_completed` fidelity and a Copilot provider reader are the next
+ingestion phase. Copilot event fixtures currently check only shared JSONL file
+framing; Sensei cannot yet ingest Copilot history or claim complete evidence
+retrieval from current-format logs.
 
 Both `ingest scan` and `ingest watch` use the owned service. Unverified legacy
 cursors, changed reader versions and rewritten/rotated sources produce visible
@@ -44,6 +47,11 @@ records stay pending until completed. Newline-terminated malformed records
 produce warnings; later records remain readable. Watch ticks serialize, failed
 writes do not acknowledge the failed observation, and shutdown waits for active
 processing. A `watch-failed` warning requires restarting the watcher.
+
+Codex transcript reader version 2 retries final session delivery before
+acknowledging the last line, including after a failed callback and restart.
+Version-1 transcript cursors replay once with a `cursor-reset` warning, including
+unchanged files at EOF. Existing stored records are upserted without duplication.
 
 SQLite schemas and CLI configuration are unchanged. Use an explicit isolated
 `SENSEI_HOME` when evaluating this reboot; no default database conversion is part

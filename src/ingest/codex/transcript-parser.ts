@@ -46,8 +46,6 @@ export async function* parseCodexTranscriptFile(
     (context.cursor?.metadata?.senseiEndedAtNewline === false ? 0 : 1);
   let byteOffset = cursorStart;
   let lineStart = 0;
-  let latestDeliveredByteOffset = cursorStart;
-  let sessionIdBecameAvailable = false;
 
   for (let index = 0; index <= bytes.length; index += 1) {
     const atEnd = index === bytes.length;
@@ -64,7 +62,6 @@ export async function* parseCodexTranscriptFile(
     const nextByteOffset = byteOffset + bytesConsumed;
 
     if (lineText.length > 0) {
-      const sessionIdBeforeLine = normalizationContext.sessionId;
       const parsedRecords = parseTranscriptLine({
         lineText,
         baseSource,
@@ -77,17 +74,6 @@ export async function* parseCodexTranscriptFile(
       for (const parsedRecord of parsedRecords) {
         yield parsedRecord;
       }
-
-      if (
-        sessionIdBeforeLine === null &&
-        normalizationContext.sessionId !== null
-      ) {
-        sessionIdBecameAvailable = true;
-      }
-
-      if (parsedRecords.length > 0) {
-        latestDeliveredByteOffset = nextByteOffset;
-      }
     }
 
     line += 1;
@@ -98,14 +84,14 @@ export async function* parseCodexTranscriptFile(
   const metadata =
     createCodexTranscriptNormalizationMetadata(normalizationContext);
 
-  if (!shouldEmitProgressSession(normalizationContext)) {
+  if (normalizationContext.sessionId === null || byteOffset <= cursorStart) {
     return;
   }
 
-  if (!sessionIdBecameAvailable && byteOffset <= latestDeliveredByteOffset) {
-    return;
-  }
-
+  // The final session is part of the last offset's delivery group. Recreate it
+  // on every consumed slice so a failed callback is retried even when the
+  // session identity was restored from a nonzero cursor. An incomplete tail
+  // with no consumed bytes must not produce progress.
   yield createCodexObservedSessionRecord({
     context,
     line: line - 1,
@@ -226,14 +212,6 @@ function deriveSessionId(
   filePath: string,
 ): string {
   return normalizationContext.sessionId ?? `file:${filePath}`;
-}
-
-function shouldEmitProgressSession(
-  normalizationContext: ReturnType<
-    typeof createCodexTranscriptNormalizationContext
-  >,
-): boolean {
-  return normalizationContext.sessionId !== null;
 }
 
 function selectCompleteness(

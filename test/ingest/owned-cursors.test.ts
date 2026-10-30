@@ -64,7 +64,7 @@ test("owned cursors retain pending Codex tool/turn state across append and servi
       f.roots.codex,
       file,
     );
-    expect(before?.metadata?.senseiReaderVersion).toBe("codex/transcript/1");
+    expect(before?.metadata?.senseiReaderVersion).toBe("codex/transcript/2");
     expect(before?.line).toBe(5);
     appendFileSync(file, lines.slice(5).join("\n"));
     await createStoredService(f).scanNow();
