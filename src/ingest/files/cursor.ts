@@ -10,7 +10,7 @@ import type { FileState } from "./discovery.js";
 export function readerVersion(source: ObservedEventSource): string {
   // Version 1 could acknowledge EOF without retrying a failed final session.
   const version =
-    source.provider === "codex" && source.kind === "transcript" ? 2 : 1;
+    source.provider === "codex" && source.kind === "transcript" ? 3 : 1;
   return `${source.provider}/${source.kind}/${version}`;
 }
 

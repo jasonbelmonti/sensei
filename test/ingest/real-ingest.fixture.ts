@@ -24,6 +24,7 @@ export function createRealIngestFixture(copyInputs = true) {
   }
   const config = createSenseiConfig({
     repoRoot: harness.rootDir,
+    homeDir: harness.rootDir,
     env: {
       SENSEI_HOME: harness.rootDir,
       SENSEI_CLAUDE_ROOT: roots.claude,

@@ -14,12 +14,12 @@ test("unsupported runtime providers cannot partially populate Sensei storage or 
     const record = {
       kind: "session",
       observedSession: {
-        provider: "copilot",
+        provider: "unknown-provider",
         sessionId: "unsupported",
         state: "canonical",
       },
       source: {
-        provider: "copilot",
+        provider: "unknown-provider",
         kind: "transcript",
         discoveryPhase: "initial_scan",
         rootPath: "/fixture",
@@ -34,21 +34,21 @@ test("unsupported runtime providers cannot partially populate Sensei storage or 
         warnings: [],
         discoveryEvents: [],
       }),
-    ).toThrow("Unsupported Sensei ingest provider: copilot");
+    ).toThrow("Unsupported Sensei ingest provider: unknown-provider");
     const { cursorStore } = createSenseiWatchStorageBindings(harness.storage);
     const key = {
-      provider: "copilot",
+      provider: "unknown-provider",
       rootPath: "/fixture",
       filePath: "/fixture/session.jsonl",
     } as unknown as IngestCursorKey;
     await expect(
       cursorStore?.set({ ...key, byteOffset: 10, line: 1 }),
-    ).rejects.toThrow("Unsupported Sensei ingest provider: copilot");
+    ).rejects.toThrow("Unsupported Sensei ingest provider: unknown-provider");
     await expect(cursorStore?.get(key)).rejects.toThrow(
-      "Unsupported Sensei ingest provider: copilot",
+      "Unsupported Sensei ingest provider: unknown-provider",
     );
     await expect(cursorStore?.delete(key)).rejects.toThrow(
-      "Unsupported Sensei ingest provider: copilot",
+      "Unsupported Sensei ingest provider: unknown-provider",
     );
     expect(
       harness.storage.database

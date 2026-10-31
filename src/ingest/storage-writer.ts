@@ -7,6 +7,7 @@ import type { SenseiPassiveScanResult } from "./scan-result.js";
 import {
   collectSessionWriteSelections,
   resolveSessionWrite,
+  selectAuthoritativeExplicitSessionWrite,
 } from "./session-write-selection.js";
 
 export type PassiveScanWriteSummary = {
@@ -22,6 +23,7 @@ export type PassiveScanWriteSummary = {
 export function writePassiveScanResultToStorage(
   storage: Pick<SenseiStorage, "transaction">,
   result: SenseiPassiveScanResult,
+  options: {retainMissingSessionMetadata?:boolean} = {},
 ): PassiveScanWriteSummary {
   const sessionWriteSelections = collectSessionWriteSelections(result.records);
 
@@ -39,13 +41,18 @@ export function writePassiveScanResultToStorage(
     for (const record of result.records) {
       summary.processedRecords += 1;
       const writes = mapPassiveScanRecordToStorageWrites(record);
+      if (record.kind === "event")
+        repositories.evidence?.observe(record.observedEvent);
       const sessionWrite = resolveSessionWrite(
         writes.session,
         sessionWriteSelections,
       );
 
       if (sessionWrite) {
-        repositories.conversations.upsertSession(sessionWrite);
+        const existing=repositories.conversations.getSession(sessionWrite.provider,sessionWrite.sessionId);
+        if(existing && existing.source.kind !== sessionWrite.source.kind) {
+          repositories.conversations.upsertAuthoritativeSession(selectAuthoritativeExplicitSessionWrite(existing,sessionWrite),{retainMissingMetadata:options.retainMissingSessionMetadata});
+        } else repositories.conversations.upsertSession(sessionWrite);
         summary.sessionWrites += 1;
       }
 

@@ -1,7 +1,7 @@
 // Adapted from Claudex 4.0.6 (MIT); see THIRD_PARTY_NOTICES.md.
 import type { IngestProviderRegistry } from "../contracts.js";
 import { createCodexSessionIndexIngestRegistry } from "./session-index-parser.js";
-import { parseCodexTranscriptFile } from "./transcript-parser.js";
+import { parseCodexSource } from "./source-parser.js";
 
 export { createCodexSessionIndexIngestRegistry };
 
@@ -12,7 +12,10 @@ export function createCodexTranscriptIngestRegistry(): IngestProviderRegistry {
       const normalizedPath = filePath.toLowerCase();
       const fileName = getPathFileName(normalizedPath);
 
-      if (!normalizedPath.endsWith(".jsonl")) {
+      if (
+        !normalizedPath.endsWith(".jsonl") &&
+        !normalizedPath.endsWith(".jsonl.zst")
+      ) {
         return null;
       }
 
@@ -21,7 +24,7 @@ export function createCodexTranscriptIngestRegistry(): IngestProviderRegistry {
         ? null
         : { kind: "transcript" };
     },
-    parseFile: parseCodexTranscriptFile,
+    parseFile: parseCodexSource,
   };
 }
 

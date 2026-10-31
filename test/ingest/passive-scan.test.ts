@@ -26,14 +26,18 @@ test("passive scan roots and registries are derived from runtime config", () => 
   const expectedRoots = createExpectedRoots();
   const registries = createSenseiPassiveIngestRegistries();
 
-  expect(createSenseiPassiveScanRoots(config.paths.providers)).toEqual(expectedRoots);
-  expect(createSenseiPassiveScanAdapterForConfig(config).roots).toEqual(expectedRoots);
+  expect(createSenseiPassiveScanRoots(config.paths.providers)).toEqual(
+    expectedRoots,
+  );
+  expect(createSenseiPassiveScanAdapterForConfig(config).roots).toEqual(
+    expectedRoots,
+  );
 
   expect(
     registries.map((registry) => [registry.provider, registry.matchFile.name]),
-  ).toHaveLength(4);
+  ).toHaveLength(5);
   expect(new Set(registries.map((registry) => registry.provider))).toEqual(
-    new Set(["claude", "codex"]),
+    new Set(["claude", "codex", "copilot"]),
   );
 });
 
@@ -177,5 +181,6 @@ function createExpectedRoots() {
   return createSenseiPassiveScanRoots({
     claude: "/Users/test/.claude",
     codex: "/Users/test/.codex",
+    copilot: "/Users/test/.copilot/session-state",
   });
 }

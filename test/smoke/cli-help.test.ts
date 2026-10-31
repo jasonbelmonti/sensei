@@ -114,6 +114,7 @@ test("package-level CLI script runs ingest scan from the repo root without dupli
 			SENSEI_HOME: senseiHome,
 			SENSEI_CLAUDE_ROOT: claudeRoot,
 			SENSEI_CODEX_ROOT: codexRoot,
+			SENSEI_COPILOT_ROOT: resolve(fixtureRoot, "copilot"),
 		};
 
 		const firstRun = runPackageCliCommand(["ingest", "scan"], { env });
@@ -122,7 +123,7 @@ test("package-level CLI script runs ingest scan from the repo root without dupli
 		expect(firstRun.status).toBe(0);
 		expect(firstRun.stderr).not.toContain('error: script "sensei" exited');
 		expect(firstRun.stdout).toContain("sensei ingest scan completed.");
-		expect(firstRun.stdout).toContain("Roots scanned: 2");
+		expect(firstRun.stdout).toContain("Roots scanned: 3");
 		expect(firstRun.stdout).toContain("Processed records: 1");
 		expect(firstRun.stdout).toContain("Sessions written: 1");
 		expect(firstRun.stdout).toContain("Cursors written: 1");

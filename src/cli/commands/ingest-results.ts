@@ -17,7 +17,9 @@ const ingestHelpLines = [
   stdoutLine(ingestUsageLine),
   stdoutLine(""),
   stdoutLine("Available subcommands:"),
-  stdoutLine("  scan   Backfill configured provider roots into canonical storage"),
+  stdoutLine(
+    "  scan   Backfill configured provider roots into canonical storage",
+  ),
   stdoutLine("  watch  Observe configured provider roots until shutdown"),
 ] as const;
 
@@ -49,10 +51,25 @@ export function createScanSuccessResult(
     stdoutLine(`Tool events written: ${summary.writeSummary.toolEventWrites}`),
     stdoutLine(`Cursors written: ${summary.writeSummary.cursorWrites}`),
     stdoutLine(`Warnings recorded: ${summary.writeSummary.warningWrites}`),
+    ...(summary.coverage
+      ? [
+          stdoutLine(
+            `Sources: ${summary.coverage.discovered} discovered, ${summary.coverage.read} read, ${summary.coverage.skipped} skipped, ${summary.coverage.partial} partial`,
+          ),
+          stdoutLine(
+            `Visible evidence: ${summary.coverage.humanMessages} human messages, ${summary.coverage.toolItems} tool items`,
+          ),
+          ...summary.coverage.diagnostics.map((message) =>
+            stdoutLine(`Coverage: ${message}`),
+          ),
+        ]
+      : []),
   ]);
 }
 
-export function createScanFailureResult(error: unknown): SenseiCliCommandResult {
+export function createScanFailureResult(
+  error: unknown,
+): SenseiCliCommandResult {
   return createCommandResult(1, [
     stderrLine("sensei ingest scan failed."),
     stderrLine(renderErrorMessage(error)),
@@ -72,12 +89,12 @@ export function createWatchRunningResult(
 }
 
 export function createWatchStoppedResult(): SenseiCliCommandResult {
-  return createCommandResult(0, [
-    stdoutLine("sensei ingest watch stopped."),
-  ]);
+  return createCommandResult(0, [stdoutLine("sensei ingest watch stopped.")]);
 }
 
-export function createWatchFailureResult(error: unknown): SenseiCliCommandResult {
+export function createWatchFailureResult(
+  error: unknown,
+): SenseiCliCommandResult {
   return createCommandResult(1, [
     stderrLine("sensei ingest watch failed."),
     stderrLine(renderErrorMessage(error)),

@@ -17,7 +17,8 @@ import { toStorageProvider } from "./storage-provider.js";
 export type SenseiIngestWatchStorage = Pick<
   SenseiStorage,
   "transaction" | "ingestState"
->;
+> &
+  Partial<Pick<SenseiStorage, "database" | "evidence" | "close">>;
 
 export function createSenseiWatchStorageBindings(
   storage: SenseiIngestWatchStorage,
@@ -59,7 +60,10 @@ function createSenseiStorageCursorStore(
       );
     },
     async set(cursor) {
-      storage.ingestState.setCursor({ ...cursor, provider: toStorageProvider(cursor.provider) });
+      storage.ingestState.setCursor({
+        ...cursor,
+        provider: toStorageProvider(cursor.provider),
+      });
     },
     async delete(key) {
       storage.ingestState.deleteCursor(
@@ -140,7 +144,9 @@ function resolveWatchExplicitSessionWrite(
     | ReturnType<SenseiStorage["conversations"]["getSession"]>
     | null
     | undefined,
-  incomingSession: Parameters<SenseiStorage["conversations"]["upsertSession"]>[0],
+  incomingSession: Parameters<
+    SenseiStorage["conversations"]["upsertSession"]
+  >[0],
 ): Parameters<SenseiStorage["conversations"]["upsertSession"]>[0] {
   if (!existingSession) {
     return incomingSession;
@@ -153,7 +159,9 @@ function resolveWatchExplicitSessionWrite(
 }
 
 function toSessionInput(
-  session: NonNullable<ReturnType<SenseiStorage["conversations"]["getSession"]>>,
+  session: NonNullable<
+    ReturnType<SenseiStorage["conversations"]["getSession"]>
+  >,
 ): Parameters<SenseiStorage["conversations"]["upsertSession"]>[0] {
   return {
     provider: session.provider,
@@ -182,7 +190,9 @@ function resolveWatchEventObservedAtWrite(
     | ReturnType<SenseiStorage["conversations"]["getSession"]>
     | null
     | undefined,
-  incomingSession: Parameters<SenseiStorage["conversations"]["upsertSession"]>[0],
+  incomingSession: Parameters<
+    SenseiStorage["conversations"]["upsertSession"]
+  >[0],
 ): Parameters<SenseiStorage["conversations"]["upsertSession"]>[0] | null {
   if (
     !existingSession ||
@@ -208,8 +218,12 @@ function resolveWatchEventObservedAtWrite(
 }
 
 function doesSessionWriteStrengthen(
-  existingSession: NonNullable<ReturnType<SenseiStorage["conversations"]["getSession"]>>,
-  incomingSession: Parameters<SenseiStorage["conversations"]["upsertSession"]>[0],
+  existingSession: NonNullable<
+    ReturnType<SenseiStorage["conversations"]["getSession"]>
+  >,
+  incomingSession: Parameters<
+    SenseiStorage["conversations"]["upsertSession"]
+  >[0],
 ): boolean {
   const identityDifference =
     sessionIdentityRank(incomingSession.identityState) -
@@ -225,7 +239,9 @@ function doesSessionWriteStrengthen(
   );
 }
 
-function sessionIdentityRank(identityState: "canonical" | "provisional"): number {
+function sessionIdentityRank(
+  identityState: "canonical" | "provisional",
+): number {
   switch (identityState) {
     case "canonical":
       return 1;

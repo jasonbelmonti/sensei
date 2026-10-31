@@ -1,0 +1,83 @@
+{
+  "codex": {
+    "sessionId": "fixture-thread",
+    "turnId": "fixture-turn",
+    "messages": [
+      [
+        "fixture-user",
+        "human",
+        "Find related completed tasks and show supporting evidence."
+      ],
+      [
+        "fixture-async",
+        "human",
+        "Please keep the instructions in the recommendation."
+      ],
+      [
+        "fixture-final",
+        "assistant",
+        "The bounded review is complete."
+      ]
+    ],
+    "tools": [
+      [
+        "fixture-leaf",
+        "error",
+        "limit must be <=50"
+      ],
+      [
+        "fixture-wrapper",
+        "success",
+        "Script completed successfully. Nested tool result: limit must be <=50."
+      ],
+      [
+        "fixture-search",
+        "error",
+        ""
+      ]
+    ],
+    "partial": true
+  },
+  "copilot": {
+    "sessionId": "cp-session",
+    "turnId": "cp-turn",
+    "messages": [
+      [
+        "cp-message1",
+        "human",
+        "Find related completed tasks."
+      ],
+      [
+        "cp-answer1",
+        "assistant",
+        "I will inspect the supporting evidence."
+      ],
+      [
+        "cp-message2",
+        "human",
+        "Use the retained evidence instead."
+      ],
+      [
+        "cp-answer2",
+        "assistant",
+        "The retained evidence supports the result."
+      ]
+    ],
+    "tools": [
+      [
+        "cp-tool",
+        "error",
+        "File is unavailable."
+      ]
+    ],
+    "partial": true
+  },
+  "excludes": [
+    "SYSTEM INSTRUCTIONS",
+    "TRANSFORMED",
+    "PRIVATE REASONING",
+    "SECRET",
+    "# AGENTS.md instructions"
+  ],
+  "searchExitOneMeans": "tool outcome only, never a friction recommendation"
+}

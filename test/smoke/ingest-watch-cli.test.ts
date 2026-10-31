@@ -13,6 +13,7 @@ test("compiled scan/watch resumes real files, completes a partial line and shuts
     SENSEI_HOME: join(root, "home"),
     SENSEI_CLAUDE_ROOT: join(root, "claude"),
     SENSEI_CODEX_ROOT: join(root, "codex"),
+    SENSEI_COPILOT_ROOT: join(root, "copilot"),
     SENSEI_INGEST_WATCH_INTERVAL_MS: "10",
   };
   for (const provider of ["claude", "codex"]) {

@@ -25,6 +25,7 @@ test("runtime paths default to local-first provider and output roots", () => {
     providers: {
       claude: "/Users/sensei/.claude",
       codex: "/Users/sensei/.codex",
+      copilot: "/Users/sensei/.copilot/session-state",
     },
     generated: {
       root: "/repo/sensei/generated",
@@ -43,6 +44,7 @@ test("config honors path overrides and leaves room for optional embeddings", () 
       SENSEI_HOME: ".sensei-dev",
       SENSEI_CLAUDE_ROOT: "state/claude",
       SENSEI_CODEX_ROOT: "/tmp/codex-state",
+      SENSEI_COPILOT_ROOT: "state/copilot",
       SENSEI_GENERATED_ROOT: ".out",
       SENSEI_INGEST_WATCH_INTERVAL_MS: "5000",
       SENSEI_EMBEDDING_PROVIDER: "local-ollama",
@@ -53,6 +55,7 @@ test("config honors path overrides and leaves room for optional embeddings", () 
   expect(config.paths.providers).toEqual({
     claude: "/Users/sensei/state/claude",
     codex: "/tmp/codex-state",
+    copilot: "/Users/sensei/state/copilot",
   });
   expect(config.paths.generated.root).toBe("/repo/sensei/.out");
   expect(config.ingest.watchIntervalMs).toBe(5000);

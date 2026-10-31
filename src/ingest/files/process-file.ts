@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type {
   DiscoveryPhase,
   DiscoveryRootConfig,
@@ -66,9 +67,15 @@ export async function processFile(options: {
     } else if (cursor.byteOffset === before.size && !hasPendingSnapshot(cursor))
       return;
   }
+  if(before.size===0 && root.provider!=="claude" && match.kind==="transcript" && !filePath.endsWith(".zst")) {
+    await service.onWarning?.({code:"parse-failed",message:"Empty transcript; source coverage is partial",source,...key});
+    const empty:IngestCursor={...key,byteOffset:0,line:0,fingerprint:before.fingerprint,metadata:{sha256:createHash("sha256").digest("hex"),senseiReaderVersion:readerVersion(source),senseiEndedAtNewline:true}};
+    await service.cursorStore?.set(empty);await service.onCursor?.(empty);return;
+  }
   const prefix = await readCursorContinuityToken(filePath, before.size);
   const records = await reader.parseFile({
     root,
+    signal: service.signal,
     filePath,
     discoveryPhase: phase,
     match,
@@ -102,6 +109,7 @@ export async function processFile(options: {
     after &&
     before.fingerprint === after.fingerprint &&
     after.size >= before.size &&
+    (!filePath.endsWith(".zst") || after.size === before.size) &&
     prefix === (await readCursorContinuityToken(filePath, before.size));
   if (!unchanged) {
     await service.onWarning?.({
@@ -117,7 +125,10 @@ export async function processFile(options: {
     const committed: IngestCursor = {
       ...latest,
       fingerprint: after.fingerprint,
-      line: match.kind === "snapshot" ? latest.line : checkpoint.line,
+      line:
+        match.kind === "snapshot" || latest.metadata?.archive
+          ? latest.line
+          : checkpoint.line,
       continuityToken: checkpoint.token ?? undefined,
       updatedAt: new Date().toISOString(),
       metadata: {

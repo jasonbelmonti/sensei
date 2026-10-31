@@ -1,6 +1,6 @@
 // Adapted from Claudex 4.0.6 (MIT); see THIRD_PARTY_NOTICES.md.
 import type { IngestError } from "./ingest-error.js";
-export type ProviderId = "claude" | "codex";
+export type ProviderId = "claude" | "codex" | "copilot";
 export type SessionReference = { provider: ProviderId; sessionId: string };
 export type AttachmentSource =
   | {
@@ -94,13 +94,13 @@ export type TurnStartedEvent = AgentEventBase<"turn.started"> & {
 
 export type MessageDeltaEvent = AgentEventBase<"message.delta"> & {
   messageId?: string;
-  role: "assistant";
+  role: "assistant" | "user";
   delta: string;
 };
 
 export type MessageCompletedEvent = AgentEventBase<"message.completed"> & {
   messageId?: string;
-  role: "assistant";
+  role: "assistant" | "user";
   text: string;
   structuredOutput?: unknown;
 };

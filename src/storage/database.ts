@@ -1,3 +1,4 @@
+import { createEvidenceRepository } from "../evidence/repository.js";
 import { Database } from "./sqlite-driver.js";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
@@ -32,6 +33,7 @@ export function openSenseiStorage(options: OpenSenseiStorageOptions) {
 
 	configureDatabase(database);
 	const migrations = options.readonly ? [] : migrateSenseiDatabase(database);
+	const evidence = createEvidenceRepository(database);
 	const analysisTurns = createAnalysisTurnRepository(database);
 	const conversations = createConversationRepository(database);
 	const ingestState = createIngestStateRepository(database);
@@ -59,6 +61,7 @@ export function openSenseiStorage(options: OpenSenseiStorageOptions) {
 		),
 	});
 	type TransactionStorage = {
+		evidence?: typeof evidence;
 		analysisTurns: typeof analysisTurns;
 		conversations: typeof conversations;
 		ingestState: typeof ingestState;
@@ -68,6 +71,7 @@ export function openSenseiStorage(options: OpenSenseiStorageOptions) {
 	};
 
 	return {
+		evidence,
 		analysisTurns,
 		database,
 		migrations,
@@ -83,6 +87,7 @@ export function openSenseiStorage(options: OpenSenseiStorageOptions) {
 		): SynchronousTransactionResult<T> {
 			const runTransaction = database.transaction(() =>
 				callback({
+					evidence,
 					analysisTurns,
 					conversations,
 					ingestState,

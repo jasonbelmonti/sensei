@@ -1,8 +1,15 @@
-import type { DiscoveryRootConfig, IngestProviderRegistry } from "./contracts.js";
+import type {
+  DiscoveryRootConfig,
+  IngestProviderRegistry,
+} from "./contracts.js";
+import { createCopilotIngestRegistry } from "./copilot/registry.js";
 import { createClaudeIngestRegistries } from "./claude/registry.js";
 import { createCodexIngestRegistries } from "./codex/registry.js";
 
-import type { SenseiProviderRoots, SenseiRuntimeConfig } from "../config/index.js";
+import type {
+  SenseiProviderRoots,
+  SenseiRuntimeConfig,
+} from "../config/index.js";
 
 export type SenseiPassiveScanRoot = Pick<
   DiscoveryRootConfig,
@@ -15,6 +22,9 @@ export function createSenseiPassiveScanRoots(
   return [
     createSenseiPassiveRoot("claude", providerRoots.claude, false),
     createSenseiPassiveRoot("codex", providerRoots.codex, false),
+    ...(providerRoots.copilot
+      ? [createSenseiPassiveRoot("copilot", providerRoots.copilot, false)]
+      : []),
   ];
 }
 
@@ -30,6 +40,9 @@ export function createSenseiPassiveWatchRoots(
   return [
     createSenseiPassiveRoot("claude", providerRoots.claude, true),
     createSenseiPassiveRoot("codex", providerRoots.codex, true),
+    ...(providerRoots.copilot
+      ? [createSenseiPassiveRoot("copilot", providerRoots.copilot, true)]
+      : []),
   ];
 }
 
@@ -43,6 +56,7 @@ export function createSenseiPassiveIngestRegistries(): IngestProviderRegistry[] 
   return [
     ...createClaudeIngestRegistries(),
     ...createCodexIngestRegistries(),
+    createCopilotIngestRegistry(),
   ];
 }
 

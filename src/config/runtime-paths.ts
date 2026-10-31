@@ -6,6 +6,7 @@ export type SenseiEnvironment = Readonly<Record<string, string | undefined>>;
 export type SenseiProviderRoots = {
   claude: string;
   codex: string;
+  copilot?: string;
 };
 
 export type SenseiGeneratedPaths = {
@@ -61,6 +62,11 @@ export function resolveSenseiRuntimePaths(
     reportsRoot,
     databasePath: join(dataRoot, "sensei.sqlite"),
     providers: {
+      copilot: resolveWithBase(
+        resolvedHomeDir,
+        env.SENSEI_COPILOT_ROOT,
+        join(resolvedHomeDir, ".copilot", "session-state"),
+      ),
       claude: resolveWithBase(
         resolvedHomeDir,
         env.SENSEI_CLAUDE_ROOT,
