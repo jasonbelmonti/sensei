@@ -116,7 +116,7 @@ test("version-1 Codex EOF cursors visibly replay final session delivery once", a
 			f.roots.codex,
 			file,
 		);
-		expect(current?.metadata?.senseiReaderVersion).toBe("codex/transcript/3");
+		expect(current?.metadata?.senseiReaderVersion).toBe("codex/transcript/4");
 		expect(current?.byteOffset).toBe(old.byteOffset);
 		await service().scanNow();
 		expect(deliveries).toBe(1);

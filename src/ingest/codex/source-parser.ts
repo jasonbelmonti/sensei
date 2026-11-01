@@ -17,7 +17,12 @@ export async function* parseCodexSource(
 			context.cursor?.metadata?.currentFormat ||
 			(await hasRichItems(path, archive ? undefined : context.byteLength))
 		) {
-			yield* parseCurrentTranscript(context, decodeCurrentCodex, path);
+			// Legacy cursors carry different decoder state. Replay the header when
+			// the first rich item arrives so its session provenance is reconstructed.
+			const currentContext = context.cursor?.metadata?.currentFormat
+				? context
+				: { ...context, cursor: null };
+			yield* parseCurrentTranscript(currentContext, decodeCurrentCodex, path);
 		} else if (archive) {
 			// Archives without qualified provenance remain visible as unsupported coverage.
 			throw new Error(

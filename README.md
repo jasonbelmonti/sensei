@@ -75,12 +75,16 @@ produce warnings; later records remain readable. Watch ticks serialize, failed
 writes do not acknowledge the failed observation, and shutdown waits for active
 processing. A `watch-failed` warning requires restarting the watcher.
 
-Codex transcript reader version 3 retries final session delivery before
+Codex transcript reader version 4 retries final session delivery before
 acknowledging the last line, including after a failed callback and restart.
+When rich items first arrive after a legacy-prefix scan, the reader replays
+from the header to reconstruct session state before storing their evidence.
 Earlier transcript cursors replay once with a `cursor-reset` warning, including
 unchanged files at EOF. Existing stored records are upserted without duplication.
 
-SQLite schemas and CLI configuration are unchanged. Use an explicit isolated
+The current-format migration adds evidence tables and Copilot provider support
+while preserving legacy rows. Configure Copilot with `SENSEI_COPILOT_ROOT`.
+Use an explicit isolated
 `SENSEI_HOME` when evaluating this reboot; no default database conversion is part
 of this release. Source-specific warnings are retained in `ingest_warnings`.
 

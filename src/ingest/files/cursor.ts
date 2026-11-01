@@ -8,9 +8,10 @@ import type { FileState } from "./discovery.js";
 
 /** Bump when a reader's output or resumable state changes. Byte continuity is insufficient. */
 export function readerVersion(source: ObservedEventSource): string {
-  // Version 1 could acknowledge EOF without retrying a failed final session.
+  // Versions 1 and 3 could acknowledge EOF with undelivered observations:
+  // a failed final session (v1) or a legacy-to-rich decoder transition (v3).
   const version =
-    source.provider === "codex" && source.kind === "transcript" ? 3 : 1;
+    source.provider === "codex" && source.kind === "transcript" ? 4 : 1;
   return `${source.provider}/${source.kind}/${version}`;
 }
 
