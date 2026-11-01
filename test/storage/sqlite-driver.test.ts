@@ -53,7 +53,7 @@ test("readonly storage rejects writes and preserves the database bytes", () => {
 	try {
 		expect(
 			database.query("SELECT count(*) AS count FROM _sensei_migrations").get(),
-		).toEqual({ count: 3 });
+		).toEqual({ count: 4 });
 		expect(() =>
 			database.exec("CREATE TABLE forbidden (id INTEGER)"),
 		).toThrow();

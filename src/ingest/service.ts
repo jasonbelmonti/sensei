@@ -1,3 +1,4 @@
+import { unavailableCopilotSessions } from "./copilot/coverage.js";
 import { resolve } from "node:path";
 import type {
   DiscoveryEventType,
@@ -146,6 +147,17 @@ class LocalIngestService implements SessionIngestService {
           "Root is not readable",
         );
         continue;
+      }
+      if (root.provider === "copilot") {
+        for (const sessionPath of unavailableCopilotSessions(current.keys())) {
+          await this.emit(
+            root,
+            "root.skipped",
+            phase,
+            sessionPath,
+            "Copilot session has metadata but no events.jsonl; history unavailable",
+          );
+        }
       }
       const previous = this.snapshots.get(rootKey(root));
       for (const [filePath, state] of current) {

@@ -1,3 +1,5 @@
+import { createStagedStorage } from "./staged-storage.js";
+import type { SenseiStorage } from "../storage/database.js";
 import type {
   IngestProviderRegistry,
   SessionIngestService,
@@ -20,7 +22,10 @@ type CreateSenseiIngestWatchService = (
   options: SessionIngestServiceOptions,
 ) => SessionIngestService;
 
-export type SenseiIngestWatchConfig = Pick<SenseiRuntimeConfig, "paths" | "ingest">;
+export type SenseiIngestWatchConfig = Pick<
+  SenseiRuntimeConfig,
+  "paths" | "ingest"
+>;
 
 export type SenseiIngestWatch = {
   roots: readonly SenseiPassiveScanRoot[];
@@ -44,11 +49,22 @@ export function createSenseiIngestWatch(
     options.createRegistries ?? createSenseiPassiveIngestRegistries;
   const createService = options.createService ?? createSessionIngestService;
 
+  const staged =
+    options.storage.database &&
+    options.storage.evidence &&
+    !options.createService
+      ? createStagedStorage(options.storage as SenseiStorage,"watch")
+      : undefined;
+  const bindings = staged
+    ? staged.bindings
+    : createSenseiWatchStorageBindings(options.storage);
+  const cancellation = new AbortController();
   const service = createService({
+    signal: cancellation.signal,
     roots,
     registries: createRegistries(),
     watchIntervalMs: config.ingest.watchIntervalMs,
-    ...createSenseiWatchStorageBindings(options.storage),
+    ...bindings,
   });
 
   return {
@@ -59,8 +75,13 @@ export function createSenseiIngestWatch(
     reconcileNow() {
       return service.reconcileNow();
     },
-    stop() {
-      return service.stop();
+    async stop() {
+      cancellation.abort();
+      try {
+        await service.stop();
+      } finally {
+        staged?.close();
+      }
     },
   };
 }

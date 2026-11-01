@@ -696,11 +696,12 @@ export function createConversationRepository(database: Database) {
 
       return mapSessionRow(row);
     },
-    upsertAuthoritativeSession(input: StoreSessionInput): StoredSessionRecord {
+    upsertAuthoritativeSession(input: StoreSessionInput, options: {retainMissingMetadata?:boolean} = {}): StoredSessionRecord {
       const candidateSession = mergeAuthoritativeSessionRecord(
         getSession(input.provider, input.sessionId),
         input,
       );
+      if (options.retainMissingMetadata === false) candidateSession.metadata=input.metadata;
       const row = upsertAuthoritativeSessionStatement.get(
         ...sessionStatementParams(candidateSession),
       ) as SessionRow | null;

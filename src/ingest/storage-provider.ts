@@ -9,7 +9,8 @@ import type {
 export function toStorageProvider(
 	provider: ObservedEventSource["provider"],
 ): StorageProviderId {
-	if (provider === "claude" || provider === "codex") return provider;
+	if (provider === "claude" || provider === "codex" || provider === "copilot")
+		return provider;
 	throw new Error(`Unsupported Sensei ingest provider: ${provider}`);
 }
 

@@ -5,7 +5,7 @@ import {
   extractResponseMessageText,
 } from "./normalize-content.js";
 import { emptyResult, unsupportedRecord } from "./normalize-result.js";
-import { emitTurnStarted, ensureActiveTurn } from "./normalize-turn.js";
+import { ensureActiveTurn } from "./normalize-turn.js";
 import type {
   CodexTranscriptNormalizationContext,
   ParsedArtifact,
@@ -36,7 +36,18 @@ export function normalizeResponseMessageRecord(
         );
       }
 
-      return emitTurnStarted(text, record, context, timestamp);
+      if (context.activeTurn.startedEmitted) return emptyResult(context);
+      return {
+        events: [],
+        sessionId: context.sessionId ?? undefined,
+        warnings: [
+          {
+            code: "unsupported-record",
+            message:
+              "Model-input user message lacks human provenance; awaiting an explicit user event",
+          },
+        ],
+      };
     case "assistant": {
       if (!text) {
         return unsupportedRecord(

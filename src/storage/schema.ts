@@ -1,4 +1,4 @@
-export const STORAGE_PROVIDER_IDS = ["claude", "codex"] as const;
+export const STORAGE_PROVIDER_IDS = ["claude", "codex", "copilot"] as const;
 
 export type StorageProviderId = (typeof STORAGE_PROVIDER_IDS)[number];
 

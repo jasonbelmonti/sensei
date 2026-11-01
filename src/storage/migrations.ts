@@ -1,3 +1,4 @@
+import { migrateCurrentIngestion } from "./provider-migration.js";
 import type { Database } from "./sqlite-driver.js";
 
 import { STORAGE_MIGRATIONS } from "./schema.js";
@@ -75,6 +76,10 @@ export function migrateSenseiDatabase(
 	database: Database,
 ): StorageMigrationRecord[] {
 	let transactionStarted = false;
+	const foreignKeys = (
+		database.query("PRAGMA foreign_keys").get() as { foreign_keys: number }
+	).foreign_keys;
+	database.exec("PRAGMA foreign_keys = OFF;");
 
 	try {
 		database.exec("BEGIN IMMEDIATE;");
@@ -107,6 +112,9 @@ export function migrateSenseiDatabase(
 			appliedMigrationIds.add(migration.id);
 		}
 
+		migrateCurrentIngestion(database);
+		if (database.query("PRAGMA foreign_key_check").all().length)
+			throw new Error("Ingestion migration violates foreign keys");
 		database.exec("COMMIT;");
 		transactionStarted = false;
 	} catch (error) {
@@ -115,6 +123,8 @@ export function migrateSenseiDatabase(
 		}
 
 		throw error;
+	} finally {
+		database.exec(`PRAGMA foreign_keys = ${foreignKeys};`);
 	}
 
 	return database

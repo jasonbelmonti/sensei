@@ -13,6 +13,7 @@ test("compiled CLI preserves Claude sessions and legacy Codex turns through owne
 			SENSEI_HOME: join(root, "sensei"),
 			SENSEI_CLAUDE_ROOT: join(root, "claude"),
 			SENSEI_CODEX_ROOT: join(root, "codex"),
+			SENSEI_COPILOT_ROOT: join(root, "copilot"),
 		};
 		for (const provider of ["claude", "codex"]) {
 			mkdirSync(join(root, provider));

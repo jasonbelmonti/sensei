@@ -41,6 +41,7 @@ const EXPECTED_MIGRATION_IDS = [
 	"0001_canonical_storage",
 	"0002_turn_features",
 	"0003_workflow_storage",
+	"0004_current_ingestion",
 ] as const;
 
 afterEach(() => {
@@ -268,7 +269,10 @@ test("fresh bootstrap tolerates concurrent storage opens", async () => {
 	const databasePath = join(rootDir, "sensei.sqlite");
 	cleanups.push(() => rmSync(rootDir, { recursive: true, force: true }));
 
-	const storageModulePath = new URL("../../dist/storage/index.js", import.meta.url).href;
+	const storageModulePath = new URL(
+		"../../dist/storage/index.js",
+		import.meta.url,
+	).href;
 	const openScript = `
     import { openSenseiStorage } from ${JSON.stringify(storageModulePath)};
     import { setTimeout } from "node:timers/promises";
@@ -279,10 +283,13 @@ test("fresh bootstrap tolerates concurrent storage opens", async () => {
     console.log("ok");
   `;
 
-	const open = () => promisify(execFile)(
-		process.execPath,
-		["--input-type=module", "--eval", openScript, databasePath],
-	);
+	const open = () =>
+		promisify(execFile)(process.execPath, [
+			"--input-type=module",
+			"--eval",
+			openScript,
+			databasePath,
+		]);
 	// execFile rejects nonzero exits; both independent Node processes must finish.
 	const results = await Promise.all([open(), open()]);
 	expect(results).toEqual([

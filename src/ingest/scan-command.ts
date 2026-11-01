@@ -1,3 +1,5 @@
+import { runStoredScan } from "./stored-scan.js";
+import type { IngestionCoverage } from "./staged-storage.js";
 import type { SenseiRuntimeConfig } from "../config/index.js";
 import {
   openSenseiStorage,
@@ -32,6 +34,7 @@ type WriteSenseiIngestScanResult = (
 ) => PassiveScanWriteSummary;
 
 export type SenseiIngestScanCommandSummary = {
+  coverage?: IngestionCoverage;
   rootCount: number;
   discoveryEventCount: number;
   writeSummary: PassiveScanWriteSummary;
@@ -47,6 +50,7 @@ export async function runSenseiIngestScanCommand(
   config: SenseiIngestScanConfig,
   options: RunSenseiIngestScanCommandOptions = {},
 ): Promise<SenseiIngestScanCommandSummary> {
+  if (Object.keys(options).length === 0) return runStoredScan(config);
   const createAdapterForConfig =
     options.createAdapterForConfig ?? createSenseiPassiveScanAdapterForConfig;
   const openStorage = options.openStorage ?? openSenseiStorage;

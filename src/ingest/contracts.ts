@@ -134,6 +134,7 @@ export type IngestWarning = {
 };
 
 export type ObservedAgentEvent = {
+  evidence?: import("../evidence/contracts.js").EvidenceObservation;
   kind: "event";
   event: AgentEvent;
   source: ObservedEventSource;
@@ -177,6 +178,7 @@ export type IngestParseContext = {
   cursor: IngestCursor | null;
   match: IngestFileMatch;
   byteLength?: number;
+  signal?: AbortSignal;
   onIncompleteLine?: () => Promise<void>;
 };
 
@@ -215,6 +217,7 @@ export type DiscoveryEventHandler = (
 ) => Promise<void> | void;
 
 export type SessionIngestServiceOptions = {
+  signal?: AbortSignal;
   roots: DiscoveryRootConfig[];
   registries: IngestProviderRegistry[];
   cursorStore?: CursorStore;

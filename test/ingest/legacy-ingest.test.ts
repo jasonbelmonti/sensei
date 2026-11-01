@@ -43,3 +43,17 @@ for (const mode of ["scan", "watch"] as const) {
     }
   });
 }
+
+test("public bounded scan preserves the frozen legacy canonical rows",async()=>{
+  const {runSenseiIngestScanCommand}=await import("../../src/ingest/scan-command.js");
+  const {openSenseiStorage}=await import("../../src/storage/database.js");
+  const fixture=createRealIngestFixture();
+  try {
+    await runSenseiIngestScanCommand(fixture.config);
+    const storage=openSenseiStorage({databasePath:fixture.config.paths.databasePath});
+    try {
+      const expected=JSON.parse(readFileSync(join(legacyFixtureRoot,"expected-scan.json"),"utf8"));
+      expect(canonicalIngestRows(storage,fixture.rootDir)).toEqual(expected);
+    } finally {storage.close();}
+  } finally {fixture.cleanup();}
+});
